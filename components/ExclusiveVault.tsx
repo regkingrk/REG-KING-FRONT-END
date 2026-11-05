@@ -48,15 +48,101 @@ function useEnquire() {
 }
 
 /**
- * Exclusive plates (#buy-exclusive), REG KING stock and customer plates: new in stock, then the
- * collection by number of characters (or category) with a price order toggle. No intro and no
- * entrance animation: the page opens as it is.
+ * Exclusive plates (#buy-exclusive). A short intro in the homepage intro's style (gold streak,
+ * EXCLUSIVE PLATES, the curtain lifts), then the page: new in stock, and the collection by
+ * number of characters with a price order toggle.
+ * A click, scroll or key skips the intro; reduced motion goes straight to the page.
  */
 export function ExclusiveVault({ kind = "exclusive" }: { kind?: CollectionKind }) {
+  // The intro is for Exclusive plates only; REG KING stock and customer plates open straight on the page.
+  const [intro, setIntro] = useState(kind === "exclusive");
+  const [landed, setLanded] = useState(kind !== "exclusive");
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setIntro(false);
+      setLanded(true);
+    }
+  }, []);
+
   return (
     <section className="vlt" id="rk-info" aria-labelledby="vlt-title">
-      <ExclusivePage key={kind} kind={kind} />
+      {intro && (
+        <VaultIntro
+          onThrough={() => setLanded(true)}
+          onDone={() => {
+            setLanded(true);
+            setIntro(false);
+          }}
+        />
+      )}
+      <ExclusivePage key={kind} kind={kind} landed={landed} />
     </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* The intro, in the homepage intro's language: black with letterbox   */
+/* bars, a gold streak cuts across and settles under EXCLUSIVE PLATES,  */
+/* then the black lifts away like a curtain.                            */
+/* Same timings and easing as lib/intro/createIntro.ts.                 */
+/* ------------------------------------------------------------------ */
+
+const INTRO_TITLE = "EXCLUSIVE PLATES";
+const THROUGH_MS = 2150; // the curtain starts to lift
+const INTRO_MS = 2900;
+
+function VaultIntro({ onThrough, onDone }: { onThrough: () => void; onDone: () => void }) {
+  const [on, setOn] = useState(false);
+  const doneRef = useRef(false);
+
+  const finish = () => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    onThrough();
+    onDone();
+  };
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("rk-noscroll");
+    window.scrollTo({ top: 0 });
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setOn(true)));
+    const timers = [window.setTimeout(onThrough, THROUGH_MS), window.setTimeout(finish, INTRO_MS)];
+    // The same ways to skip as the homepage intro.
+    const onKey = (e: KeyboardEvent) => ["Escape", "Enter", " "].includes(e.key) && finish();
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("wheel", finish, { passive: true });
+    window.addEventListener("touchmove", finish, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach(clearTimeout);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("wheel", finish);
+      window.removeEventListener("touchmove", finish);
+      root.classList.remove("rk-noscroll");
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="vi" data-on={on || undefined} onPointerDown={finish} aria-hidden>
+      <div className="vi__backdrop" />
+      <div className="vi__bar vi__bar--top" />
+      <div className="vi__bar vi__bar--bottom" />
+      <div className="vi__stage">
+        <span className="vi__flare" />
+        <p className="vi__title">
+          {[...INTRO_TITLE].map((c, i) => (
+            <span key={i} className="ch" style={{ animationDelay: `${0.55 + i * 0.03}s` }}>
+              {c}
+            </span>
+          ))}
+        </p>
+      </div>
+      <button type="button" className="rk-skip vi__skip" onClick={finish}>
+        Skip intro
+      </button>
+    </div>
   );
 }
 
@@ -205,7 +291,7 @@ const COLLECTIONS: Record<CollectionKind, () => Collection> = {
   },
 };
 
-function ExclusivePage({ kind }: { kind: CollectionKind }) {
+function ExclusivePage({ kind, landed }: { kind: CollectionKind; landed: boolean }) {
   const { go } = useMode();
   const enquire = useEnquire();
   const C = useMemo(() => COLLECTIONS[kind](), [kind]);
@@ -289,7 +375,7 @@ function ExclusivePage({ kind }: { kind: CollectionKind }) {
 
   return (
     <>
-    <div className="vlt__page" data-kind={kind}>
+    <div className="vlt__page" data-landed={landed || undefined} data-kind={kind}>
       <div className="xp-top">
       <div className="xp-top__bg" style={{ backgroundImage: `url(${GARAGE_PHOTO})` }} aria-hidden />
       <section className="rk-new xp-hero" aria-labelledby="vlt-title">
