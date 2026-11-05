@@ -1,0 +1,37 @@
+{
+  "name": "regking-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "brand:fetch": "node scripts/fetch-brand-assets.mjs",
+    "predev": "node scripts/fetch-brand-assets.mjs",
+    "dev": "next dev",
+    "prebuild": "node scripts/fetch-brand-assets.mjs && (test \"$LAUNCH\" != \"1\" || node scripts/prelaunch-check.mjs)",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "favicons": "node scripts/make-favicons.mjs",
+    "prelaunch": "node scripts/prelaunch-check.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.1.0",
+    "gsap": "^3.13.0",
+    "motion": "^12.9.0",
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.170.0",
+    "typescript": "^5.6.0",
+    "sharp": "^0.33.5"
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}

@@ -1,0 +1,366 @@
+"use client";
+
+/**
+ * The 3D view in the plate builder: real 3D plates (lib/plate3d.ts) the customer can drag to turn and
+ * zoom with the + and − buttons. It draws only when something changes, so it costs nothing at rest.
+ * If the browser can't do 3D, Plate3D shows its 2D picture instead.
+ */
+import { useEffect, useRef, useState } from "react";
+import type { BuildConfig } from "@/lib/builder";
+import { specFrom, plateFontReady } from "@/lib/plateRender";
+import { THREE, acrylicEnvironment, buildPlate, disposeGroup, studioEnvironment } from "@/lib/plate3d";
+
+type Side = "front" | "rear";
+const START = { yaw: 0, pitch: 0 };
+// 4D acrylic and Metal Press open turned further, looking down on the letters, so you see how far they stand out
+const START_4D = START;
+const is4D = (style: string | null | undefined) => /^4D |^Retro|^Vintage|^RK$|^Silver Retro/.test(style ?? "") || /^Metal Press/.test(style ?? "");
+const MIN_Z = 0.7;
+type View = { yaw: number; pitch: number; zoom: number };
+/** Ready-made angles to look at the plates from. */
+const VIEWS: { name: string; v: View }[] = [
+  { name: "Straight on", v: { yaw: 0, pitch: 0, zoom: 1 } },
+  { name: "From the left", v: { yaw: -0.75, pitch: 0.18, zoom: 1 } },
+  { name: "From the right", v: { yaw: 0.75, pitch: 0.18, zoom: 1 } },
+  { name: "From above", v: { yaw: -0.2, pitch: 0.7, zoom: 1 } },
+  { name: "Close-up", v: { yaw: -0.55, pitch: 0.3, zoom: 2.3 } },
+];
+const MAX_Z = 5;
+
+/**
+ * `groups`/`groupsKey`: draw something other than the builder's plates (the surround maker passes its
+ * surrounds), rebuilt whenever `groupsKey` changes.
+ */
+export function PlateGL({
+  reg = "",
+  c,
+  sides = [],
+  onFail,
+  groups,
+  groupsKey,
+  angles = true,
+  tight = false,
+}: {
+  reg?: string;
+  c?: BuildConfig;
+  sides?: Side[];
+  onFail: () => void;
+  groups?: (softEnv?: THREE.Texture, acrylicEnv?: THREE.Texture) => THREE.Group[];
+  groupsKey?: string;
+  /** Show the ready-made angle buttons (the plate builder does; the surround maker doesn't). */
+  angles?: boolean;
+  /** Fill the view more (less margin round the plates): the surround maker. */
+  tight?: boolean;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  const api = useRef<{ setPlates: (g: THREE.Group[]) => void; reset: () => void; view: (v: View) => void; zoomBy: (f: number) => void; setStart: (v: { yaw: number; pitch: number }) => void } | null>(null);
+  const [zoom, setZoom] = useState(1);
+  // the % shown between the buttons follows the view as it zooms
+  const onZoom = useRef((v: number) => setZoom(Math.round(v * 20) / 20));
+  const [ready, setReady] = useState(false);
+  const tightRef = useRef(tight);
+  tightRef.current = tight;
+  const softEnv = useRef<THREE.Texture | null>(null);
+  const acrylicEnv = useRef<THREE.Texture | null>(null);
+
+  // The scene: made once.
+  useEffect(() => {
+    const el = host.current;
+    if (!el) return;
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    } catch {
+      onFail();
+      return;
+    }
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    el.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.environment = studioEnvironment(renderer);
+    softEnv.current = studioEnvironment(renderer, false);
+    acrylicEnv.current = acrylicEnvironment(renderer);
+    const key = new THREE.DirectionalLight(0xffffff, 1.2);
+    key.position.set(-180, 260, 420);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.left = -340;
+    key.shadow.camera.right = 340;
+    key.shadow.camera.top = 260;
+    key.shadow.camera.bottom = -260;
+    key.shadow.radius = 4;
+    key.shadow.bias = -0.0004;
+    key.shadow.normalBias = 0.35; // no shadow speckle on shallow faces such as Retro's facets
+    scene.add(key, new THREE.AmbientLight(0xffffff, 0.25));
+
+    const camera = new THREE.PerspectiveCamera(26, 1, 10, 5000);
+    const rig = new THREE.Group();
+    scene.add(rig);
+
+    // view: turn (yaw, pitch), zoom (1 = the plates fill the view) and pan (mm), each easing to its target
+    let start = START;
+    let yaw = START.yaw, pitch = START.pitch, tYaw = yaw, tPitch = pitch, z = 1, tz = 1, panX = 0, panY = 0, tPanX = 0, tPanY = 0;
+    let raf = 0, span = { w: 520, h: 111 }, dist = 1000;
+    const fov = (camera.fov * Math.PI) / 180;
+    const half = (zoom: number) => {
+      const h = (Math.tan(fov / 2) * dist) / zoom;
+      return { h, w: h * camera.aspect };
+    };
+    const frame = () => {
+      const w = el.clientWidth || 1, h = el.clientHeight || 1;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      // fit the plates to the view with a margin, then zoom and pan
+      // (more room when the starting view is turned further, so the tilted plates still fit)
+      const mH = tightRef.current ? 1.08 : 1.25, mW = tightRef.current ? 1.04 : 1.18;
+      const needH = span.h * (mH + Math.max(0, Math.abs(start.pitch) - 0.24) * 1.2), needW = span.w * (mW + Math.max(0, Math.abs(start.yaw) - 0.44) * 0.5);
+      dist = Math.max(needH / (2 * Math.tan(fov / 2)), needW / (2 * Math.tan(fov / 2) * camera.aspect));
+      camera.position.set(panX, panY, dist / z);
+      camera.lookAt(panX, panY, 0);
+      camera.updateProjectionMatrix();
+    };
+    const draw = () => {
+      raf = 0;
+      yaw += (tYaw - yaw) * 0.18;
+      pitch += (tPitch - pitch) * 0.18;
+      z += (tz - z) * 0.22;
+      panX += (tPanX - panX) * 0.22;
+      panY += (tPanY - panY) * 0.22;
+      rig.rotation.set(pitch, yaw, 0);
+      frame();
+      renderer.render(scene, camera);
+      onZoom.current(z);
+      const moving = [tYaw - yaw, tPitch - pitch, tz - z, (tPanX - panX) / 100, (tPanY - panY) / 100].some((d) => Math.abs(d) > 0.0005);
+      if (moving) raf = requestAnimationFrame(draw);
+    };
+    const ask = () => {
+      if (!raf) raf = requestAnimationFrame(draw);
+    };
+    // a picture (logo or upload) finished loading: draw again
+    window.addEventListener("rk-gl-redraw", ask);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const jump = () => {
+      if (reduce) {
+        yaw = tYaw;
+        pitch = tPitch;
+        z = tz;
+        panX = tPanX;
+        panY = tPanY;
+      }
+      ask();
+    };
+    const clampPan = () => {
+      const lim = Math.max(0, 1 - 1 / tz);
+      tPanX = Math.max(-span.w * 0.6 * lim, Math.min(span.w * 0.6 * lim, tPanX));
+      tPanY = Math.max(-span.h * 0.6 * lim, Math.min(span.h * 0.6 * lim, tPanY));
+    };
+    /** Zoom to `next`, keeping the point under (nx, ny) (-1..1 across the view) where it is. */
+    const zoomAt = (next: number, nx = 0, ny = 0) => {
+      next = Math.max(MIN_Z, Math.min(MAX_Z, next));
+      const a = half(tz), b = half(next);
+      const wx = tPanX + nx * a.w, wy = tPanY + ny * a.h;
+      tPanX = wx - nx * b.w;
+      tPanY = wy - ny * b.h;
+      tz = next;
+      clampPan();
+      jump();
+    };
+    const ndc = (cx: number, cy: number) => {
+      const r = el.getBoundingClientRect();
+      return { nx: ((cx - r.left) / r.width) * 2 - 1, ny: -(((cy - r.top) / r.height) * 2 - 1) };
+    };
+
+    // the scroll wheel (and a trackpad pinch) zooms towards the pointer
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const { nx, ny } = ndc(e.clientX, e.clientY);
+      const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      zoomAt(tz * Math.exp(-d * 0.0018), nx, ny);
+    };
+
+    // one finger or the mouse turns the plates; Shift + drag pans; two fingers pinch to zoom and pan
+    const pts = new Map<number, { x: number; y: number }>();
+    let px = 0, py = 0, pinch = 0;
+    const down = (e: PointerEvent) => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      el.setPointerCapture(e.pointerId);
+      px = e.clientX;
+      py = e.clientY;
+      if (pts.size === 2) {
+        const [p1, p2] = [...pts.values()];
+        pinch = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+      }
+    };
+    const move = (e: PointerEvent) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size >= 2) {
+        const [p1, p2] = [...pts.values()];
+        const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        if (pinch > 0) {
+          const { nx, ny } = ndc((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+          zoomAt(tz * (d / pinch), nx, ny);
+        }
+        pinch = d;
+        return;
+      }
+      const dx = e.clientX - px, dy = e.clientY - py;
+      px = e.clientX;
+      py = e.clientY;
+      if (e.shiftKey && tz > 1) {
+        const r = el.getBoundingClientRect(), hv = half(tz);
+        tPanX -= (dx / r.width) * 2 * hv.w;
+        tPanY += (dy / r.height) * 2 * hv.h;
+        clampPan();
+      } else {
+        tYaw = Math.max(-1.1, Math.min(1.1, tYaw + dx * 0.008));
+        tPitch = Math.max(-0.7, Math.min(0.7, tPitch + dy * 0.006));
+      }
+      jump();
+    };
+    const up = (e: PointerEvent) => {
+      pts.delete(e.pointerId);
+      if (pts.size < 2) pinch = 0;
+      const rest = [...pts.values()][0];
+      if (rest) {
+        px = rest.x;
+        py = rest.y;
+      }
+    };
+    el.addEventListener("wheel", wheel, { passive: false });
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    const ro = new ResizeObserver(ask);
+    ro.observe(el);
+
+    api.current = {
+      setPlates: (plates) => {
+        rig.children.slice().forEach((o) => {
+          rig.remove(o);
+          disposeGroup(o);
+        });
+        const gap = 34;
+        const heights = plates.map((g) => new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3()));
+        const totalH = heights.reduce((a, v) => a + v.y, 0) + gap * (plates.length - 1);
+        let y = totalH / 2;
+        plates.forEach((g, i) => {
+          g.position.y = y - heights[i].y / 2;
+          y -= heights[i].y + gap;
+          rig.add(g);
+        });
+        span = { w: Math.max(...heights.map((v) => v.x)), h: totalH };
+        ask();
+      },
+      reset: () => {
+        tYaw = start.yaw;
+        tPitch = start.pitch;
+        tz = 1;
+        tPanX = 0;
+        tPanY = 0;
+        jump();
+      },
+      zoomBy: (f) => zoomAt(tz * f),
+      view: (v) => {
+        tYaw = v.yaw;
+        tPitch = v.pitch;
+        tz = Math.max(MIN_Z, Math.min(MAX_Z, v.zoom));
+        tPanX = 0;
+        tPanY = 0;
+        jump();
+      },
+      setStart: (v) => {
+        if (v === start) return;
+        start = v;
+        tYaw = v.yaw;
+        tPitch = v.pitch;
+        // the first plates shown open straight at their angle; later style changes turn to it
+        if (!rig.children.length) {
+          yaw = tYaw;
+          pitch = tPitch;
+        }
+        jump();
+      },
+    };
+    setReady(true);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("rk-gl-redraw", ask);
+      el.removeEventListener("wheel", wheel);
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      rig.children.slice().forEach((o) => disposeGroup(o));
+      scene.environment?.dispose();
+      softEnv.current?.dispose();
+      acrylicEnv.current?.dispose();
+      renderer.dispose();
+      renderer.domElement.remove();
+      api.current = null;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The plates: rebuilt when anything about them changes.
+  const key = groups ? `g:${groupsKey}` : JSON.stringify([reg, sides, c?.vehicle, c?.legal, c?.qty, c?.style, c?.size, c?.rearSize, c?.extras, c?.hexFlip, c?.bottomText]);
+  useEffect(() => {
+    if (!ready) return;
+    let live = true;
+    plateFontReady().then(() => {
+      if (!live || !api.current) return;
+      if (groups) {
+        api.current.setStart(START);
+        api.current.setPlates(groups(softEnv.current ?? undefined, acrylicEnv.current ?? undefined));
+        return;
+      }
+      if (!c) return;
+      api.current.setStart(is4D(c.style) ? START_4D : START);
+      api.current.setPlates(sides.map((s) => buildPlate(specFrom(c, reg || "YOUR REG", s), softEnv.current ?? undefined, acrylicEnv.current ?? undefined)));
+    });
+    return () => {
+      live = false;
+    };
+  }, [ready, key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const step = (d: number) => api.current?.zoomBy(d > 0 ? 1.5 : 1 / 1.5);
+  return (
+    <div className="rk-gl" data-plate-gl>
+      <div ref={host} className="rk-gl__view" aria-hidden />
+      <div className="rk-gl__tools">
+        <button type="button" onClick={() => step(-1)} disabled={zoom <= MIN_Z + 0.01} aria-label="Zoom out" data-gl-zoom="out">
+          −
+        </button>
+        <span aria-live="polite">{Math.round(zoom * 100)}%</span>
+        <button type="button" onClick={() => step(1)} disabled={zoom >= MAX_Z - 0.01} aria-label="Zoom in" data-gl-zoom="in">
+          +
+        </button>
+        <button
+          type="button"
+          onClick={() => api.current?.reset()}
+          aria-label="Reset the view"
+          data-gl-reset
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+        </button>
+      </div>
+      {angles && <div className="rk-gl__views" role="group" aria-label="Look from">
+        {VIEWS.map((x) => (
+          <button key={x.name} type="button" onClick={() => api.current?.view(x.v)} data-gl-view={x.name}>
+            {x.name}
+          </button>
+        ))}
+      </div>}
+    </div>
+  );
+}
