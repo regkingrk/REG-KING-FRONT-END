@@ -37,24 +37,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-/**
- * Runs before first paint: first visit this session (and motion allowed) →
- * show the black intro stage immediately so the hero never flashes.
- */
-const introGate = `(function(){try{
-  var q=location.search.indexOf('intro')>-1;
-  var seen=sessionStorage.getItem('rk:intro-seen')==='1';
-  var rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var deep=/[?&]q=/.test(location.search);
-  if((q||!seen)&&!rm&&!deep)document.documentElement.classList.add('rk-intro-pending');
-}catch(e){}})();`;
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB" className={`${oswald.variable} ${plateFont.variable} ${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: introGate }} />
-      </head>
       <body>{children}</body>
     </html>
   );

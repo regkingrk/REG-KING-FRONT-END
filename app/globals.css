@@ -535,122 +535,6 @@ body::before {
 }
 
 /* ------------------------------------------------------------------ */
-/* Intro overlay                                                       */
-/* ------------------------------------------------------------------ */
-.rk-intro {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  overflow: hidden;
-}
-
-.rk-intro.is-on,
-.rk-intro-pending .rk-intro {
-  display: block;
-}
-
-.rk-intro-pending .rk-header__logo {
-  visibility: hidden;
-}
-
-.rk-intro__backdrop {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(70% 60% at 50% 45%, #0d0b06 0%, #000 70%);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
-}
-
-.rk-intro__backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: var(--rk-grain);
-  opacity: 0.06;
-  mix-blend-mode: overlay;
-}
-
-.rk-intro__bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 10vh;
-  background: #000;
-  z-index: 3;
-}
-
-.rk-intro__bar--top {
-  top: 0;
-  transform-origin: top;
-}
-
-.rk-intro__bar--bottom {
-  bottom: 0;
-  transform-origin: bottom;
-}
-
-.rk-intro__flare {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  z-index: 1;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 194, 0, 0.5) 25%, #fff3c4 50%, rgba(255, 194, 0, 0.5) 75%, transparent 100%);
-  box-shadow: 0 0 18px 2px rgba(255, 194, 0, 0.55), 0 0 60px 10px rgba(255, 194, 0, 0.18);
-}
-
-.rk-intro__canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-}
-
-.rk-intro__slogan {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  z-index: 2;
-  margin: 0;
-  white-space: nowrap;
-  font: 500 clamp(17px, 2.5vw, 32px) var(--rk-display);
-  letter-spacing: 0.3em;
-  margin-right: -0.3em;
-  text-transform: uppercase;
-  color: var(--rk-yellow);
-}
-
-.rk-intro__slogan .ch {
-  display: inline-block;
-  white-space: pre;
-}
-
-.rk-skip {
-  position: absolute;
-  z-index: 4;
-  right: calc(var(--rk-gutter-r) + 6px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
-  font: 500 12px var(--rk-display);
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--rk-white);
-  background: rgba(22, 21, 20, 0.72);
-  border: 0;
-  border-radius: 8px;
-  padding: 10px 18px;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.rk-skip:hover {
-  background: var(--rk-ink);
-  color: var(--rk-yellow);
-}
-
-/* ------------------------------------------------------------------ */
 /* Sections (white)                                                    */
 /* ------------------------------------------------------------------ */
 .rk-section {
@@ -2641,10 +2525,6 @@ body::before {
     0 0 0 4px var(--rk-ink) inset,
     0 30px 80px -20px rgba(255, 194, 0, 0.45),
     0 2px 0 rgba(0, 0, 0, 0.08);
-}
-
-.rk-hero[data-mode="build"] .rk-replay {
-  color: rgba(255, 255, 255, 0.6);
 }
 
 @keyframes rk-rise {
@@ -19863,172 +19743,24 @@ html[data-blend] .vlt {
   padding-top: calc(var(--rk-top-h) + env(safe-area-inset-top, 0px));
 }
 
-/* ---------- the page landing ---------- */
-.vlt__page > * {
-  opacity: 0;
-  transform: translateY(26px) scale(0.985);
-  transition: opacity 0.8s ease, transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-.vlt__page[data-landed] > * {
-  opacity: 1;
+/* ---------- Exclusive plates, REG KING stock, customer plates: nothing moves on its own ---------- */
+/* New this week stands still here; each row scrolls by hand, and the repeat copy is hidden */
+.vlt .rk-new .rk-new__track,
+.vlt .rk-new .rk-new__row[data-dir] .rk-new__track {
+  animation: none;
   transform: none;
+  margin-inline: auto; /* centred when the plates fit, from the left when they scroll */
 }
-.vlt__page[data-landed] > :nth-child(2) {
-  transition-delay: 0.12s;
+.vlt .rk-new__row {
+  overflow-x: auto;
+  padding-inline: 6%;
+  scrollbar-width: none;
 }
-.vlt__page[data-landed] > :nth-child(3) {
-  transition-delay: 0.24s;
+.vlt .rk-new__row::-webkit-scrollbar {
+  display: none;
 }
-.vlt__page[data-landed] > :nth-child(n + 4) {
-  transition-delay: 0.32s;
-}
-@media (prefers-reduced-motion: reduce) {
-  .vlt__page > * {
-    transition: none;
-  }
-}
-
-/* ---------- the intro: the homepage intro's look, for Exclusive plates ---------- */
-.vi {
-  --expo-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --p3-io: cubic-bezier(0.65, 0, 0.35, 1);
-  --p2-io: cubic-bezier(0.45, 0, 0.55, 1);
-  --tsz: clamp(24px, 4.4vw, 58px);
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  overflow: hidden;
-  cursor: pointer;
-}
-.vi__backdrop {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(70% 60% at 50% 45%, #0d0b06 0%, #000 70%);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
-}
-.vi__backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: var(--rk-grain);
-  opacity: 0.06;
-  mix-blend-mode: overlay;
-}
-.vi__bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 10vh;
-  background: #000;
-  z-index: 3;
-}
-.vi__bar--top {
-  top: 0;
-  transform-origin: top;
-}
-.vi__bar--bottom {
-  bottom: 0;
-  transform-origin: bottom;
-}
-.vi__stage {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-}
-/* the streak: cuts across the centre, then settles as a floor line under the title */
-.vi__flare {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 194, 0, 0.5) 25%, #fff3c4 50%, rgba(255, 194, 0, 0.5) 75%, transparent 100%);
-  box-shadow: 0 0 18px 2px rgba(255, 194, 0, 0.55), 0 0 60px 10px rgba(255, 194, 0, 0.18);
-  transform: scaleX(0);
-}
-.vi__title {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  margin: 0;
-  white-space: nowrap;
-  font: 500 var(--tsz) / 1 var(--rk-display);
-  letter-spacing: 0.3em;
-  margin-right: -0.3em;
-  text-transform: uppercase;
-  color: var(--rk-yellow);
-  transform: translate(-50%, -50%);
-}
-.vi__title .ch {
-  display: inline-block;
-  white-space: pre;
-  opacity: 0;
-  transform: translateY(12px);
-  filter: blur(8px);
-}
-.vi__skip {
-  z-index: 4;
-}
-
-/* the timeline */
-.vi[data-on] .vi__flare {
-  animation: vi-flare-in 0.6s var(--expo-out) both, vi-flare-floor 0.7s var(--p3-io) 0.4s forwards, vi-out 0.2s ease-in 2.05s forwards;
-}
-@keyframes vi-flare-in {
-  from {
-    transform: translateY(0) scaleX(0);
-  }
-  to {
-    transform: translateY(0) scaleX(1);
-  }
-}
-@keyframes vi-flare-floor {
-  from {
-    transform: translateY(0) scaleX(1);
-  }
-  to {
-    transform: translateY(calc(var(--tsz) * 0.95)) scaleX(0.62);
-  }
-}
-.vi[data-on] .vi__title .ch {
-  animation: vi-ch 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
-}
-@keyframes vi-ch {
-  to {
-    opacity: 1;
-    transform: none;
-    filter: blur(0);
-  }
-}
-.vi[data-on] .vi__title {
-  animation: vi-out 0.2s ease-in 2.05s forwards;
-}
-@keyframes vi-out {
-  to {
-    opacity: 0;
-  }
-}
-.vi[data-on] .vi__bar {
-  animation: vi-bars 0.4s var(--p3-io) 2.1s forwards;
-}
-@keyframes vi-bars {
-  to {
-    transform: scaleY(0);
-  }
-}
-/* the black lifts away like a curtain */
-.vi[data-on] .vi__backdrop {
-  animation: vi-curtain 0.7s var(--p3-io) 2.15s forwards;
-}
-@keyframes vi-curtain {
-  to {
-    transform: translateY(-100%);
-  }
-}
-.vi[data-on] .vi__skip {
-  animation: vi-out 0.2s ease-in 2.05s forwards;
+.vlt .rk-new__track li[aria-hidden] {
+  display: none;
 }
 
 /* ================================================================== */
@@ -22779,9 +22511,6 @@ html[data-blend] .vlt {
 }
 .rk-hero[data-mode="sell"]:has(.rk-hero__sellfilm) .rk-proof__rule {
   background: rgba(255, 255, 255, 0.3);
-}
-.rk-hero[data-mode="sell"]:has(.rk-hero__sellfilm) .rk-replay {
-  color: rgba(255, 255, 255, 0.6);
 }
 
 /* Information menu: solid white links that read clearly */
@@ -35428,8 +35157,7 @@ input.rk-sr__qplate {
 /* raised white card over warm paper, the order in a black bar          */
 /* ================================================================== */
 body:has(.co--one) .rk-header,
-body:has(.co--one) .rk-footer,
-body:has(.co--one) .rk-replay {
+body:has(.co--one) .rk-footer {
   display: none !important;
 }
 .co--lux.co--one {
