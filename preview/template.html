@@ -118,7 +118,7 @@ html body{padding-top:var(--rk-top-h)}
 
   // Preview only: lets the automated checks load a module directly.
   window.__RK_LOAD__ = load;
-  var Home = load("app/page.js").default;
+  var Home = load("__ENTRY__").default;
   var mount = document.getElementById("rk-root");
   ReactDOM.createRoot(mount).render(R.createElement(Home));
 })();

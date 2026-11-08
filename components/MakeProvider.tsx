@@ -109,6 +109,11 @@ export function useMake(): Ctx {
   return c;
 }
 
+/** Same as useMake, but returns null outside a MakeProvider (the in-store studio has no basket). */
+export function useMakeOptional(): Ctx | null {
+  return useContext(MakeContext);
+}
+
 export const lineTotal = (lines: BasketLine[]) => ({
   known: lines.reduce((a, l) => a + (l.amount ?? 0), 0),
   onRequest: lines.some((l) => l.amount === null),

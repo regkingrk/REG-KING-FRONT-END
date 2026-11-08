@@ -16,7 +16,7 @@ import {
   rearOnly,
   vehicleLabel,
   answerText,
-  currentStep,
+  isAnswered,
   extrasFor,
   toggleExtra,
   BOTTOM_TEXT_MAX,
@@ -154,7 +154,7 @@ function Choice<T extends string>({ k, value, options, onPick }: { k: string; va
 }
 
 /** Shown once Show is picked: what a show plate is for, what it can have, and the law. */
-function ShowInfo() {
+function ShowInfo({ studio = false }: { studio?: boolean }) {
   return (
     <div className="rk-showinfo" data-showinfo>
       <h4>
@@ -169,12 +169,15 @@ function ShowInfo() {
           <dt>What you can have</dt>
           <dd>Every style we make, plus tints, faded tints and your own text along the bottom, none of which are allowed on a road legal plate.</dd>
         </div>
-        <div>
-          <dt>What we need from you</dt>
-          <dd>Nothing. Show plates don&apos;t need ID or proof you own the reg.</dd>
-        </div>
+        {!studio && (
+          <div>
+            <dt>What we need from you</dt>
+            <dd>Nothing. Show plates don&apos;t need ID or proof you own the reg.</dd>
+          </div>
+        )}
       </dl>
-      <p className="rk-showinfo__law">{SHOW_WARNING} For a plate you can drive with, choose Road legal plate.</p>
+      {/* The studio shows no prices or order details, and the warning quotes a fine in pounds. */}
+      {studio ? <p className="rk-showinfo__law">Show plates are not for use on the road. For a plate you can drive with, choose Road legal plate.</p> : <p className="rk-showinfo__law">{SHOW_WARNING} For a plate you can drive with, choose Road legal plate.</p>}
     </div>
   );
 }
@@ -219,7 +222,15 @@ type Props = {
   pricing?: Pricing;
   /** Panel heading, e.g. "Your plates" on a plate page. */
   title?: ReactNode;
+  /**
+   * In-store studio: design only. Hides every price and the running total, and leaves out the
+   * fitting kit, documents and delivery steps (and the notes about documents).
+   */
+  studio?: boolean;
 };
+
+/** Steps the in-store studio leaves out: they are about the order, not the design. */
+const STUDIO_SKIP: StepKey[] = ["kit", "docs", "delivery"];
 
 /**
  * Step-by-step plate builder, following the REG KING workshop tool, one step
@@ -227,7 +238,7 @@ type Props = {
  * whether a set matches) → style → size → (rear style and size) → extras → delivery.
  * Vehicle and road legal / show decide the styles; vehicle, plate type and reg length decide the sizes.
  */
-export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL, title }: Props) {
+export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL, title, studio = false }: Props) {
   const trade = pricing.mode === "trade";
   const unpriced = trade ? "Trade price" : "Price on request";
   const money = (n: number | null) => (n === null ? (trade ? "Trade price" : "On request") : n === 0 ? (trade ? "Included" : "Free") : formatGBP(n, Number.isInteger(n)));
@@ -236,8 +247,8 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
   // A set: one size for both plates, or a different size on the rear
   const [sameSize, setSameSize] = useState(() => !(c.size && c.rearSize && c.size !== c.rearSize));
   const { customer, uploadDoc } = useAccount();
-  const steps = stepsFor(c);
-  const current = currentStep(c);
+  const steps = stepsFor(c).filter((k) => !studio || !STUDIO_SKIP.includes(k));
+  const current = steps.find((k) => !isAnswered(k, c)) ?? null;
   const open = editing ?? current;
   // every step in order, the vehicle first: done ones fold to a row you tap to change, later ones wait
   const all: StepKey[] = ["vehicle", ...steps];
@@ -271,7 +282,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                 setEditing(null);
               }}
             />
-            {c.legal === "Show" ? <ShowInfo /> : <LegalInfo />}
+            {c.legal === "Show" ? <ShowInfo studio={studio} /> : studio ? null : <LegalInfo />}
           </>
         );
       case "qty":
@@ -329,7 +340,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                 return { s, p: isSplit(c) ? sp.single : priceOf(sp, c) };
               })
               // cheapest first; anything priced on request goes last
-              .sort((a, b) => (a.p ?? Infinity) - (b.p ?? Infinity))
+              .sort((a, b) => (studio ? 0 : (a.p ?? Infinity) - (b.p ?? Infinity)))
               .map(({ s, p }) => {
               return (
                 <div key={s.name} className="rk-stilewrap">
@@ -342,7 +353,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                 >
                   <StyleThumb c={c} side={side} style={s.name} />
                   <span className="rk-stile__name">{s.name}</span>
-                  <span className="rk-stile__price">
+                  {!studio && <span className="rk-stile__price">
                     {(() => {
                       if (p === null) return unpriced;
                       if (p === 0 && trade) return "Included";
@@ -354,7 +365,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                         </>
                       );
                     })()}
-                  </span>
+                  </span>}
                 </button>
                 <RealPhotos k={s.name} label={`See real ${s.name} plates`} compact />
                 </div>
@@ -447,7 +458,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                     <small>
                       {Math.round(x.w)} × {Math.round(x.h)}mm
                     </small>
-                    {(() => {
+                    {!studio && (() => {
                       const sc = sizeChargePrice(x.key, pricing);
                       return sc?.single != null ? <small className="rk-sizecard__price" data-size-price>+{formatGBP(sc.single, Number.isInteger(sc.single))} per plate</small> : null;
                     })()}
@@ -479,7 +490,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                   <button key={x.name} type="button" aria-pressed={on} data-b={`extra:${x.name}`} onClick={() => set({ extras: toggleExtra(c.extras, x.name) })}>
                     {on ? <><TickMark />{" "}</> : "+ "}
                     {x.look === "text" ? "Custom text at the bottom" : x.name}
-                    {(() => {
+                    {!studio && (() => {
                       const ep = extraPrice(x, pricing).single;
                       return ep !== null ? <small>{formatGBP(ep, Number.isInteger(ep))} per plate</small> : trade ? <small>Trade price</small> : null;
                     })()}
@@ -635,7 +646,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
             ) : (
               <span className="rk-blive__tag is-muted">{vehicleLabel(c.vehicle)}</span>
             )}
-            {lines.length > 0 ? (
+            {studio ? null : lines.length > 0 ? (
               <b>
                 {trade && t.onRequest && t.known === 0 ? "Trade price" : formatGBP(t.known, Number.isInteger(t.known))}
                 {t.onRequest && !(trade && t.known === 0) ? (trade ? " + trade price" : "+") : ""}
@@ -726,13 +737,13 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                   )}
                 </div>
               )}
-              {state === "done" && k === "legal" && c.legal === "Show" && <ShowInfo />}
+              {state === "done" && k === "legal" && c.legal === "Show" && <ShowInfo studio={studio} />}
             </li>
           );
         })}
       </ol>
 
-      {!open && c.legal && !c.withPlate && (
+      {!studio && !open && c.legal && !c.withPlate && (
         <div className="rk-bend">
           {c.legal === "Legal" ? (
             <div className="rk-bnote">
@@ -751,7 +762,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
         </div>
       )}
 
-      {lines.length > 0 && (
+      {!studio && lines.length > 0 && (
         <div className="rk-btotal">
           {!open && (
             <ul>

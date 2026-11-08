@@ -4,7 +4,9 @@
 //   3. bundles the same modules into a tiny in-page module loader and mounts
 //      <Home /> with React from cdnjs, so every interaction (intro, plate
 //      builder, tabs, countdowns) is the production component, not a copy.
-// Usage: node preview/build.mjs [outFile]   (needs react, react-dom, typescript resolvable)
+// Usage: node preview/build.mjs [outFile]            builds the homepage preview
+//        node preview/build.mjs --studio [outFile]   builds the in-store studio page (app/studio) instead
+// (needs react, react-dom, typescript resolvable)
 import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { createRequire, Module } from "node:module";
 import { dirname, join, relative } from "node:path";
@@ -19,7 +21,10 @@ if (!process.env.NODE_PATH) {
 Module._initPaths();
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const out = process.argv[2] || join(root, "preview", "dist", "index.html");
+const args = process.argv.slice(2);
+const studio = args.includes("--studio");
+const out = args.find((a) => !a.startsWith("--")) || join(root, "preview", "dist", studio ? "studio.html" : "index.html");
+const entry = studio ? "app/studio/page.js" : "app/page.js";
 const require = createRequire(join(root, "package.json"));
 const ts = require("typescript");
 const read = (p) => readFileSync(join(root, p), "utf8");
@@ -77,7 +82,7 @@ try {
 }
 const React = require("react");
 const { renderToStaticMarkup } = require("react-dom/server");
-let body = renderToStaticMarkup(React.createElement(require(join(tmp, "app", "page.js")).default));
+let body = renderToStaticMarkup(React.createElement(require(join(tmp, entry)).default));
 rmSync(tmp, { recursive: true, force: true });
 body = body.replace(/<link rel="preload" as="image"[^>]*\/?>/g, "");
 
@@ -98,6 +103,9 @@ rep("/*__CSS__*/", read("app/globals.css"));
 rep("__BODY__", body);
 rep("/*__BUNDLE__*/", bundle);
 rep("__CROWN_JSON__", JSON.stringify(crown));
+rep("__ENTRY__", entry);
+// The studio has no shop header, so the preview's header padding and "Replay intro" button go.
+if (studio) html = html.replace("</title>", "</title><style>html body{padding-top:0!important}.rk-replay{display:none!important}</style>");
 
 // Preview-only: inline the hero video and its poster (the live site serves them from /video/).
 for (const asset of ["/video/hero.webm", "/video/hero.mp4", "/video/hero-poster.jpg"]) {

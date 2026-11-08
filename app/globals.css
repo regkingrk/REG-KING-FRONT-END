@@ -37450,3 +37450,160 @@ span.am-pill {
 .rk-art__search input {
   max-width: 320px;
 }
+
+/* ================================================================== */
+/* In-store studio (/studio): the plate and surround builders on the   */
+/* shop TV. Big live preview on the left, controls on the right.       */
+/* ================================================================== */
+body:has(.rk-studio) {
+  padding-top: 0;
+  overflow: hidden;
+}
+.rk-studio {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #000;
+  color: #fff;
+}
+.rk-studio__bar {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 14px 28px;
+  background: #0b0a09;
+  border-bottom: 1px solid rgba(255, 194, 0, 0.25);
+}
+.rk-studio__logo {
+  display: block;
+  height: 44px;
+  width: auto;
+}
+.rk-studio__tabs {
+  display: flex;
+  gap: 10px;
+}
+.rk-studio__tabs button {
+  min-height: 60px;
+  padding: 0 28px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: 600 24px/1 var(--rk-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rk-studio__tabs button[aria-selected="true"] {
+  border-color: var(--rk-yellow);
+  background: var(--rk-yellow);
+  color: #000;
+}
+.rk-studio__regbox {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+.rk-studio__regbox span {
+  color: rgba(255, 255, 255, 0.7);
+  font: 500 18px/1 var(--rk-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rk-studio__reg {
+  width: 300px;
+  height: 60px;
+  padding: 0 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: #fff;
+  color: #161514;
+  font: 700 40px/1 var(--font-plate, var(--rk-display));
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.rk-studio__reg:focus-visible,
+.rk-studio__tabs button:focus-visible,
+.rk-studio__again:focus-visible {
+  outline: 3px solid var(--rk-yellow);
+  outline-offset: 2px;
+}
+.rk-studio__again {
+  min-height: 60px;
+  padding: 0 28px;
+  border: 2px solid var(--rk-yellow);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--rk-yellow);
+  font: 600 22px/1 var(--rk-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rk-studio__again:hover {
+  background: var(--rk-yellow);
+  color: #000;
+}
+
+/* Both tabs stay mounted (so each keeps its progress); the one not showing is hidden and inert. */
+.rk-studio__main {
+  display: grid;
+  min-height: 0;
+}
+.rk-studio__panel {
+  grid-area: 1 / 1;
+  min-height: 0;
+  padding: 24px 28px;
+}
+.rk-studio__panel[data-active="false"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+.rk-studio__panel--plates {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(520px, 1fr);
+  gap: 28px;
+}
+.rk-studio__view {
+  align-self: center;
+  min-width: 0;
+}
+.rk-studio__ctl {
+  min-height: 0;
+  overflow-y: auto;
+}
+.rk-studio .rk-make {
+  display: block;
+}
+.rk-studio__acc {
+  height: 100%;
+  min-height: 0;
+}
+.rk-studio .rk-acc {
+  height: 100%;
+  grid-template-columns: minmax(0, 1.5fr) minmax(520px, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  gap: 28px;
+}
+.rk-studio .rk-acc__preview {
+  position: static;
+  max-width: 100%;
+}
+.rk-studio .rk-acc__panel {
+  align-self: stretch;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Bigger controls for a screen read from across the shop */
+@media (min-width: 1500px) {
+  .rk-studio__ctl,
+  .rk-studio .rk-acc__panel {
+    zoom: 1.25;
+  }
+}

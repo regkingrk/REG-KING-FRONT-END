@@ -45,7 +45,7 @@ import { PlateGL } from "./PlateGL";
 import { canRender3D } from "@/lib/plate3d";
 import { buildSurround, type SurroundView } from "@/lib/surround3d";
 import { SURROUND_GROUPS, SURROUND_SIZE_LIST, sizeShortName, surroundSize } from "@/lib/surroundSizes";
-import { lineTotal, newId, useMake, type BasketLine } from "./MakeProvider";
+import { lineTotal, newId, useMake, useMakeOptional, type BasketLine } from "./MakeProvider";
 
 const money = (n: number | null) => (n === null ? "Price on request" : n === 0 ? "Free" : formatGBP(n, Number.isInteger(n)));
 const each = (n: number | null, qty: number): number | null => (n === null ? null : n * qty);
@@ -271,6 +271,7 @@ function ArtPicker<A extends Artwork>({
   err,
   where,
   onDone,
+  studio,
 }: {
   d: A;
   setD: (p: Partial<A>) => void;
@@ -279,6 +280,8 @@ function ArtPicker<A extends Artwork>({
   err: string;
   where: string;
   onDone: () => void;
+  /** In-store studio: no note for our team (nothing is being ordered). */
+  studio?: boolean;
 }) {
   const [sub, setSub] = useState<"country" | "faith">(() => (artItem(d.item)?.group === "faith" ? "faith" : "country"));
   const [fileErr, setFileErr] = useState("");
@@ -463,7 +466,7 @@ function ArtPicker<A extends Artwork>({
         </>
       )}
 
-      {kind && kind !== "plain" && (
+      {kind && kind !== "plain" && !studio && (
         <label className="rk-art__field rk-art__note">
           <span>Note for our team (optional)</span>
           <textarea rows={3} maxLength={400} value={d.note ?? ""} onChange={(e) => setD({ note: e.target.value } as Partial<A>)} placeholder={kind === "custom" ? "Tell us what you'd like, sizes, colours, anything to clarify" : "Anything to clarify, for example the exact badge, colours or spelling"} data-b="sart:note" />
@@ -501,6 +504,7 @@ export function SurroundCreator({
   fit,
   onDone,
   onCancel,
+  studio,
 }: {
   reg: string;
   compact?: boolean;
@@ -509,8 +513,13 @@ export function SurroundCreator({
   fit?: { shape: SurroundShape; size: SurroundSize };
   onDone?: (c: SurroundConfig) => void;
   onCancel?: () => void;
+  /** In-store studio: design only. No price, no Add to basket, no basket needed. */
+  studio?: boolean;
 }) {
-  const { save, editing } = useMake();
+  // The studio has no basket, so it works without a MakeProvider.
+  const make = useMakeOptional();
+  const save = make?.save ?? (() => {});
+  const editing = make?.editing ?? null;
   const editItem = !compact && editing?.kind === "surrounds" ? editing : null;
   // the full maker starts on framed (switched with the Framed / Frameless toggle above the preview)
   const fresh = (): SurroundConfig => ({ ...defaultSurroundConfig(plateQty ?? "set"), ...(compact ? {} : { style: "framed" as SurroundStyle }), ...(fit ?? {}) });
@@ -638,6 +647,7 @@ export function SurroundCreator({
       }}
       err={err}
       where={framed ? "on the wing under the frame" : "on the main part under the plate"}
+      studio={studio}
       onDone={() => {
         const msg = artProblem(artKind, d);
         if (msg) return setErr(msg);
@@ -882,7 +892,7 @@ export function SurroundCreator({
             </div>
           </div>
         ) : (
-          style && <AddBar lines={surroundLines(c)} label="Add to basket" onAdd={add} editing={!!editItem} waiting={allDone ? undefined : "Answer each question to add it to your basket."} />
+          style && !studio && <AddBar lines={surroundLines(c)} label="Add to basket" onAdd={add} editing={!!editItem} waiting={allDone ? undefined : "Answer each question to add it to your basket."} />
         )}
       </div>
     </div>
