@@ -26,6 +26,24 @@ export function Studio() {
   // Changing the key rebuilds the builders from scratch (their own step state included).
   const [run, setRun] = useState(0);
   const regRef = useRef<HTMLInputElement>(null);
+  // Full screen for the shop TV. Hidden where the browser can't do it (some tablets and embedded views).
+  const [canFull, setCanFull] = useState(false);
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    setCanFull(!!document.fullscreenEnabled);
+    const sync = () => setFull(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+  const toggleFull = () => {
+    const done = () => {};
+    try {
+      if (document.fullscreenElement) void document.exitFullscreen().catch(done);
+      else void document.documentElement.requestFullscreen().catch(done);
+    } catch {
+      /* the browser refused: nothing to do */
+    }
+  };
   const patch = (p: Partial<BuildConfig>) => setCfg((c) => ({ ...c, ...p }));
 
   // Sizes depend on the reg's length: drop a chosen size the reg no longer fits (same rule as the Make tab).
@@ -81,6 +99,11 @@ export function Studio() {
             maxLength={8}
           />
         </label>
+        {canFull && (
+          <button type="button" className="rk-studio__full" data-studio-full aria-pressed={full} onClick={toggleFull}>
+            {full ? "Exit full screen" : "Full screen"}
+          </button>
+        )}
         <button type="button" className="rk-studio__again" data-studio-again onClick={startAgain}>
           Start again
         </button>

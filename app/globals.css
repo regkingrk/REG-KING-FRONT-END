@@ -37545,6 +37545,25 @@ body:has(.rk-studio) {
   text-transform: uppercase;
   cursor: pointer;
 }
+.rk-studio__full {
+  min-height: 60px;
+  padding: 0 24px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: 600 20px/1 var(--rk-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rk-studio__full:hover {
+  border-color: #fff;
+}
+.rk-studio__full:focus-visible {
+  outline: 3px solid var(--rk-yellow);
+  outline-offset: 2px;
+}
 .rk-studio__again:hover {
   background: var(--rk-yellow);
   color: #000;
