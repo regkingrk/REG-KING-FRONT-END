@@ -16,7 +16,7 @@ const MAX_MB = 25;
  * the same perspective and light, and show before and after. Everything happens on their device:
  * the photo is never uploaded or kept.
  */
-export function PlateOnCar({ reg, c, side, onStyle }: { reg: string; c: BuildConfig; side: Side; onStyle?: (style: string) => void }) {
+export function PlateOnCar({ reg, c, side, onStyle, studio = false }: { reg: string; c: BuildConfig; side: Side; onStyle?: (style: string) => void; /** In-store studio: no Add to basket or Download, and no RK style. */ studio?: boolean }) {
   const [stage, setStage] = useState<"empty" | "working" | "ready">("empty");
   const [err, setErr] = useState("");
   const [quad, setQuad] = useState<Quad | null>(null);
@@ -286,7 +286,7 @@ export function PlateOnCar({ reg, c, side, onStyle }: { reg: string; c: BuildCon
     setStage("empty");
   };
 
-  const styles = stylesFor(c.vehicle, c.legal ?? "Legal");
+  const styles = stylesFor(c.vehicle, c.legal ?? "Legal").filter((st) => !studio || st.name !== "RK");
   const pct = (v: number, of: number) => `${(v / of) * 100}%`;
   const W = baseCv.current?.width ?? 1;
   const H = baseCv.current?.height ?? 1;
@@ -432,12 +432,16 @@ export function PlateOnCar({ reg, c, side, onStyle }: { reg: string; c: BuildCon
       {!c.style && <p className="poc__fine">Showing Printed. Pick a style to see it on your car.</p>}
 
       <div className="poc__acts">
-        <button type="button" className="poc__go" onClick={addToBasket} data-poc-basket>
-          Add to basket
-        </button>
-        <button type="button" className="poc__ghost" onClick={download} data-poc-download>
-          Download image
-        </button>
+        {!studio && (
+          <>
+            <button type="button" className="poc__go" onClick={addToBasket} data-poc-basket>
+              Add to basket
+            </button>
+            <button type="button" className="poc__ghost" onClick={download} data-poc-download>
+              Download image
+            </button>
+          </>
+        )}
         <label className="poc__ghost">
           Change photo
           <input

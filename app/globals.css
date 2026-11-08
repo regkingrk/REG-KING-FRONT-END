@@ -37691,3 +37691,119 @@ body:has(.rk-studio) {
 .rk-studio--show .rk-acc__preview {
   width: min(100%, 1060px);
 }
+
+/* Showcase scenes: day, night, lights on, and the customer's own car photo */
+.rk-studio__main {
+  position: relative;
+}
+.rk-studio__scenes {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  z-index: 6;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(11, 10, 9, 0.85);
+  transform: translateX(-50%);
+}
+.rk-studio__scenes button,
+.rk-studio__carside button {
+  min-height: 54px;
+  padding: 0 24px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: 600 20px/1 var(--rk-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rk-studio__scenes button[aria-checked="true"],
+.rk-studio__carside button[aria-checked="true"] {
+  background: var(--rk-yellow);
+  color: #000;
+}
+.rk-studio__scenes button:focus-visible,
+.rk-studio__carside button:focus-visible {
+  outline: 3px solid var(--rk-yellow);
+  outline-offset: 2px;
+}
+.rk-studio--show .rk-p3d__t {
+  display: none;
+}
+.rk-studio--show[data-scene="day"] .rk-p3d,
+.rk-studio--show[data-scene="night"] .rk-p3d,
+.rk-studio--show[data-scene="lights"] .rk-p3d,
+.rk-studio--show[data-scene="day"] .rk-acc__preview,
+.rk-studio--show[data-scene="night"] .rk-acc__preview,
+.rk-studio--show[data-scene="lights"] .rk-acc__preview {
+  background: transparent;
+}
+/* Day: bright, even daylight */
+.rk-studio--show[data-scene="day"] {
+  background: linear-gradient(#e9eff4 0%, #cdd6dd 65%, #b1bbc2 100%);
+}
+.rk-studio--show[data-scene="day"] .rk-p3d,
+.rk-studio--show[data-scene="day"] .rk-p3d__hint {
+  color: #2b2e31;
+}
+/* Night: dark street, plates dim */
+.rk-studio--show[data-scene="night"],
+.rk-studio--show[data-scene="lights"] {
+  background: linear-gradient(#030509 0%, #0a1019 70%, #0e1520 100%);
+}
+.rk-studio--show[data-scene="night"] .rk-studio__view,
+.rk-studio--show[data-scene="night"] .rk-acc__preview {
+  filter: brightness(0.5) saturate(0.85);
+}
+/* Lights on: the same dark street with headlights washing over the plates */
+.rk-studio--show[data-scene="lights"] .rk-studio__view,
+.rk-studio--show[data-scene="lights"] .rk-acc__preview {
+  filter: brightness(0.82) contrast(1.06);
+}
+.rk-studio--show[data-scene="lights"] .rk-studio__main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 62% 52% at 50% 44%, rgba(255, 248, 226, 0.5) 0%, rgba(255, 248, 226, 0.16) 52%, rgba(255, 248, 226, 0) 76%);
+  mix-blend-mode: screen;
+}
+/* On a car: the customer's photo with the plate fitted */
+.rk-studio__car {
+  grid-area: 1 / 1;
+  z-index: 2;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 72px 5vw 110px;
+  background: #0b0a09;
+}
+.rk-studio__car .poc {
+  width: min(100%, 1500px);
+  margin: 0 auto;
+}
+.rk-studio__carside {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.rk-studio__carside button {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.rk-studio--show[data-scene="day"] .rk-p3d__sides {
+  background: #2b2e31;
+}
+.rk-studio__car {
+  padding-bottom: 140px;
+}
+.rk-studio__car .poc__stage {
+  max-height: calc(100vh - 460px);
+}

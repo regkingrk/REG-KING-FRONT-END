@@ -231,6 +231,8 @@ type Props = {
 
 /** Steps the in-store studio leaves out: they are about the order, not the design. */
 const STUDIO_SKIP: StepKey[] = ["kit", "docs", "delivery"];
+/** A style the studio leaves out. */
+export const STUDIO_HIDE_STYLE = "RK";
 
 /**
  * Step-by-step plate builder, following the REG KING workshop tool, one step
@@ -335,6 +337,8 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
         return (
           <div className="rk-styles-grid">
             {stylesFor(c.vehicle, c.legal)
+              // the in-store studio doesn't offer the RK style
+              .filter((s) => !studio || s.name !== STUDIO_HIDE_STYLE)
               .map((s) => {
                 const sp = stylePrice(s.name, pricing);
                 return { s, p: isSplit(c) ? sp.single : priceOf(sp, c) };

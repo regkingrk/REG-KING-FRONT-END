@@ -2,12 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { spaceReg } from "@/lib/brand";
-import { emptyBuild, regLength, sizeFits, type BuildConfig } from "@/lib/builder";
+import { emptyBuild, regLength, rearOnly, sizeFits, type BuildConfig } from "@/lib/builder";
 import { Plate3D } from "./Plate3D";
 import { PlateBuilder } from "./PlateBuilder";
+import { PlateOnCar } from "./PlateOnCar";
 import { SurroundCreator } from "./MakeTools";
 
 type Tab = "plates" | "surrounds";
+/** Showcase scenes: how the finished design is lit, or a customer's own car photo. */
+type Scene = "studio" | "day" | "night" | "lights" | "car";
+const SCENES: { key: Scene; label: string }[] = [
+  { key: "studio", label: "Studio" },
+  { key: "day", label: "Day" },
+  { key: "night", label: "Night" },
+  { key: "lights", label: "Lights on" },
+  { key: "car", label: "On a car" },
+];
 const TABS: { key: Tab; label: string }[] = [
   { key: "plates", label: "Number plates" },
   { key: "surrounds", label: "Plate surrounds" },
@@ -44,6 +54,8 @@ export function Studio() {
   }, []);
   // Showcase: hides the controls so the finished design fills the screen for the customer. Esc or the button goes back.
   const [showcase, setShowcase] = useState(false);
+  const [scene, setScene] = useState<Scene>("studio");
+  const [carSide, setCarSide] = useState<"front" | "rear">("rear");
   const enterShowcase = () => {
     setShowcase(true);
     try {
@@ -100,6 +112,8 @@ export function Studio() {
     setReg("");
     setCfg(emptyBuild());
     setTab("plates");
+    setScene("studio");
+    setCarSide("rear");
     setRun((n) => n + 1);
     regRef.current?.focus();
   };
@@ -107,7 +121,7 @@ export function Studio() {
   const hasReg = reg.replace(/\s/g, "").length >= 2;
 
   return (
-    <div className={`rk-studio${showcase ? " rk-studio--show" : ""}`} data-studio>
+    <div className={`rk-studio${showcase ? " rk-studio--show" : ""}`} data-studio data-scene={showcase ? scene : undefined}>
       <header className="rk-studio__bar">
         <img className="rk-studio__logo" src="/brand/regking-logo.png" alt="REG KING" />
         <div className="rk-studio__tabs" role="tablist" aria-label="What to design">
@@ -146,12 +160,35 @@ export function Studio() {
       </header>
 
       {showcase && (
-        <button type="button" className="rk-studio__back" data-studio-back onClick={leaveShowcase}>
-          Back to design
-        </button>
+        <>
+          <button type="button" className="rk-studio__back" data-studio-back onClick={leaveShowcase}>
+            Back to design
+          </button>
+          <div className="rk-studio__scenes" role="radiogroup" aria-label="Showcase view">
+            {SCENES.filter((x) => x.key !== "car" || tab === "plates").map((x) => (
+              <button key={x.key} type="button" role="radio" aria-checked={scene === x.key} data-scene-btn={x.key} onClick={() => setScene(x.key)}>
+                {x.label}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       <main className="rk-studio__main">
+        {showcase && scene === "car" && tab === "plates" && (
+          <section className="rk-studio__car" aria-label="Your plates on a car">
+            {!rearOnly(cfg.vehicle) && cfg.qty !== "Single" && (
+              <div className="rk-studio__carside" role="radiogroup" aria-label="Which plate to show on the car">
+                {(["rear", "front"] as const).map((x) => (
+                  <button key={x} type="button" role="radio" aria-checked={carSide === x} onClick={() => setCarSide(x)}>
+                    {x === "rear" ? "Rear plate" : "Front plate"}
+                  </button>
+                ))}
+              </div>
+            )}
+            <PlateOnCar studio reg={hasReg ? reg : ""} c={cfg} side={rearOnly(cfg.vehicle) ? "rear" : cfg.qty === "Single" ? (cfg.side === "Front" ? "front" : "rear") : carSide} onStyle={(style) => patch({ style })} />
+          </section>
+        )}
         <section id="studio-panel-plates" role="tabpanel" aria-labelledby="studio-tab-plates" className="rk-studio__panel rk-studio__panel--plates" data-active={tab === "plates"} inert={tab !== "plates"}>
           <div className="rk-studio__view">
             <Plate3D key={`v${run}`} reg={hasReg ? reg : ""} c={cfg} />
