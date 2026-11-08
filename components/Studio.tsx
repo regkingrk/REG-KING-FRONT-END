@@ -27,14 +27,47 @@ export function Studio() {
   const [run, setRun] = useState(0);
   const regRef = useRef<HTMLInputElement>(null);
   // Full screen for the shop TV. Hidden where the browser can't do it (some tablets and embedded views).
+  const wasFull = useRef(false);
   const [canFull, setCanFull] = useState(false);
   const [full, setFull] = useState(false);
   useEffect(() => {
     setCanFull(!!document.fullscreenEnabled);
-    const sync = () => setFull(!!document.fullscreenElement);
+    const sync = () => {
+      const f = !!document.fullscreenElement;
+      setFull(f);
+      // Esc in browser full screen is taken by the browser: leave the showcase with it.
+      if (!f && wasFull.current) setShowcase(false);
+      wasFull.current = f;
+    };
     document.addEventListener("fullscreenchange", sync);
     return () => document.removeEventListener("fullscreenchange", sync);
   }, []);
+  // Showcase: hides the controls so the finished design fills the screen for the customer. Esc or the button goes back.
+  const [showcase, setShowcase] = useState(false);
+  const enterShowcase = () => {
+    setShowcase(true);
+    try {
+      if (document.fullscreenEnabled && !document.fullscreenElement) void document.documentElement.requestFullscreen().catch(() => {});
+    } catch {
+      /* the browser refused: the showcase still fills the page */
+    }
+  };
+  const leaveShowcase = () => {
+    setShowcase(false);
+    try {
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    } catch {
+      /* nothing to do */
+    }
+  };
+  useEffect(() => {
+    if (!showcase) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowcase(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showcase]);
   const toggleFull = () => {
     const done = () => {};
     try {
@@ -74,7 +107,7 @@ export function Studio() {
   const hasReg = reg.replace(/\s/g, "").length >= 2;
 
   return (
-    <div className="rk-studio" data-studio>
+    <div className={`rk-studio${showcase ? " rk-studio--show" : ""}`} data-studio>
       <header className="rk-studio__bar">
         <img className="rk-studio__logo" src="/brand/regking-logo.png" alt="REG KING" />
         <div className="rk-studio__tabs" role="tablist" aria-label="What to design">
@@ -99,6 +132,9 @@ export function Studio() {
             maxLength={8}
           />
         </label>
+        <button type="button" className="rk-studio__show" data-studio-showcase onClick={enterShowcase}>
+          Showcase
+        </button>
         {canFull && (
           <button type="button" className="rk-studio__full" data-studio-full aria-pressed={full} onClick={toggleFull}>
             {full ? "Exit full screen" : "Full screen"}
@@ -108,6 +144,12 @@ export function Studio() {
           Start again
         </button>
       </header>
+
+      {showcase && (
+        <button type="button" className="rk-studio__back" data-studio-back onClick={leaveShowcase}>
+          Back to design
+        </button>
+      )}
 
       <main className="rk-studio__main">
         <section id="studio-panel-plates" role="tabpanel" aria-labelledby="studio-tab-plates" className="rk-studio__panel rk-studio__panel--plates" data-active={tab === "plates"} inert={tab !== "plates"}>

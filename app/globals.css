@@ -37626,3 +37626,68 @@ body:has(.rk-studio) {
     zoom: 1.25;
   }
 }
+
+/* Showcase: the finished design fills the screen, controls hidden. Esc or Back to design returns. */
+.rk-studio__show {
+  min-height: 60px;
+  padding: 0 24px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: 600 20px/1 var(--rk-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rk-studio__show:hover {
+  border-color: #fff;
+}
+.rk-studio__show:focus-visible,
+.rk-studio__back:focus-visible {
+  outline: 3px solid var(--rk-yellow);
+  outline-offset: 2px;
+}
+.rk-studio__back {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+  min-height: 52px;
+  padding: 0 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(11, 10, 9, 0.8);
+  color: rgba(255, 255, 255, 0.85);
+  font: 500 18px/1 var(--rk-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.rk-studio__back:hover {
+  color: #fff;
+  border-color: #fff;
+}
+.rk-studio--show {
+  grid-template-rows: minmax(0, 1fr);
+}
+.rk-studio--show .rk-studio__bar,
+.rk-studio--show .rk-studio__ctl,
+.rk-studio--show .rk-acc__panel {
+  display: none;
+}
+.rk-studio--show .rk-studio__panel--plates {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 40px 6vw;
+}
+.rk-studio--show .rk-studio__view {
+  width: min(100%, 1560px);
+  margin: 0 auto;
+}
+.rk-studio--show .rk-acc {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+.rk-studio--show .rk-acc__preview {
+  width: min(100%, 1060px);
+}
