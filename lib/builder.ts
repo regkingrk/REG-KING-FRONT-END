@@ -182,12 +182,70 @@ let hexInset = 0;
 /** How far the characters must sit from each end of a one-line plate, in mm (more on a hex, for the cut corners). */
 export const legalEndInset = (hex = false) => (hex ? (hexInset ||= hexEndInset()) : LEGAL_MM.margin);
 
+/* ------------------------------------------------------------------ */
+/* Custom spacing (show plates)                                        */
+/* ------------------------------------------------------------------ */
+/** The gaps a customer can choose between two characters, in spaces. */
+export const GAP_STEPS: { v: number; label: string }[] = [
+  { v: 0, label: "Together" },
+  { v: 0.5, label: "Small" },
+  { v: 1, label: "Space" },
+  { v: 1.5, label: "Wide" },
+  { v: 2, label: "Extra wide" },
+];
+/** The reg's characters, without its spaces. */
+export const regChars = (reg: string) => reg.replace(/\s/g, "").toUpperCase();
+/** The gaps as typed: a space where the reg has one, together everywhere else. */
+export function typedGaps(reg: string): number[] {
+  const out: number[] = [];
+  let pending = 0, first = true;
+  for (const ch of reg.trim().toUpperCase()) {
+    if (/\s/.test(ch)) pending = 1;
+    else {
+      if (!first) out.push(pending);
+      pending = 0;
+      first = false;
+    }
+  }
+  return out;
+}
+/**
+ * Spacing REG KING has set up for particular plates, used when that reg is typed for a show plate.
+ * TL11 CKY: the T on its own, then L11CKY together with the two 1s a little apart.
+ */
+export const SPACING_PRESETS: Record<string, number[]> = {
+  TL11CKY: [1, 0, 0.5, 0, 0, 0],
+};
+/** The custom gaps that apply to this plate, or null for the standard spacing (road legal, bikes, none set). */
+export function plateGaps(c: Pick<BuildConfig, "legal" | "vehicle" | "spacing">, reg: string): number[] | null {
+  if (c.legal !== "Show" || c.vehicle === "Bike" || !c.spacing) return null;
+  return c.spacing.length === Math.max(0, regChars(reg).length - 1) ? c.spacing : null;
+}
+/** The plate's characters with its custom gaps spelled out, for the order: "T (space) L1 (small gap) 1CKY". */
+export function spacedReg(reg: string, gaps: number[]): string {
+  const name = (g: number) => (g === 1 ? "space" : `${(GAP_STEPS.find((x) => x.v === g)?.label ?? `${g} spaces`).toLowerCase()} gap`);
+  return [...regChars(reg)].map((ch, i) => (i === 0 || !gaps[i - 1] ? "" : ` (${name(gaps[i - 1])}) `) + ch).join("");
+}
+
+/** "custom spacing T (space) L1 (small gap) 1CKY" when a show plate's gaps differ from the reg as typed (for the order and its summary), else null. */
+export function spacingNote(c: Pick<BuildConfig, "legal" | "vehicle" | "spacing">, reg: string): string | null {
+  const gaps = plateGaps(c, reg);
+  if (!gaps) return null;
+  const typed = typedGaps(reg);
+  return gaps.some((g, i) => g !== typed[i]) ? `custom spacing ${spacedReg(reg, gaps)}` : null;
+}
+
 /** Widths in the plate font, as fractions of the font size (measured from the font file: 0.7em cap height). */
 const FONT_EM = { cap: 0.7, char: 0.541, narrow: 0.222, space: 0.195, bearing: 0.049 };
 /** Width of the reg's ink in ems of the plate font, edge of the first letter to edge of the last. */
-export const plateTextEm = (reg: string) => {
+export const plateTextEm = (reg: string, gaps?: number[] | null) => {
   const t = reg.trim();
   if (!t) return 0;
+  if (gaps) {
+    const chars = [...regChars(t)];
+    const adv = chars.reduce((a, ch) => a + (ch === "1" || ch === "I" ? FONT_EM.narrow : FONT_EM.char), 0) + gaps.reduce((a, g) => a + g * FONT_EM.space, 0);
+    return adv - 2 * FONT_EM.bearing;
+  }
   const adv = [...t].reduce((a, ch) => a + (ch === " " ? FONT_EM.space : ch === "1" || ch === "I" ? FONT_EM.narrow : FONT_EM.char), 0);
   return adv - 2 * FONT_EM.bearing;
 };
@@ -197,21 +255,23 @@ export const BADGE_MM = 50;
  * Plate-font size, as a % of the plate's width, that draws the reg as it's made: 79mm characters,
  * shrinking only when a long reg can't fit across a short plate inside the legal end margins.
  */
-export function plateFontPct(reg: string, w: number, opts: { hex?: boolean; badge?: boolean } = {}) {
+export function plateFontPct(reg: string, w: number, opts: { hex?: boolean; badge?: boolean; gaps?: number[] | null } = {}) {
   const real = LEGAL_MM.charH / FONT_EM.cap; // font size in mm for 79mm characters
   const room = w - 2 * legalEndInset(opts.hex) - (opts.badge ? BADGE_MM : 0);
-  const em = plateTextEm(reg);
+  const em = plateTextEm(reg, opts.gaps);
   const mm = em > 0 ? Math.min(real, room / em) : real;
   return (mm / w) * 100;
 }
 
 /** The shortest a one-line road-legal plate can be for this reg, in whole mm (rounded up). */
-export function legalLength(reg: string, hex = false): number {
+export function legalLength(reg: string, hex = false, gaps?: number[] | null): number {
   const groups = reg.trim().toUpperCase().split(/\s+/).filter(Boolean);
   const chars = groups.join("");
   if (!chars) return 0;
   const glyphs = [...chars].reduce((a, ch) => a + (ch === "1" || ch === "I" ? LEGAL_MM.narrowW : LEGAL_MM.charW), 0);
   const ends = 2 * (hex ? (hexInset ||= hexEndInset()) : LEGAL_MM.margin);
+  // custom spacing: each gap runs from the normal letter gap (together) to the gap between groups (a space) and beyond
+  if (gaps) return Math.ceil(ends + glyphs + gaps.reduce((a, g) => a + LEGAL_MM.gap + g * (LEGAL_MM.groupGap - LEGAL_MM.gap), 0));
   return Math.ceil(ends + glyphs + LEGAL_MM.gap * (chars.length - groups.length) + LEGAL_MM.groupGap * (groups.length - 1));
 }
 
@@ -233,10 +293,10 @@ const oneLine = (s: SizeOption) => s.group === "Standard" || s.group === "Hex" |
 export const offersShortest = (v: Vehicle | null, legal: Legal | null, reg: string) => legal === "Legal" && v !== "Bike" && regLength(reg) > 0;
 
 /** Sizes that fit: smaller plates only appear for shorter regs (the sizes and limits REG KING provided). With no reg typed yet, all are shown. */
-export function sizesFor(v: Vehicle | null, legal: Legal | null, reg = "", styles: (string | null | undefined)[] = []): SizeOption[] {
+export function sizesFor(v: Vehicle | null, legal: Legal | null, reg = "", styles: (string | null | undefined)[] = [], gaps?: number[] | null): SizeOption[] {
   const chars = regLength(reg);
   const metro = styles.includes("Metro Print");
-  return allSizesFor(v, legal).filter((s) => (!s.maxChars || chars === 0 || chars <= s.maxChars) && fitsFullSize(s, reg, metro));
+  return allSizesFor(v, legal).filter((s) => (!s.maxChars || chars === 0 || chars <= s.maxChars) && fitsFullSize(s, reg, metro, gaps));
 }
 
 /**
@@ -244,18 +304,19 @@ export function sizesFor(v: Vehicle | null, legal: Legal | null, reg = "", style
  * layout (79mm characters, 50mm wide, legal gaps and ends; hex ends set in for the cut corners), or for
  * Metro its own 60mm characters. Sizes it doesn't fit aren't offered.
  */
-function fitsFullSize(s: SizeOption, reg: string, metro: boolean) {
+function fitsFullSize(s: SizeOption, reg: string, metro: boolean, gaps?: number[] | null) {
   if (!regLength(reg) || !oneLine(s)) return true;
-  return s.w >= (metro ? metroLength(reg, s.hex) : legalLength(reg, s.hex));
+  return s.w >= (metro ? metroLength(reg, s.hex, gaps) : legalLength(reg, s.hex, gaps));
 }
 
 /** Metro's measured widths (mm, at 60mm high): characters, the narrow I and 1, the gaps, and the ends. */
 const METRO_MM = { charW: 56.7, narrowI: 12.9, narrow1: 21.5, gap: 6.2, groupGap: 27.6 } as const;
-function metroLength(reg: string, hex = false): number {
+function metroLength(reg: string, hex = false, gaps?: number[] | null): number {
   const groups = reg.trim().toUpperCase().split(/\s+/).filter(Boolean);
   const chars = groups.join("");
   const glyphs = [...chars].reduce((a, ch) => a + (ch === "I" ? METRO_MM.narrowI : ch === "1" ? METRO_MM.narrow1 : METRO_MM.charW), 0);
   const ends = 2 * (hex ? (hexInset ||= hexEndInset()) : LEGAL_MM.margin);
+  if (gaps) return Math.ceil(ends + glyphs + gaps.reduce((a, g) => a + METRO_MM.gap + g * (METRO_MM.groupGap - METRO_MM.gap), 0));
   return Math.ceil(ends + glyphs + METRO_MM.gap * (chars.length - groups.length) + METRO_MM.groupGap * (groups.length - 1));
 }
 
@@ -265,8 +326,8 @@ export const legalFor = (s: SizeOption, reg: string) => !oneLine(s) || s.w >= le
 export const shortestLegalOf = (list: SizeOption[], reg: string) =>
   list.filter((s) => oneLine(s) && legalFor(s, reg)).sort((x, y) => x.w - y.w)[0] ?? null;
 
-export const sizeFits = (key: string | null, v: Vehicle | null, legal: Legal | null, reg: string, styles: (string | null | undefined)[] = []) =>
-  !!key && sizesFor(v, legal, reg, styles).some((s) => s.key === key);
+export const sizeFits = (key: string | null, v: Vehicle | null, legal: Legal | null, reg: string, styles: (string | null | undefined)[] = [], gaps?: number[] | null) =>
+  !!key && sizesFor(v, legal, reg, styles, gaps).some((s) => s.key === key);
 
 /* ------------------------------------------------------------------ */
 /* Extras and fitting                                                  */
@@ -351,6 +412,11 @@ export interface BuildConfig {
   withPlate?: boolean;
   /** Custom Text extra (show plates): the words along the bottom of the plate. */
   bottomText?: string;
+  /**
+   * Show plates only: custom gaps between the characters, one per pair (the reg's spaces don't count),
+   * in spaces: 0 = together, 1 = a normal space. Road-legal plates always keep the standard spacing.
+   */
+  spacing?: number[] | null;
   /** Plate surrounds offered with the extras ("Complete your look"). */
   surround: SurroundChoice;
   extrasDone: boolean;
@@ -424,7 +490,7 @@ export function withVehicle(c: BuildConfig, v: Vehicle): BuildConfig {
 
 /** Road legal or show changes which styles, sizes and extras are allowed. */
 export function withLegal(c: BuildConfig, legal: Legal): BuildConfig {
-  return tidy(legal === "Show" ? { ...c, legal, docs: { identity: null, entitlement: null, later: false }, docsDone: false } : { ...c, legal });
+  return tidy(legal === "Show" ? { ...c, legal, docs: { identity: null, entitlement: null, later: false }, docsDone: false } : { ...c, legal, spacing: null });
 }
 
 export function withDelivery(c: BuildConfig, delivery: Delivery): BuildConfig {

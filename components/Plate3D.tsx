@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
-import { BADGE_MM, EXTRAS, plateFontPct, rearOnly, sizeInfo, sizeOf, sizeScale, type BuildConfig } from "@/lib/builder";
+import { BADGE_MM, EXTRAS, plateFontPct, plateGaps, rearOnly, regChars, sizeInfo, sizeOf, sizeScale, type BuildConfig } from "@/lib/builder";
 import { PlateDecor, bikeLines, plateAttrs } from "./PlatePreview";
 import { BS_MARK, SUPPLIER_MARK } from "@/lib/builder";
 import { bevelFilterFor, thinFilterFor, type BevelLook } from "./PlateFilters";
@@ -119,6 +119,8 @@ export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (st
 
   const bike = c.vehicle === "Bike";
   const text = reg || "YOUR REG";
+  // Show plates: the customer's own gaps between the characters
+  const gaps = reg ? plateGaps(c, reg) : null;
   // Retro's chamfer is drawn by an SVG filter sized in px, so keep the face's width to hand.
   const [faceW, setFaceW] = useState(0);
   useEffect(() => {
@@ -150,9 +152,9 @@ export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (st
           ["--rk-hxr" as string]: String((info?.h ?? 111) / (info?.w ?? 520)),
           ["--rk-chars" as string]: String(Math.max(3, text.length)),
           // Letters drawn at their real size (79mm on the plate), the badge at its real 50mm.
-          ["--rk-fs" as string]: `${plateFontPct(text, info?.w ?? 520, { hex: !!attrs["data-hex"], badge }).toFixed(3)}cqi`,
-          ...(attrs["data-look"] === "printed-bike" && faceW ? { ["--rk-bevel" as string]: thinFilterFor((plateFontPct(text, info?.w ?? 520, { hex: !!attrs["data-hex"], badge }) / 100) * faceW * 0.81) } : {}),
-          ...(attrs["data-look"].startsWith("bevel") && faceW ? { ["--rk-bevel" as string]: bevelFilterFor((plateFontPct(text, info?.w ?? 520, { hex: !!attrs["data-hex"], badge }) / 100) * faceW, attrs["data-look"] as BevelLook) } : {}),
+          ["--rk-fs" as string]: `${plateFontPct(text, info?.w ?? 520, { hex: !!attrs["data-hex"], badge, gaps }).toFixed(3)}cqi`,
+          ...(attrs["data-look"] === "printed-bike" && faceW ? { ["--rk-bevel" as string]: thinFilterFor((plateFontPct(text, info?.w ?? 520, { hex: !!attrs["data-hex"], badge, gaps }) / 100) * faceW * 0.81) } : {}),
+          ...(attrs["data-look"].startsWith("bevel") && faceW ? { ["--rk-bevel" as string]: bevelFilterFor((plateFontPct(text, info?.w ?? 520, { hex: !!attrs["data-hex"], badge, gaps }) / 100) * faceW, attrs["data-look"] as BevelLook) } : {}),
           ["--rk-bw" as string]: `${((BADGE_MM / (info?.w ?? 520)) * 100).toFixed(3)}cqi`,
         }}
         aria-hidden
@@ -172,7 +174,16 @@ export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (st
             ))}
           </span>
         ) : (
-          <span className="rk-ptext">{text}</span>
+          <span className="rk-ptext">
+            {gaps
+              ? [...regChars(text)].map((ch, i) => (
+                  // a space in the plate font is 0.195em wide
+                  <span key={i} style={{ marginInlineEnd: i < gaps.length ? `${(gaps[i] * 0.195).toFixed(3)}em` : undefined }}>
+                    {ch}
+                  </span>
+                ))
+              : text}
+          </span>
         )}
         <span className="rk-p3d__shine" aria-hidden />
       </div>

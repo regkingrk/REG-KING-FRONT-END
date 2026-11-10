@@ -16950,6 +16950,115 @@ html.rk-menu-open body {
   box-shadow: 0 0 0 2px var(--rk-yellow) inset;
 }
 
+/* Show plates: the gap between each pair of characters */
+.rk-gaps {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(244, 242, 236, 0.05);
+  box-shadow: 0 0 0 1px rgba(244, 242, 236, 0.14) inset;
+  text-align: left;
+}
+.rk-gaps__h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rk-gaps__h > span {
+  font: 700 13px var(--rk-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rk-yellow);
+}
+.rk-gaps__reset {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(244, 242, 236, 0.3) inset;
+  color: #fff;
+  font: 600 13px var(--rk-body, inherit);
+  cursor: pointer;
+}
+.rk-gaps__row {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.rk-gaps__cell {
+  display: inline-flex;
+  align-items: stretch;
+}
+.rk-gaps__ch {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 44px;
+  border-radius: 6px;
+  background: #f4f2ec;
+  color: #111;
+  font: 700 26px var(--rk-display);
+}
+/* each gap is drawn as wide as it is on the plate (roughly), so the row reads like the plate */
+.rk-gaps__gap {
+  position: relative;
+  width: calc(14px + var(--g, 0) * 18px);
+  min-width: 14px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+.rk-gaps__gap i {
+  position: absolute;
+  inset: 8px 4px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(244, 242, 236, 0.28) inset;
+}
+.rk-gaps__gap:hover i {
+  box-shadow: 0 0 0 1px rgba(244, 242, 236, 0.6) inset;
+}
+.rk-gaps__gap[aria-pressed="true"] i {
+  background: var(--rk-yellow);
+  box-shadow: none;
+}
+.rk-gaps__gap:focus-visible {
+  outline: 2px solid var(--rk-yellow);
+  outline-offset: 1px;
+}
+.rk-gaps__opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rk-gaps__opts button {
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(244, 242, 236, 0.08);
+  box-shadow: 0 0 0 1px rgba(244, 242, 236, 0.2) inset;
+  color: #fff;
+  font: 600 14px var(--rk-body, inherit);
+  cursor: pointer;
+}
+.rk-gaps__opts button[aria-checked="true"] {
+  background: var(--rk-yellow);
+  box-shadow: none;
+  color: var(--rk-ink);
+}
+.rk-gaps__note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(244, 242, 236, 0.66);
+}
+
 /* Preview controls: 2D / 3D and which plates */
 .rk-p3d__seg {
   display: inline-flex;

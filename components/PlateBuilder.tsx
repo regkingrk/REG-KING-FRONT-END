@@ -48,6 +48,8 @@ import {
   type BuildConfig,
   type SizeOption,
   type StepKey,
+  plateGaps,
+  regChars,
 } from "@/lib/builder";
 import { formatGBP } from "@/lib/brand";
 import { useAccount } from "./AccountProvider";
@@ -63,7 +65,7 @@ import { shapePath } from "./AccessoryPreview";
 import { RealPhotos } from "./RealPhotos";
 
 /** A plate drawn at its real size, so customers can compare sizes at a glance. */
-function SizeExample({ size, reg, side, flip = false }: { size: SizeOption; reg: string; side: "front" | "rear"; flip?: boolean }) {
+function SizeExample({ size, reg, side, flip = false, gaps = null }: { size: SizeOption; reg: string; side: "front" | "rear"; flip?: boolean; gaps?: number[] | null }) {
   const k = 0.4; // mm to drawing units: all sizes share one scale
   const W = 540 * k, H = 205 * k;
   const w = size.w * k, h = size.h * k;
@@ -73,14 +75,26 @@ function SizeExample({ size, reg, side, flip = false }: { size: SizeOption; reg:
   const lines = two ? (text.includes(" ") ? text.split(" ") : [text.slice(0, Math.ceil(text.length / 2)), text.slice(Math.ceil(text.length / 2))]) : [text];
   const longest = Math.max(...lines.map((l) => l.length), 3);
   const fs = Math.min((h / lines.length) * 0.72, (w * 0.84) / (longest * 0.6));
+  // Show plates with custom spacing, on one-line sizes: each character placed with its gap (a space is 0.195em)
+  const spaced = gaps && !two && reg ? [...regChars(reg)] : null;
   return (
     <svg className="rk-sizecard__svg" viewBox={`0 0 ${W} ${H}`} aria-hidden>
       <path d={shapePath(x, y, w, h, 3, !!size.hex, flip)} fill={side === "front" ? "#f6f6f2" : "#f6c900"} stroke="rgba(0,0,0,0.35)" strokeWidth="0.8" />
-      {lines.map((l, i) => (
-        <text key={i} x={W / 2} y={y + (h / lines.length) * (i + 0.5) + 0.5} textAnchor="middle" dominantBaseline="central" fontFamily='"RK Plate", "Barlow Condensed", "Arial Narrow", Arial, sans-serif' fontWeight={700} fontSize={fs} fill="#111">
-          {l}
+      {spaced ? (
+        <text x={W / 2} y={y + h / 2 + 0.5} textAnchor="middle" dominantBaseline="central" fontFamily='"RK Plate", "Barlow Condensed", "Arial Narrow", Arial, sans-serif' fontWeight={700} fontSize={fs} fill="#111">
+          {spaced.map((ch, i) => (
+            <tspan key={i} dx={i > 0 ? (gaps![i - 1] ?? 0) * 0.195 * fs : undefined}>
+              {ch}
+            </tspan>
+          ))}
         </text>
-      ))}
+      ) : (
+        lines.map((l, i) => (
+          <text key={i} x={W / 2} y={y + (h / lines.length) * (i + 0.5) + 0.5} textAnchor="middle" dominantBaseline="central" fontFamily='"RK Plate", "Barlow Condensed", "Arial Narrow", Arial, sans-serif' fontWeight={700} fontSize={fs} fill="#111">
+            {l}
+          </text>
+        ))
+      )}
     </svg>
   );
 }
@@ -384,7 +398,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
         const chosen = forRear ? c.rearSize : c.size;
         const chars = regLength(reg);
         // only sizes the reg goes on at full size (never squeezed), for the style(s) this size is for
-        const list = sizesFor(c.vehicle, c.legal, reg, forRear ? [c.rearStyle ?? c.style] : [c.style, c.rearStyle]);
+        const list = sizesFor(c.vehicle, c.legal, reg, forRear ? [c.rearStyle ?? c.style] : [c.style, c.rearStyle], plateGaps(c, reg));
         const shortest = offersShortest(c.vehicle, c.legal, reg);
         const hidden = allSizesFor(c.vehicle, c.legal).filter((x) => !list.some((y) => y.key === x.key)).length;
         const groups = [...new Set(list.map((x) => x.group))];
@@ -457,7 +471,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                     data-b={`${k}:${x.key}`}
                     onClick={() => done(forRear ? { rearSize: x.key } : pairStep && sameSize ? { size: x.key, rearSize: x.key } : pairStep ? { size: x.key, rearSize: c.rearSize === c.size ? null : c.rearSize } : { size: x.key })}
                   >
-                    <SizeExample size={x} reg={hasReg ? reg : ""} side={forRear ? "rear" : twoSizes(c) || (c.qty === "Single" && c.side === "Front") ? "front" : "rear"} flip={!!x.hex && !!c.hexFlip} />
+                    <SizeExample size={x} reg={hasReg ? reg : ""} side={forRear ? "rear" : twoSizes(c) || (c.qty === "Single" && c.side === "Front") ? "front" : "rear"} flip={!!x.hex && !!c.hexFlip} gaps={plateGaps(c, reg)} />
                     <b>{x.label.replace(/ \(.*\)$/, "")}</b>
                     <small>
                       {Math.round(x.w)} × {Math.round(x.h)}mm

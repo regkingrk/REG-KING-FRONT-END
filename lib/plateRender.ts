@@ -7,7 +7,7 @@
  * Measurements follow a standard UK plate (520 × 111mm, 79mm characters).
  */
 
-import { EXTRAS, hexPoints, isHex, lookOf, sizeInfo, sizeOf, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
+import { EXTRAS, hexPoints, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
 
 export type PlateSpec = {
   reg: string;
@@ -25,6 +25,8 @@ export type PlateSpec = {
   bottomText?: string;
   /** The style's name (some styles share a look but are made differently). */
   styleName?: string;
+  /** Show plates: custom gaps between the characters, in spaces (see plateGaps). */
+  gaps?: number[];
 };
 
 export function specFrom(c: BuildConfig, reg: string, side: "front" | "rear", style?: string | null): PlateSpec {
@@ -42,6 +44,7 @@ export function specFrom(c: BuildConfig, reg: string, side: "front" | "rear", st
     hex: isHex(size),
     hexFlip: isHex(size) && !!c.hexFlip,
     bike,
+    gaps: plateGaps(c, reg) ?? undefined,
     bottomText: c.legal === "Show" && c.extras.some((x) => EXTRAS.find((e) => e.name === x)?.look === "text") ? (c.bottomText ?? "").trim().toUpperCase() : "",
   };
 }
@@ -155,6 +158,7 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     charH,
     k,
     font: metro ? METRO : FONT,
+    gaps: s.bike ? undefined : s.gaps,
   });
   if (chars) composeCharacters(ctx, text, flatChars ? (s.look === "printed-bike" ? "printed-bike" : "printed") : s.look, ink, k, s.extras.includes("fade"));
   else if (castShadow > 0) {
@@ -212,7 +216,7 @@ function bikeSplit(reg: string): string[] {
 }
 
 /** The characters on their own layer (black on transparent), sized and placed like a real plate. */
-function drawText(lines: string[], o: { W: number; H: number; left: number; right: number; charH: number; k: number; font: string }): HTMLCanvasElement {
+function drawText(lines: string[], o: { W: number; H: number; left: number; right: number; charH: number; k: number; font: string; gaps?: number[] }): HTMLCanvasElement {
   const cv = document.createElement("canvas");
   cv.width = o.W;
   cv.height = o.H;
@@ -230,6 +234,25 @@ function drawText(lines: string[], o: { W: number; H: number; left: number; righ
   const gap = o.k * 14;
   const total = lines.length * o.charH + (lines.length - 1) * gap;
   let y = (o.H - total) / 2 + o.charH;
+  // Show plates with custom spacing: one line, laid out a character at a time with the chosen gaps
+  if (o.gaps && lines.length === 1) {
+    const chars = [...regChars(lines[0])];
+    const space = ctx.measureText(" ").width;
+    const widths = chars.map((ch) => ctx.measureText(ch).width);
+    const w = widths.reduce((a, x) => a + x, 0) + o.gaps.reduce((a, g) => a + g * space, 0);
+    const sx = w > avail ? avail / w : 1;
+    ctx.save();
+    ctx.translate((o.left + o.right) / 2 - (w * sx) / 2, y);
+    ctx.scale(sx, 1);
+    ctx.textAlign = "left";
+    let x = 0;
+    chars.forEach((ch, i) => {
+      ctx.fillText(ch, x, 0);
+      x += widths[i] + (o.gaps![i] ?? 0) * space;
+    });
+    ctx.restore();
+    return cv;
+  }
   for (const line of lines) {
     const w = ctx.measureText(line).width;
     // Never cut or swap characters: if a long reg doesn't fit a short plate, it's narrowed to fit.

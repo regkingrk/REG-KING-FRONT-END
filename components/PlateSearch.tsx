@@ -2,7 +2,8 @@
 
 import { forwardRef, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { formatGBP, modeUrl, spaceReg, searchModes, type SearchMode } from "@/lib/brand";
-import { withLegal, withVehicle, emptyBuild, isComplete, priceLines, rearOnly, regLength, sizeFits, summary, total, type BuildConfig } from "@/lib/builder";
+import { withLegal, withVehicle, emptyBuild, isComplete, plateGaps, priceLines, rearOnly, regChars, regLength, sizeFits, spacingNote, summary, total, SPACING_PRESETS, type BuildConfig } from "@/lib/builder";
+import { SpacingEditor } from "./SpacingEditor";
 import { navigate } from "@/lib/nav";
 import { ArrowRight, SearchIcon } from "./Icons";
 import { useMode } from "./ModeProvider";
@@ -56,11 +57,17 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
     const sameSizes = (c: BuildConfig) => !c.rearSize || c.rearSize === c.size;
     setCfg((c) => {
       let next = c;
-      if (c.size && !sizeFits(c.size, c.vehicle, c.legal, reg, [c.style, sameSizes(c) ? c.rearStyle : null])) next = { ...next, size: null };
-      if (c.rearSize && !sizeFits(c.rearSize, c.vehicle, c.legal, reg, [c.rearStyle ?? c.style])) next = { ...next, rearSize: null };
+      const gaps = plateGaps(c, reg);
+      if (c.size && !sizeFits(c.size, c.vehicle, c.legal, reg, [c.style, sameSizes(c) ? c.rearStyle : null], gaps)) next = { ...next, size: null };
+      if (c.rearSize && !sizeFits(c.rearSize, c.vehicle, c.legal, reg, [c.rearStyle ?? c.style], gaps)) next = { ...next, rearSize: null };
       return next;
     });
-  }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle]);
+  }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle, cfg.spacing]);
+  // Spacing REG KING has set up for a reg comes back when it's made a show plate again
+  useEffect(() => {
+    const preset = SPACING_PRESETS[regChars(reg)];
+    if (cfg.legal === "Show" && cfg.spacing == null && preset) setCfg((c) => ({ ...c, spacing: preset }));
+  }, [reg, cfg.legal, cfg.spacing]);
   // A shared ?q= link (or "Clear search") keeps the plate in step with the results.
   useEffect(() => {
     if (mode === "buy") setReg(query);
@@ -116,7 +123,7 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
         id: editingPlates?.id ?? newId(),
         kind: "plates",
         title: `Number plates: ${reg.trim()}`,
-        detail: summary(cfg),
+        detail: [summary(cfg), spacingNote(cfg, reg)].filter(Boolean).join(", "),
         lines: priceLines(cfg),
         data: { reg: reg.trim(), cfg },
       });
@@ -186,7 +193,12 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
                 className="rk-regbox__input"
                 name="q"
                 value={reg}
-                onChange={(e) => setReg(spaceReg(e.target.value))}
+                onChange={(e) => {
+                  const next = spaceReg(e.target.value);
+                  // a different reg starts from its own spacing (or one REG KING has set up for it)
+                  if (regChars(next) !== regChars(reg)) patch({ spacing: SPACING_PRESETS[regChars(next)] ?? null });
+                  setReg(next);
+                }}
                 placeholder="e.g. AB12 CDE"
                 autoComplete="off"
                 autoCapitalize="characters"
@@ -194,12 +206,13 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
                 maxLength={8}
               />
             </div>
+            <SpacingEditor reg={reg} c={cfg} onChange={(spacing) => patch({ spacing })} />
             <PlateBuilder reg={reg} c={cfg} set={patch} replace={setCfg} onRegStep={() => inputRef.current?.focus()} />
             <button type="submit" className="rk-search__go" data-after>
               <ArrowRight /> <span id="rk-go-label">{buttonLabel}</span>
             </button>
             <p className="rk-search__help" id="rk-help" data-after>
-              {cfg.style ? summary(cfg) : m.help}
+              {cfg.style ? [summary(cfg), spacingNote(cfg, reg)].filter(Boolean).join(", ") : m.help}
             </p>
           </div>
         </div>

@@ -283,12 +283,18 @@ function characters(s: PlateSpec, b: Build, mat: THREE.Material | THREE.Material
     bevelSegments: b.segs,
     curveSegments: 18,
   };
-  for (const line of lines) {
-    const width = ([...line].reduce((a, ch) => a + (ch === " " ? GLYPH_SPACE : GLYPHS[ch]?.adv ?? 0), 0) - 2 * BEARING) * k;
+  // Show plates with custom spacing: the characters without their spaces, each gap as chosen
+  const gaps = !s.bike && s.gaps ? s.gaps : null;
+  for (const raw of lines) {
+    const line = gaps ? raw.replace(/\s/g, "") : raw;
+    const extra = (i: number) => (gaps ? (gaps[i] ?? 0) * GLYPH_SPACE : 0);
+    const width = ([...line].reduce((a, ch, i) => a + (ch === " " ? GLYPH_SPACE : GLYPHS[ch]?.adv ?? 0) + (i < line.length - 1 ? extra(i) : 0), 0) - 2 * BEARING) * k;
     const sx = width > right - left ? (right - left) / width : 1;
     let x = (left + right) / 2 - (width * sx) / 2 - BEARING * k * sx;
     const baseline = top - charH;
+    let idx = -1;
     for (const ch of line) {
+      idx++;
       if (ch === " ") {
         x += GLYPH_SPACE * k * sx;
         continue;
@@ -313,7 +319,7 @@ function characters(s: PlateSpec, b: Build, mat: THREE.Material | THREE.Material
         mesh.castShadow = true;
         group.add(mesh);
       }
-      x += (GLYPHS[ch]?.adv ?? 0) * k * sx;
+      x += ((GLYPHS[ch]?.adv ?? 0) + extra(idx)) * k * sx;
     }
     top -= charH + gap;
   }

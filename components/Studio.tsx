@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { spaceReg } from "@/lib/brand";
-import { emptyBuild, regLength, rearOnly, sizeFits, type BuildConfig } from "@/lib/builder";
+import { emptyBuild, plateGaps, regChars, regLength, rearOnly, sizeFits, SPACING_PRESETS, type BuildConfig } from "@/lib/builder";
+import { SpacingEditor } from "./SpacingEditor";
 import { Plate3D } from "./Plate3D";
 import { PlateBuilder } from "./PlateBuilder";
 import { PlateOnCar } from "./PlateOnCar";
@@ -97,11 +98,17 @@ export function Studio() {
     const sameSizes = (c: BuildConfig) => !c.rearSize || c.rearSize === c.size;
     setCfg((c) => {
       let next = c;
-      if (c.size && !sizeFits(c.size, c.vehicle, c.legal, reg, [c.style, sameSizes(c) ? c.rearStyle : null])) next = { ...next, size: null };
-      if (c.rearSize && !sizeFits(c.rearSize, c.vehicle, c.legal, reg, [c.rearStyle ?? c.style])) next = { ...next, rearSize: null };
+      const gaps = plateGaps(c, reg);
+      if (c.size && !sizeFits(c.size, c.vehicle, c.legal, reg, [c.style, sameSizes(c) ? c.rearStyle : null], gaps)) next = { ...next, size: null };
+      if (c.rearSize && !sizeFits(c.rearSize, c.vehicle, c.legal, reg, [c.rearStyle ?? c.style], gaps)) next = { ...next, rearSize: null };
       return next;
     });
-  }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle]);
+  }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle, cfg.spacing]);
+  // Spacing REG KING has set up for a reg comes back when it's made a show plate again
+  useEffect(() => {
+    const preset = SPACING_PRESETS[regChars(reg)];
+    if (cfg.legal === "Show" && cfg.spacing == null && preset) setCfg((c) => ({ ...c, spacing: preset }));
+  }, [reg, cfg.legal, cfg.spacing]);
 
   // The page has no shop header, so the shop's intro state means nothing here.
   useEffect(() => {
@@ -138,7 +145,11 @@ export function Studio() {
             id="studio-reg"
             className="rk-studio__reg"
             value={reg}
-            onChange={(e) => setReg(spaceReg(e.target.value))}
+            onChange={(e) => {
+              const next = spaceReg(e.target.value);
+              if (regChars(next) !== regChars(reg)) patch({ spacing: SPACING_PRESETS[regChars(next)] ?? null });
+              setReg(next);
+            }}
             placeholder="TYPE REG"
             autoComplete="off"
             autoCapitalize="characters"
@@ -195,6 +206,7 @@ export function Studio() {
           </div>
           <div className="rk-studio__ctl">
             <div className="rk-make">
+              <SpacingEditor reg={reg} c={cfg} onChange={(spacing) => patch({ spacing })} />
               <PlateBuilder key={`b${run}`} studio reg={reg} c={cfg} set={patch} replace={setCfg} onRegStep={() => regRef.current?.focus()} title={<>Design your <span>plates</span></>} />
             </div>
           </div>
