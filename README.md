@@ -74,6 +74,25 @@ Copy says plainly what a thing does. If a claim can't be backed up, it doesn't g
 4. **Privacy policy page** at `/privacy-policy` and **terms and conditions page** at `/terms-of-service`. The text is REG KING's own, loaded from Shopify (Settings > Policies) through the Storefront API, so set `SHOPIFY_STORE_DOMAIN` and `SHOPIFY_STOREFRONT_TOKEN`. A production build fails if either policy is empty. The footer links to both.
 5. **No sample content**: remove the sample search plates (see Before launch) and the "Prototype" note.
 
+## Moving regking.co.uk to this site (headless Shopify)
+
+Shopify keeps running the shop (products, stock, checkout, payments, orders). This site is the shop front, hosted on Vercel. Nothing goes live until the domain is switched.
+
+**Settings in Vercel** (Project > Settings > Environment Variables, never in the code):
+
+| Name | What it is |
+|---|---|
+| `SHOPIFY_STORE_DOMAIN` | `reg-king.myshopify.com` |
+| `SHOPIFY_STOREFRONT_TOKEN` | From the Headless sales channel in Shopify admin |
+| `SHOPIFY_ADMIN_TOKEN` | From a custom app (Settings > Apps > Develop apps), for orders and sold prices |
+| `SITE_URL` | `https://regking.co.uk` |
+
+**Products** must be published to the **Headless** sales channel, or the site can't see them (Products > select all > Include in sales channels > Headless).
+
+**Plates are read from Shopify at every build** (`scripts/sync-shop.mjs`, run by `npm run build`): Exclusive (£15,000 and over), REG KING stock (tag `regking-stock`), customer plates, New this week (added in the last 7 days), search and valuations. Sold plates drop out. Listings held back until fixed are in `lib/data/shop-rules.json`. If Shopify can't be read, the build stops and the live site stays as it is. Without the Shopify settings (the preview) the saved October copy is used. To refresh the lists, rebuild: set a Vercel deploy hook and call it from Shopify Flow when a product changes, or on a schedule. The checkout always checks a plate is still for sale, live, before taking payment.
+
+**Old addresses keep working** (`lib/oldUrls.ts`): plates stay at `/products/<handle>`, REG KING's written pages stay at `/pages/<handle>` (wording loaded live from Shopify), everything else has a permanent redirect. Re-check the list against the store before launch.
+
 ## Header (one bar, fixed to the top)
 
 The header never moves when the page scrolls (`position: fixed`; the body is padded by `--rk-top-h`). It holds only:

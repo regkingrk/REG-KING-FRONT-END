@@ -17,6 +17,9 @@ import { FAQS, TEAM, type FaqTab } from "@/lib/infoContent";
 import { CUSTOMERS, JOBS, customerById, can, type AdminOrder, type AdminTab, type Role } from "@/lib/admin";
 import { Card, Field, PriceIn, Status, Toggle } from "./AdminStore";
 
+/** A plate from a list for the example records, safe when the list is shorter than expected. */
+const pick = <T extends { reg: string; price: number }>(list: T[], i: number): { reg: string; price: number } => list[i] ?? list[0] ?? { reg: "AB12 CDE", price: 0 };
+
 const money = (n: number) => formatGBP(n, Number.isInteger(n));
 const uid = () => Math.random().toString(36).slice(2, 9);
 type Rec = (what: string) => void;
@@ -660,10 +663,10 @@ export function RegistrationsPage({ role, record }: { role: Role; record: Rec })
 /* ------------------------------------------------------------------ */
 type Call = { id: string; order: string; customer: string; reg: string; day: string; time: string; status: "booked" | "done" | "no-answer" | "moved"; note: string };
 const CALLS: Call[] = [
-  { id: "k1", order: "RK-1046", customer: "c1", reg: regkingStock[0].reg, day: "2026-11-03", time: "10:30", status: "booked", note: "Wants it on his BMW this month." },
-  { id: "k2", order: "RK-1045", customer: "c2", reg: customerPlates[2].reg, day: "2026-11-03", time: "14:00", status: "booked", note: "" },
-  { id: "k3", order: "RK-1038", customer: "c4", reg: customerPlates[6].reg, day: "2026-11-04", time: "11:00", status: "booked", note: "Gift for her brother." },
-  { id: "k4", order: "RK-1036", customer: "c3", reg: regkingStock[5].reg, day: "2026-10-31", time: "16:30", status: "done", note: "V5C on its way." },
+  { id: "k1", order: "RK-1046", customer: "c1", reg: pick(regkingStock, 0).reg, day: "2026-11-03", time: "10:30", status: "booked", note: "Wants it on his BMW this month." },
+  { id: "k2", order: "RK-1045", customer: "c2", reg: pick(customerPlates, 2).reg, day: "2026-11-03", time: "14:00", status: "booked", note: "" },
+  { id: "k3", order: "RK-1038", customer: "c4", reg: pick(customerPlates, 6).reg, day: "2026-11-04", time: "11:00", status: "booked", note: "Gift for her brother." },
+  { id: "k4", order: "RK-1036", customer: "c3", reg: pick(regkingStock, 5).reg, day: "2026-10-31", time: "16:30", status: "done", note: "V5C on its way." },
 ];
 export function CallsPage({ role, record }: { role: Role; record: Rec }) {
   const [rows, setRows] = useState(CALLS);
@@ -746,9 +749,9 @@ export function CallsPage({ role, record }: { role: Role; record: Rec }) {
 const TSTEPS = ["Paperwork in", "Certificate checked", "Sent to the DVLA", "On the vehicle", "New V5C confirmed"];
 type Transfer = { id: string; order: string; reg: string; buyer: string; vehicle: string; via: "V750" | "V778" | "Vehicle"; step: number; next: string; due: string };
 const TRANSFERS: Transfer[] = [
-  { id: "t1", order: "RK-1046", reg: regkingStock[0].reg, buyer: "c1", vehicle: "Example: BMW", via: "V750", step: 1, next: "Book the call, then assign online", due: "2026-11-09" },
-  { id: "t2", order: "RK-1045", reg: customerPlates[2].reg, buyer: "c2", vehicle: "Example: Audi", via: "V778", step: 3, next: "Wait for the DVLA to post the new V5C", due: "2026-11-16" },
-  { id: "t3", order: "RK-1038", reg: customerPlates[6].reg, buyer: "c4", vehicle: "On certificate", via: "Vehicle", step: 0, next: "Seller to send their V5C", due: "2026-11-06" },
+  { id: "t1", order: "RK-1046", reg: pick(regkingStock, 0).reg, buyer: "c1", vehicle: "Example: BMW", via: "V750", step: 1, next: "Book the call, then assign online", due: "2026-11-09" },
+  { id: "t2", order: "RK-1045", reg: pick(customerPlates, 2).reg, buyer: "c2", vehicle: "Example: Audi", via: "V778", step: 3, next: "Wait for the DVLA to post the new V5C", due: "2026-11-16" },
+  { id: "t3", order: "RK-1038", reg: pick(customerPlates, 6).reg, buyer: "c4", vehicle: "On certificate", via: "Vehicle", step: 0, next: "Seller to send their V5C", due: "2026-11-06" },
 ];
 export function TransfersPage({ role, record }: { role: Role; record: Rec }) {
   const [rows, setRows] = useState(TRANSFERS);
@@ -815,7 +818,7 @@ export function SellingPage({ record }: { record: Rec }) {
 type Req = { id: string; kind: "Sourcing" | "Brokerage"; who: string; ask: string; budget: string; status: "new" | "searching" | "found" | "closed"; at: string };
 const REQS: Req[] = [
   { id: "r1", kind: "Sourcing", who: "c1", ask: "Anything with DAN in it", budget: "£3,000", status: "searching", at: "2026-11-01" },
-  { id: "r2", kind: "Brokerage", who: "c2", ask: `Sale agreed for ${customerPlates[10].reg}`, budget: "", status: "new", at: "2026-10-31" },
+  { id: "r2", kind: "Brokerage", who: "c2", ask: `Sale agreed for ${pick(customerPlates, 10).reg}`, budget: "", status: "new", at: "2026-10-31" },
   { id: "r3", kind: "Sourcing", who: "c4", ask: "SOF 1A or close", budget: "£8,000", status: "new", at: "2026-10-29" },
 ];
 export function RequestsPage({ record }: { record: Rec }) {
@@ -932,7 +935,7 @@ export function TradePage({ record }: { record: Rec }) {
 
 export function AbandonedPage({ record }: { record: Rec }) {
   const [rows, setRows] = useState([
-    { id: "b1", who: "c3", what: `${regkingStock[3].reg} with 3D Gel plates`, value: regkingStock[3].price, at: "2026-11-02 08:12", step: "Payment", sent: false },
+    { id: "b1", who: "c3", what: `${pick(regkingStock, 3).reg} with 3D Gel plates`, value: pick(regkingStock, 3).price, at: "2026-11-02 08:12", step: "Payment", sent: false },
     { id: "b2", who: "c5", what: "Retro set and UK badge", value: 80, at: "2026-11-01 21:40", step: "Delivery", sent: false },
     { id: "b3", who: "c1", what: "Plate surrounds (pair)", value: 0, at: "2026-10-30 18:05", step: "Your details", sent: true },
   ]);

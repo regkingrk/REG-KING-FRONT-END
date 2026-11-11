@@ -4,11 +4,13 @@
  * At launch this comes live from Shopify: products sorted by CREATED_AT, created in the last 7 days.
  * Left out until fixed in Shopify: UR15 BRO (description says UR15 RBO) and IIL 801 (handle ill-801).
  */
-export const NEW_SNAPSHOT_DATE = "2026-10-24";
+import { shop } from "./shopData";
+
+export const NEW_SNAPSHOT_DATE = shop ? shop.date : "2026-10-24";
 
 export type NewPlate = { reg: string; handle: string; price: number; added: string };
 
-export const newThisWeek: NewPlate[] = [
+const savedNewThisWeek: NewPlate[] = [
   { reg: "JS60 BED", handle: "js60-bed", price: 950, added: "2026-10-23" },
   { reg: "KU55 MEG", handle: "ku55-meg", price: 3750, added: "2026-10-23" },
   { reg: "188 YHR", handle: "188-yhr", price: 3000, added: "2026-10-23" },
@@ -50,3 +52,10 @@ export const newThisWeek: NewPlate[] = [
   { reg: "RR14 MBO", handle: "rr14-mbo", price: 2499, added: "2026-10-17" },
   { reg: "NX71 MAH", handle: "nx71-mah", price: 725, added: "2026-10-17" },
 ];
+
+/** Plates added in the 7 days up to the last build (live when synced), newest first. */
+export const newThisWeek: NewPlate[] = shop
+  ? shop.plates
+      .filter((p) => Date.parse(`${shop.date}T00:00:00Z`) - Date.parse(`${p.added}T00:00:00Z`) < 7 * 86400000)
+      .map((p) => ({ reg: p.reg, handle: p.handle, price: p.price, added: p.added }))
+  : savedNewThisWeek;

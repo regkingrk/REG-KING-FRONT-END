@@ -1,0 +1,7 @@
+{
+  "_about": "Listings held back from the site until they're fixed in Shopify, and products that aren't plates. Used by scripts/sync-shop.mjs.",
+  "heldBackHandles": ["ill-801", "sh19-peh-copy"],
+  "heldBackRegs": ["UR15 BRO"],
+  "notPlates": ["build-your-own-number-plate", "normal-standard-plates", "3d-gel-gloss-black", "4d-plates", "plates", "number-plate-sticky-pads", "number-plate-screw-kit", "number-plate-holder", "suction-cups"],
+  "oursTag": "regking-stock"
+}

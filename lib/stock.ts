@@ -15,11 +15,13 @@
  * - Handles that don't match the plate, e.g. DR11 ULK (mr11-ulk), 9 UF (9-dv), NN11 MXN (a26-khh).
  *   Links still work, but check each listing is the right plate.
  */
-export const STOCK_SNAPSHOT_DATE = "28 Oct 2026";
+import { shop, shopDate } from "./shopData";
+
+export const STOCK_SNAPSHOT_DATE = shop ? shopDate(shop.date) : "28 Oct 2026";
 
 export type StockPlate = { reg: string; handle: string; price: number; added: string };
 
-export const regkingStock: StockPlate[] = [
+const savedRegkingStock: StockPlate[] = [
   { reg: "AM12 AAH", handle: "am12-aah", price: 3999, added: "2026-10-27" },
   { reg: "TU12 RKK", handle: "tu12-rkk", price: 3999, added: "2026-10-27" },
   { reg: "TU12 RRK", handle: "tu12-rrk", price: 3999, added: "2026-10-27" },
@@ -272,7 +274,7 @@ export const regkingStock: StockPlate[] = [
   { reg: "W333 EAK", handle: "w333-eak", price: 1250, added: "2022-10-26" },
 ];
 
-export const customerPlates: StockPlate[] = [
+const savedCustomerPlates: StockPlate[] = [
   { reg: "TF51 GUN", handle: "tf51-gun", price: 850, added: "2026-10-27" },
   { reg: "M25 AYF", handle: "m25-ayf", price: 3000, added: "2026-10-27" },
   { reg: "M111 CSX", handle: "m111-csx", price: 1499, added: "2026-10-27" },
@@ -422,3 +424,9 @@ export const customerPlates: StockPlate[] = [
   { reg: "N444 FRR", handle: "n444-frr-1", price: 1250, added: "2026-09-25" },
   { reg: "R3 SWN", handle: "r3-swn", price: 25000, added: "2026-09-25" },
 ];
+
+const strip = (p: { reg: string; handle: string; price: number; added: string }): StockPlate => ({ reg: p.reg, handle: p.handle, price: p.price, added: p.added });
+/** Every plate tagged "regking-stock": live from Shopify at the last build, otherwise the saved copy. */
+export const regkingStock: StockPlate[] = shop ? shop.plates.filter((p) => p.ours).map(strip) : savedRegkingStock;
+/** Every other plate for sale (customers' plates): live when synced, otherwise the saved 150 newest. */
+export const customerPlates: StockPlate[] = shop ? shop.plates.filter((p) => !p.ours).map(strip) : savedCustomerPlates;

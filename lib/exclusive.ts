@@ -11,13 +11,15 @@
  * - 9 UF: its Shopify handle is "9-dv". Check the listing is right.
  * - HU69 TLE: its Shopify handle is "hu69-ler". Check the listing is right.
  */
-export const EXCLUSIVE_SNAPSHOT_DATE = "27 Oct 2026";
+import { shop, shopDate } from "./shopData";
+
+export const EXCLUSIVE_SNAPSHOT_DATE = shop ? shopDate(shop.date) : "27 Oct 2026";
 export const EXCLUSIVE_FROM = 15000;
 
 export type ExclusivePlate = { reg: string; handle: string; price: number; added: string; ours?: boolean };
 
-/** Newest first, as Shopify lists them. */
-export const exclusive: ExclusivePlate[] = [
+/** The saved copy (27 Oct 2026), newest first, as Shopify lists them. */
+const savedExclusive: ExclusivePlate[] = [
   { reg: "786 BG", handle: "786-bg", price: 19995, added: "2026-10-27" },
   { reg: "OMA 22R", handle: "oma-22r", price: 15000, added: "2026-10-23" },
   { reg: "Y29 JAV", handle: "y29-jav", price: 20000, added: "2026-10-21" },
@@ -175,6 +177,11 @@ export const exclusive: ExclusivePlate[] = [
   { reg: "F1 SPA", handle: "f1-spa", price: 20000, added: "2024-11-14" },
   { reg: "H5 SXN", handle: "h5-sxn", price: 15000, added: "2024-10-19" },
 ];
+
+/** Exclusive plates: live from Shopify at the last build when synced, otherwise the saved copy. */
+export const exclusive: ExclusivePlate[] = shop
+  ? shop.plates.filter((p) => p.price >= EXCLUSIVE_FROM).map((p) => ({ reg: p.reg, handle: p.handle, price: p.price, added: p.added, ...(p.ours ? { ours: true } : {}) }))
+  : savedExclusive;
 
 /** Characters on the plate, not counting the space. */
 export const charCount = (reg: string) => reg.replace(/[^A-Z0-9]/gi, "").length;

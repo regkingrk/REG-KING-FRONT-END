@@ -10,10 +10,12 @@
  * The preview's valuation tool uses these. The live site reads both from Shopify each time
  * (lib/shopify.ts allPlatePrices and soldPlatePrices), so they never go stale there.
  */
-export const VALUATION_DATA_DATE = "29 Oct 2026";
+import { shop, shopDate } from "./shopData";
+
+export const VALUATION_DATA_DATE = shop ? shopDate(shop.date) : "29 Oct 2026";
 
 /** [reg, price, handle?] */
-export const shopPlates: [string, number, string?][] = [
+const savedShopPlates: [string, number, string?][] = [
   ["W333 EAK",1250],
   ["D21 PNN",899.99],
   ["D21 PED",899.99],
@@ -2783,6 +2785,16 @@ export const shopPlates: [string, number, string?][] = [
   ["RR12 WXN",3499],
   ["AN15 SAA",3499],
 ];
+
+/** The handle, when it isn't simply the reg in lower case with a hyphen. */
+const ownHandle = (reg: string, handle: string) => (handle === reg.toLowerCase().replace(/ /g, "-") ? undefined : handle);
+/** Every plate for sale: live from Shopify at the last build when synced, otherwise the saved copy. */
+export const shopPlates: [string, number, string?][] = shop
+  ? shop.plates.map((p): [string, number, string?] => {
+      const h = ownHandle(p.reg, p.handle);
+      return h ? [p.reg, p.price, h] : [p.reg, p.price];
+    })
+  : savedShopPlates;
 
 /** [reg, price paid, yyyy-mm-dd] */
 export const soldPlates: [string, number, string][] = [
