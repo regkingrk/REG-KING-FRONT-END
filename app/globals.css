@@ -32827,6 +32827,44 @@ input.rk-sr__qplate {
 .rk-gl__view:active {
   cursor: grabbing;
 }
+/* "Building your plate": over the view while a style is made for the first time */
+.rk-gl__stage {
+  position: relative;
+}
+.rk-gl__busy {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 10px;
+  background: rgba(14, 13, 12, 0.66);
+  color: #f4f2ec;
+  font: 600 16px var(--rk-body);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.rk-gl__spin {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(244, 242, 236, 0.25);
+  border-top-color: var(--rk-yellow);
+  border-radius: 50%;
+  animation: rk-gl-spin 0.8s linear infinite;
+}
+@keyframes rk-gl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-gl__spin {
+    animation: none;
+    border-color: var(--rk-yellow);
+  }
+}
 .rk-gl__view canvas {
   display: block;
   width: 100% !important;

@@ -6,9 +6,10 @@
  * If the browser can't do 3D, Plate3D shows its 2D picture instead.
  */
 import { useEffect, useRef, useState } from "react";
-import type { BuildConfig } from "@/lib/builder";
+import { stylesFor, type BuildConfig } from "@/lib/builder";
 import { specFrom, plateFontReady } from "@/lib/plateRender";
-import { THREE, acrylicEnvironment, buildPlate, disposeGroup, studioEnvironment } from "@/lib/plate3d";
+import { lettersFor, lettersReady, makeLetters, warmLetters } from "@/lib/plateGeoClient";
+import { THREE, acrylicEnvironment, buildPlate, disposeGroup, releaseLetters, studioEnvironment } from "@/lib/plate3d";
 
 type Side = "front" | "rear";
 const START = { yaw: 0, pitch: 0 };
@@ -26,6 +27,7 @@ const VIEWS: { name: string; v: View }[] = [
   { name: "Close-up", v: { yaw: -0.55, pitch: 0.3, zoom: 2.3 } },
 ];
 const MAX_Z = 5;
+
 
 /**
  * `groups`/`groupsKey`: draw something other than the builder's plates (the surround maker passes its
@@ -53,7 +55,11 @@ export function PlateGL({
   tight?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
-  const api = useRef<{ setPlates: (g: THREE.Group[]) => void; reset: () => void; view: (v: View) => void; zoomBy: (f: number) => void; setStart: (v: { yaw: number; pitch: number }) => void } | null>(null);
+  const api = useRef<{ setPlates: (g: THREE.Group[]) => void; reset: () => void; view: (v: View) => void; zoomBy: (f: number) => void; setStart: (v: { yaw: number; pitch: number }) => void; prepare: (g: THREE.Group) => Promise<void> } | null>(null);
+  // "Building your plate" shows while a style is made for the first time
+  const [building, setBuilding] = useState(false);
+  // styles already shown or got ready in this view (their look is ready on the graphics card)
+  const seen = useRef(new Set<string>());
   const [zoom, setZoom] = useState(1);
   // the % shown between the buttons follows the view as it zooms
   const onZoom = useRef((v: number) => setZoom(Math.round(v * 20) / 20));
@@ -83,6 +89,7 @@ export function PlateGL({
     el.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
+    const prepared: THREE.Material[] = [];
     scene.environment = studioEnvironment(renderer);
     softEnv.current = studioEnvironment(renderer, false);
     acrylicEnv.current = acrylicEnvironment(renderer);
@@ -276,6 +283,28 @@ export function PlateGL({
         tPanY = 0;
         jump();
       },
+      // Get a style's look ready on the graphics card ahead of time (without drawing it), so the first
+      // time the customer picks it there's no pause. The materials are kept so the work isn't thrown away.
+      prepare: (g) => {
+        const r = renderer as THREE.WebGLRenderer & { compileAsync?: (o: THREE.Object3D, c: THREE.Camera, s?: THREE.Scene) => Promise<unknown> };
+        const keep = () => {
+          g.traverse((o) => {
+            const m = o as THREE.Mesh;
+            if (!m.isMesh) return;
+            if (!m.geometry.userData.shared) m.geometry.dispose();
+            (Array.isArray(m.material) ? m.material : [m.material]).forEach((mt) => {
+              const map = (mt as THREE.MeshPhysicalMaterial).map;
+              if (map) map.image = null; // the picture isn't needed, only the compiled look
+              prepared.push(mt);
+            });
+          });
+        };
+        if (!r.compileAsync) {
+          keep();
+          return Promise.resolve();
+        }
+        return r.compileAsync(g, camera, scene).then(keep, keep);
+      },
       setStart: (v) => {
         if (v === start) return;
         start = v;
@@ -300,6 +329,8 @@ export function PlateGL({
       el.removeEventListener("pointerup", up);
       el.removeEventListener("pointercancel", up);
       rig.children.slice().forEach((o) => disposeGroup(o));
+      prepared.forEach((m) => m.dispose());
+      releaseLetters();
       scene.environment?.dispose();
       softEnv.current?.dispose();
       acrylicEnv.current?.dispose();
@@ -314,7 +345,8 @@ export function PlateGL({
   useEffect(() => {
     if (!ready) return;
     let live = true;
-    plateFontReady().then(() => {
+    let warmTimer = 0;
+    plateFontReady().then(async () => {
       if (!live || !api.current) return;
       if (groups) {
         api.current.setStart(START);
@@ -322,18 +354,64 @@ export function PlateGL({
         return;
       }
       if (!c) return;
+      const text = reg || "YOUR REG";
+      const specs = sides.map((s) => specFrom(c, text, s));
+      // Retro, Vintage and 3D Gel letters take a moment the first time: say so while they're made
+      const jobs = lettersFor(specs);
+      const firstLook = !seen.current.has(c.style ?? "");
+      if (jobs.length || firstLook) {
+        setBuilding(true);
+        await makeLetters(jobs);
+        // let "Building your plate" show before the page is busy drawing the new style
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        if (!live || !api.current) return;
+      }
+      seen.current.add(c.style ?? "");
       api.current.setStart(is4D(c.style) ? START_4D : START);
-      api.current.setPlates(sides.map((s) => buildPlate(specFrom(c, reg || "YOUR REG", s), softEnv.current ?? undefined, acrylicEnv.current ?? undefined)));
+      api.current.setPlates(specs.map((sp) => buildPlate(sp, softEnv.current ?? undefined, acrylicEnv.current ?? undefined)));
+      requestAnimationFrame(() => requestAnimationFrame(() => live && setBuilding(false)));
+
+      // Then, once the customer pauses, get the other styles ready for this reg in the background.
+      warmTimer = window.setTimeout(() => {
+        if (!live) return;
+        const others = stylesFor(c.vehicle, c.legal)
+          .map((st) => st.name)
+          .filter((n) => n !== c.style);
+        warmLetters(others.map((n) => specFrom(c, text, sides[0] ?? "rear", n)));
+        // and their looks on the graphics card, one style at a time, each once its letters are made
+        const next = (i: number) => {
+          if (!live || !api.current || i >= others.length) return;
+          const n = others[i];
+          if (seen.current.has(n)) return next(i + 1);
+          const sp = specFrom(c, text, sides[0] ?? "rear", n);
+          void lettersReady([sp]).then(() => {
+            if (!live || !api.current) return;
+            if (lettersFor([sp]).length) return next(i + 1); // not made after all (moved on): skip for now
+            seen.current.add(n);
+            void api.current.prepare(buildPlate(sp, softEnv.current ?? undefined, acrylicEnv.current ?? undefined)).then(() => setTimeout(() => next(i + 1), 50));
+          });
+        };
+        next(0);
+      }, 900);
     });
     return () => {
       live = false;
+      clearTimeout(warmTimer);
     };
   }, [ready, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const step = (d: number) => api.current?.zoomBy(d > 0 ? 1.5 : 1 / 1.5);
   return (
-    <div className="rk-gl" data-plate-gl>
-      <div ref={host} className="rk-gl__view" aria-hidden />
+    <div className="rk-gl" data-plate-gl data-building={building || undefined}>
+      <div className="rk-gl__stage">
+        <div ref={host} className="rk-gl__view" aria-hidden />
+        {building && (
+          <p className="rk-gl__busy" role="status">
+            <span className="rk-gl__spin" aria-hidden />
+            Building your plate
+          </p>
+        )}
+      </div>
       <div className="rk-gl__tools">
         <button type="button" onClick={() => step(-1)} disabled={zoom <= MIN_Z + 0.01} aria-label="Zoom out" data-gl-zoom="out">
           −

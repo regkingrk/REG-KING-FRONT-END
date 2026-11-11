@@ -59,6 +59,9 @@ for (const src of sources) {
     if (!rel.startsWith(".")) rel = "./" + rel;
     return `require("${rel}")`;
   });
+  // Preview-only: no background workers (the single file has no worker file to load), so the
+  // worker's address can't be made and the 3D letters are made on the page instead.
+  code = code.split("import.meta.url").join('"about:blank"');
   // Preview-only rewrites: inline the logo, point "home" links at the live site.
   if (wordmark) code = code.split('"/brand/regking-logo.png"').join(JSON.stringify(wordmark));
   code = code.split('href: "/"').join(`href: "${SHOP}/"`);
