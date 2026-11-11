@@ -144,6 +144,9 @@ export function AboutPage() {
   const { go } = useMode();
   const [at, setAt] = useState(STORY.length - 1);
   const m = STORY[at];
+  // each year shows its opening line; "Read more" opens the rest (and stays open as you move between years)
+  const [more, setMore] = useState(false);
+  const [moreNext, setMoreNext] = useState(false);
   // on a phone the years scroll sideways: keep the chosen one in view
   const years = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -169,9 +172,21 @@ export function AboutPage() {
           </span>
           <h2>{m.title}</h2>
           <p className="rk-story__sub">{m.sub}</p>
-          {m.body.map((t) => (
-            <p key={t}>{t}</p>
-          ))}
+          <p>{m.body[0]}</p>
+          {m.body.length > 1 && (
+            <>
+              <div className="rk-more" data-open={more || undefined} id="rk-story-more">
+                <div>
+                  {m.body.slice(1).map((t) => (
+                    <p key={t}>{t}</p>
+                  ))}
+                </div>
+              </div>
+              <button type="button" className="rk-more__btn" aria-expanded={more} aria-controls="rk-story-more" onClick={() => setMore((v) => !v)}>
+                {more ? "Show less" : "Read more"}
+              </button>
+            </>
+          )}
           <div className="rk-story__nav">
             <button type="button" onClick={() => setAt((a) => Math.max(0, a - 1))} disabled={at === 0} aria-label="Earlier">
               <ArrowRight />
@@ -189,9 +204,16 @@ export function AboutPage() {
       <section className="ab-next" aria-labelledby="ab-next-t">
         <h2 id="ab-next-t">{STORY_NEXT.title}</h2>
         <p className="ab-next__sub">{STORY_NEXT.sub}</p>
-        {STORY_NEXT.body.map((t) => (
-          <p key={t}>{t}</p>
-        ))}
+        <div className="rk-more" data-open={moreNext || undefined} id="ab-next-more">
+          <div>
+            {STORY_NEXT.body.map((t) => (
+              <p key={t}>{t}</p>
+            ))}
+          </div>
+        </div>
+        <button type="button" className="rk-more__btn" aria-expanded={moreNext} aria-controls="ab-next-more" onClick={() => setMoreNext((v) => !v)}>
+          {moreNext ? "Show less" : "Read more"}
+        </button>
         <p className="ab-next__close">{STORY_NEXT.close}</p>
         <p className="ab-next__sign">
           REG KING. <span>{STORY_NEXT.sign}</span>

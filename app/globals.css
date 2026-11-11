@@ -15711,8 +15711,8 @@ html.rk-menu-open body {
   overflow: hidden;
   display: grid;
   gap: 10px;
-  min-height: 240px;
-  padding: clamp(22px, 4vw, 40px);
+  min-height: 200px;
+  padding: clamp(22px, 3.4vw, 34px);
   border-radius: 18px;
   background: #0b0b0a;
   color: #f4f2ec;
@@ -15740,6 +15740,51 @@ html.rk-menu-open body {
   font-size: 17px;
   line-height: 1.55;
   color: rgba(244, 242, 236, 0.85);
+}
+/* "Read more": the rest of the text opens below, the height easing open */
+.rk-more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+.rk-more[data-open] {
+  grid-template-rows: 1fr;
+}
+.rk-more > div {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility 0.25s;
+}
+.rk-more[data-open] > div {
+  visibility: visible;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-more,
+  .rk-more > div {
+    transition: none;
+  }
+}
+.rk-more__btn {
+  position: relative;
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 700 15px var(--rk-body);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.rk-story__card .rk-more__btn {
+  color: var(--rk-yellow);
+}
+.rk-more__btn:focus-visible {
+  outline: 2px solid var(--rk-yellow);
+  outline-offset: 3px;
 }
 .rk-story__card .rk-story__sub {
   font-weight: 700;

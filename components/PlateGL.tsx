@@ -64,11 +64,13 @@ export function PlateGL({
   tight?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
-  const api = useRef<{ setPlates: (g: THREE.Group[]) => void; reset: () => void; view: (v: View) => void; zoomBy: (f: number) => void; setStart: (v: { yaw: number; pitch: number }) => void; prepare: (g: THREE.Group) => Promise<void> } | null>(null);
+  const api = useRef<{ setPlates: (g: THREE.Group[], lay?: boolean) => void; reset: () => void; view: (v: View) => void; zoomBy: (f: number) => void; setStart: (v: { yaw: number; pitch: number }) => void; prepare: (g: THREE.Group) => Promise<void> } | null>(null);
   // "Building your plate" shows while a style is made for the first time
   const [building, setBuilding] = useState(false);
   // styles already shown or got ready in this view (their look is ready on the graphics card)
   const seen = useRef(new Set<string>());
+  // the style on show, so a change of style (not of reg) lays the letters on
+  const shownStyle = useRef<string | null | undefined>(undefined);
   const [zoom, setZoom] = useState(1);
   // the % shown between the buttons follows the view as it zooms
   const onZoom = useRef((v: number) => setZoom(Math.round(v * 20) / 20));
@@ -141,8 +143,27 @@ export function PlateGL({
       camera.lookAt(panX, panY, 0);
       camera.updateProjectionMatrix();
     };
+    // "Letters laid on": after a style change each character drops onto the plate, left to right
+    const LIFT = 130, SLIDE = 26, DROP = 380, STAGGER = 60; // mm towards you, mm above, ms each, ms between letters
+    let lay: { t0: number; items: { m: THREE.Object3D; n: number; z: number; y: number }[] } | null = null;
+    const layStep = () => {
+      if (!lay) return false;
+      const now = performance.now();
+      let busy = false;
+      for (const it of lay.items) {
+        const t = (now - lay.t0 - it.n * STAGGER) / DROP;
+        it.m.visible = t >= 0;
+        const e = t >= 1 ? 1 : t <= 0 ? 0 : 1 - Math.pow(1 - t, 3);
+        it.m.position.z = it.z + (1 - e) * LIFT;
+        it.m.position.y = it.y + (1 - e) * SLIDE;
+        if (t < 1) busy = true;
+      }
+      if (!busy) lay = null;
+      return busy;
+    };
     const draw = () => {
       raf = 0;
+      const laying = layStep();
       yaw += (tYaw - yaw) * 0.18;
       pitch += (tPitch - pitch) * 0.18;
       z += (tz - z) * 0.22;
@@ -153,7 +174,7 @@ export function PlateGL({
       renderer.render(scene, camera);
       onZoom.current(z);
       const moving = [tYaw - yaw, tPitch - pitch, tz - z, (tPanX - panX) / 100, (tPanY - panY) / 100].some((d) => Math.abs(d) > 0.0005);
-      if (moving) raf = requestAnimationFrame(draw);
+      if (moving || laying) raf = requestAnimationFrame(draw);
     };
     const ask = () => {
       if (!raf) raf = requestAnimationFrame(draw);
@@ -258,7 +279,8 @@ export function PlateGL({
     ro.observe(el);
 
     api.current = {
-      setPlates: (plates) => {
+      setPlates: (plates, layOn) => {
+        lay = null;
         rig.children.slice().forEach((o) => {
           rig.remove(o);
           disposeGroup(o);
@@ -273,6 +295,16 @@ export function PlateGL({
           rig.add(g);
         });
         span = { w: Math.max(...heights.map((v) => v.x)), h: totalH };
+        if (layOn && !reduce) {
+          const items: { m: THREE.Object3D; n: number; z: number; y: number }[] = [];
+          plates.forEach((g) => g.traverse((o) => {
+            if (typeof o.userData.letter === "number") items.push({ m: o, n: o.userData.letter, z: o.position.z, y: o.position.y });
+          }));
+          if (items.length) {
+            lay = { t0: performance.now(), items };
+            layStep();
+          }
+        }
         ask();
       },
       reset: () => {
@@ -377,7 +409,12 @@ export function PlateGL({
       }
       seen.current.add(c.style ?? "");
       api.current.setStart(is4D(c.style) ? START_4D : START);
-      api.current.setPlates(specs.map((sp) => buildPlate(sp, softEnv.current ?? undefined, acrylicEnv.current ?? undefined)));
+      const styleChanged = shownStyle.current !== undefined && shownStyle.current !== c.style;
+      shownStyle.current = c.style;
+      api.current.setPlates(
+        specs.map((sp) => buildPlate(sp, softEnv.current ?? undefined, acrylicEnv.current ?? undefined)),
+        styleChanged,
+      );
       void nextPaint().then(() => live && setBuilding(false));
 
       // Then, once the customer pauses, get the other styles ready for this reg in the background.

@@ -191,6 +191,7 @@ function characters(s: PlateSpec, b: Build, mat: THREE.Material | THREE.Material
   };
   // Show plates with custom spacing: the characters without their spaces, each gap as chosen
   const gaps = !s.bike && s.gaps ? s.gaps : null;
+  let letterNo = -1;
   for (const raw of lines) {
     const line = gaps ? raw.replace(/\s/g, "") : raw;
     const extra = (i: number) => (gaps ? (gaps[i] ?? 0) * GLYPH_SPACE : 0);
@@ -205,6 +206,7 @@ function characters(s: PlateSpec, b: Build, mat: THREE.Material | THREE.Material
         x += GLYPH_SPACE * k * sx;
         continue;
       }
+      letterNo++;
       const shapes = b.ring ? ringShapes(glyphShapes(ch), b.ring[0], b.ring[1]) : b.inset ? insetShapes(glyphShapes(ch), b.inset) : glyphShapes(ch);
       if (shapes.length) {
         // built in font units, then scaled to millimetres (depth stays in mm)
@@ -219,6 +221,9 @@ function characters(s: PlateSpec, b: Build, mat: THREE.Material | THREE.Material
               ? pressGeometry(`${ch}|${k}|${s.side}|${s.look}`, shapes, k, PRESS.depth, PRESS.size, pressTop(s), pressPaint(s))
               : glyphGeometry(b.ring ? `${ch}|ring${b.ring}` : b.inset ? `${ch}|in${b.inset}` : ch, shapes, geoOpts, b.depth / k);
         const mesh = new THREE.Mesh(geo, mat);
+        // which character this is, left to right (every layer of a letter shares it), for the builder's
+        // "letters laid on" animation
+        mesh.userData.letter = letterNo;
         mesh.scale.set(k * sx, k, k);
         // the back bevel sinks into the plate, so each letter stands on a flat foot
         mesh.position.set(x, baseline, base);
