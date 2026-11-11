@@ -27,6 +27,15 @@ const VIEWS: { name: string; v: View }[] = [
   { name: "Close-up", v: { yaw: -0.55, pitch: 0.3, zoom: 2.3 } },
 ];
 const MAX_Z = 5;
+/** After the next screen update (or a moment, if the page isn't being drawn), never waiting for ever. */
+const nextPaint = () =>
+  new Promise<void>((r) => {
+    const t = setTimeout(r, 120);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      clearTimeout(t);
+      r();
+    }));
+  });
 
 
 /**
@@ -363,13 +372,13 @@ export function PlateGL({
         setBuilding(true);
         await makeLetters(jobs);
         // let "Building your plate" show before the page is busy drawing the new style
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await nextPaint();
         if (!live || !api.current) return;
       }
       seen.current.add(c.style ?? "");
       api.current.setStart(is4D(c.style) ? START_4D : START);
       api.current.setPlates(specs.map((sp) => buildPlate(sp, softEnv.current ?? undefined, acrylicEnv.current ?? undefined)));
-      requestAnimationFrame(() => requestAnimationFrame(() => live && setBuilding(false)));
+      void nextPaint().then(() => live && setBuilding(false));
 
       // Then, once the customer pauses, get the other styles ready for this reg in the background.
       warmTimer = window.setTimeout(() => {

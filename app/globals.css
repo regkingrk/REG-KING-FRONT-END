@@ -15664,9 +15664,9 @@ html.rk-menu-open body {
 .rk-story__years {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  padding-bottom: 14px;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px 0 14px;
 }
 .rk-story__years button {
   padding: 0;
@@ -15682,7 +15682,7 @@ html.rk-menu-open body {
   background: #ece9e0;
   color: #8a857b;
   box-shadow: 0 0 0 1.5px #d8d4c8 inset;
-  font: 400 clamp(17px, 2.6vw, 26px)/1 var(--rk-plate-font);
+  font: 400 clamp(15px, 1.7vw, 22px)/1 var(--rk-plate-font);
   letter-spacing: 0.04em;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
@@ -15740,6 +15740,37 @@ html.rk-menu-open body {
   font-size: 17px;
   line-height: 1.55;
   color: rgba(244, 242, 236, 0.85);
+}
+.rk-story__card .rk-story__sub {
+  font-weight: 700;
+  color: #f4f2ec;
+}
+/* after the timeline */
+.ab-next {
+  display: grid;
+  gap: 10px;
+}
+.ab-next h2 {
+  margin: 0;
+  font: 800 clamp(28px, 3.6vw, 40px)/1 var(--rk-display);
+  text-transform: uppercase;
+}
+.ab-next p {
+  max-width: 60ch;
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+}
+.ab-next .ab-next__sub,
+.ab-next .ab-next__close {
+  font-weight: 700;
+}
+.ab-next .ab-next__sign {
+  font: 800 20px/1.2 var(--rk-display);
+  text-transform: uppercase;
+}
+.ab-next__sign span {
+  color: #a87f00;
 }
 .rk-story__nav {
   position: relative;
@@ -15867,8 +15898,21 @@ html.rk-menu-open body {
   .rk-hq {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* ten years: they scroll sideways on a phone, five or so in view */
   .rk-story__years {
+    grid-template-columns: repeat(10, 64px);
     gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .rk-story__years::-webkit-scrollbar {
+    display: none;
+  }
+  .rk-story__plate {
+    font-size: 17px;
+  }
+  .rk-story__track {
+    display: none;
   }
 }
 

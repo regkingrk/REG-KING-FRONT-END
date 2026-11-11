@@ -96,21 +96,128 @@ export const PROVIDERS: Provider[] = [
 /* ------------------------------------------------------------------ */
 /* The REG KING story                                                  */
 /* ------------------------------------------------------------------ */
-export const STORY = [
-  { year: "2017", title: "The side hustle", line: "REG KING started as a side hustle, dealing private plates around everything else." },
-  { year: "2020", title: "Made it official", line: "REG KING became a registered business, and we started making plates ourselves." },
+export const STORY: { year: string; title: string; sub: string; body: string[] }[] = [
+  {
+    year: "2017",
+    title: "Where it all began",
+    sub: "Two Plates. One Idea. Endless Ambition.",
+    body: [
+      "After a late-night meal with a close friend, our founder and CEO, Neyman, decided to try buying and selling private registrations.",
+      "With his very first paycheque, he purchased V10 YHG and V12 YHG, which would later find their homes on a Lamborghini Huracán and a classic BMW 7 Series.",
+      "In August 2017, the REG KING Instagram page was born. What started as a simple side hustle would become something far greater.",
+    ],
+  },
+  {
+    year: "2018",
+    title: "Turning setbacks into opportunities",
+    sub: "No Job. No Guaranteed Income. No Giving Up.",
+    body: [
+      "As REG KING began gaining recognition, our founder found himself without a job after his employer relocated.",
+      "Rather than giving up, he used the growing Instagram page to advertise private registrations on behalf of customers, creating a regular source of income.",
+      "For almost a year, this kept the journey moving forward.",
+    ],
+  },
+  {
+    year: "2019",
+    title: "Building the foundations",
+    sub: "30+ Registrations Sold. Hundreds Advertised.",
+    body: [
+      "By 2019, REG KING had sold over 30 private registrations and advertised hundreds more on behalf of customers.",
+      "Our reputation was growing, connections were strengthening and the brand was slowly becoming recognised within the industry.",
+      "It was still a side hustle, but the foundations of something much bigger were taking shape.",
+    ],
+  },
+  {
+    year: "2020",
+    title: "From hustle to business",
+    sub: "Small Beginnings. Bigger Ambitions.",
+    body: [
+      "2020 marked the decision to take REG KING to the next level, establishing it as a business and expanding into physical number plate manufacturing.",
+      "Our first workspace? A tiny office inside our founder's uncle's garage, smaller than the office our team uses today!",
+      "No showroom, no large team. Just determination, ambition and a vision to build something special.",
+    ],
+  },
+  {
+    year: "2021",
+    title: "Our first digital home",
+    sub: "Built From Scratch. Built To Last.",
+    body: [
+      "With the business continuing to grow, our founder took on a new challenge: building the REG KING website himself.",
+      "What began as a self-built project became the foundation of our online presence, supporting the business for the next five years.",
+      "That very website would remain part of our journey until its redevelopment in 2026.",
+    ],
+  },
+  {
+    year: "2022",
+    title: "The ambition continues",
+    sub: "Always Building. Always Moving Forward.",
+    body: [
+      "Throughout 2022, REG KING continued growing its audience, developing industry relationships and expanding its presence, all while remaining a side hustle alongside employment.",
+      "Our founder also explored another entrepreneurial venture, launching FIRE FLAVOURZ, a halal confectionery business, with a close friend.",
+      "The ambition was never limited to one idea, and REG KING continued moving forward.",
+    ],
+  },
   {
     year: "2023",
-    title: "Took regs to TikTok",
-    line: "We went all in on social media and were one of the first, if not the first, to sell regs on TikTok, with a very different approach.",
+    title: "A new era of content",
+    sub: "New Platforms. New Faces. New Opportunities.",
+    body: [
+      "REG KING officially made its debut on TikTok, initially showcasing private registrations through simple slideshow videos.",
+      "Behind the scenes, our operations were also expanding, with a new team member joining towards the end of the year to help manufacture physical plates.",
+      "What started as a one-man side hustle was gradually becoming a growing team.",
+    ],
   },
-  { year: "2025", title: "Opened the doors", line: "August 2025: our first physical store opened, so customers could walk in and see their plates made." },
+  {
+    year: "2024",
+    title: "The year everything changed",
+    sub: "The Audi S4. Zubby. A Whole New Direction.",
+    body: [
+      "2024 was a defining year for REG KING.",
+      "Our founder finally treated himself to the now-famous Audi S4 after years of hard work, but the biggest development was still to come.",
+      "Enter Zubby.",
+      "Together, we introduced a fresh, personality-driven approach to private registration content on TikTok, moving beyond simple slideshows and bringing entertainment into the industry.",
+      "We weren't just showcasing registrations anymore. We were building a community.",
+    ],
+  },
+  {
+    year: "2025",
+    title: "A home fit for a king",
+    sub: "From A Garage To Our Very Own Showroom.",
+    body: [
+      "After eight years of growth, we knew our customers deserved a better experience than walking through a garage to reach us.",
+      "Just five minutes from our original location, we discovered the perfect premises. With the help of our team and close friends, we transformed it into the REG KING showroom in just two months.",
+      "On 24 August 2025, we officially opened our doors to an incredible turnout of customers, friends and family.",
+      "The only problem? It was also our founder's wedding anniversary. Let's just say his wife wasn't too impressed!",
+      "The year also saw our growing family of brands take shape, including ASIAN PLATES, NUMBER PLAT3S, LUX PLATES, THE REG KING and PUNJAB PLATES.",
+      "A milestone eight years in the making, and one we'll never forget.",
+    ],
+  },
   {
     year: "2026",
-    title: "The HQ",
-    line: "One year in, we expanded further into the unit and made it our official HQ: office and admin, physical plates and wholesale, all under one roof.",
+    title: "The next chapter",
+    sub: "Nine Years In. And We're Just Getting Started.",
+    body: [
+      "2026 wasn't without its challenges, but it became another defining year in our journey.",
+      "We welcomed three new team members, extended our opening hours, reached the milestone of over 1,000 Google reviews and undertook a complete redevelopment of our website.",
+      "Most importantly, after years of balancing employment with REG KING, our founder finally took the leap and dedicated himself fully to the business.",
+      "From two registrations purchased with a first paycheque to a growing team, a dedicated showroom and a brand recognised by thousands.",
+      "We've come a long way, but our ambition has only grown.",
+      "We're here to keep innovating, keep growing and keep raising the standards of our industry.",
+    ],
   },
-] as const;
+];
+
+/** After the timeline: where the story goes next. */
+export const STORY_NEXT = {
+  title: "The story continues",
+  sub: "Built On Ambition. Driven By Passion. Focused On The Future.",
+  body: [
+    "What began as a late-night idea in 2017 has become a journey filled with determination, sacrifice, incredible people and unforgettable milestones.",
+    "To every customer, friend, family member and supporter who has been part of our story, thank you.",
+  ],
+  close: "The best chapters are still to come.",
+  sign: "Helping Crown Your Car.",
+};
 
 /** The HQ. Address from REG KING (28 Oct 2026). Opening hours: CONFIRM with REG KING before launch. */
 export const HQ = {

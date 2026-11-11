@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { formatGBP, instagram, payl8rDisclaimer, reviewScores, routes, spaceReg, supportEmail } from "@/lib/brand";
-import { CONTACT_TOPICS, FAQS, HQ, PROVIDERS, STORY, TEAM, phone, whatsapp, type ContactTopic, type FaqTab, type ProviderKey } from "@/lib/infoContent";
+import { CONTACT_TOPICS, FAQS, HQ, PROVIDERS, STORY, STORY_NEXT, TEAM, phone, whatsapp, type ContactTopic, type FaqTab, type ProviderKey } from "@/lib/infoContent";
 import { GALLERY, type GalleryTab } from "@/lib/gallery";
 import { ArrowRight } from "./Icons";
 import { useMode } from "./ModeProvider";
@@ -144,12 +144,18 @@ export function AboutPage() {
   const { go } = useMode();
   const [at, setAt] = useState(STORY.length - 1);
   const m = STORY[at];
+  // on a phone the years scroll sideways: keep the chosen one in view
+  const years = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = years.current, b = row?.querySelector<HTMLElement>(`[data-year="${m.year}"]`);
+    if (row && b && row.scrollWidth > row.clientWidth) row.scrollTo({ left: b.offsetLeft - (row.clientWidth - b.offsetWidth) / 2, behavior: "smooth" });
+  }, [m.year]);
   return (
     <div className="rk-about">
       <p className="rk-info__lede">Industry leaders in private plates. We buy, sell and make registrations, and we&apos;re fully DVLA registered. Here&apos;s how we got here.</p>
 
       <div className="rk-story">
-        <div className="rk-story__years" role="tablist" aria-label="Our story by year">
+        <div className="rk-story__years" role="tablist" aria-label="Our story by year" ref={years}>
           {STORY.map((s, i) => (
             <button key={s.year} type="button" role="tab" aria-selected={i === at} onClick={() => setAt(i)} data-year={s.year}>
               <span className="rk-story__plate">{s.year}</span>
@@ -162,7 +168,10 @@ export function AboutPage() {
             {m.year}
           </span>
           <h2>{m.title}</h2>
-          <p>{m.line}</p>
+          <p className="rk-story__sub">{m.sub}</p>
+          {m.body.map((t) => (
+            <p key={t}>{t}</p>
+          ))}
           <div className="rk-story__nav">
             <button type="button" onClick={() => setAt((a) => Math.max(0, a - 1))} disabled={at === 0} aria-label="Earlier">
               <ArrowRight />
@@ -176,6 +185,18 @@ export function AboutPage() {
           </div>
         </div>
       </div>
+
+      <section className="ab-next" aria-labelledby="ab-next-t">
+        <h2 id="ab-next-t">{STORY_NEXT.title}</h2>
+        <p className="ab-next__sub">{STORY_NEXT.sub}</p>
+        {STORY_NEXT.body.map((t) => (
+          <p key={t}>{t}</p>
+        ))}
+        <p className="ab-next__close">{STORY_NEXT.close}</p>
+        <p className="ab-next__sign">
+          REG KING. <span>{STORY_NEXT.sign}</span>
+        </p>
+      </section>
 
       <section className="ab-reg" aria-labelledby="ab-reg-t">
         <div className="ab-reg__mark" aria-hidden>
