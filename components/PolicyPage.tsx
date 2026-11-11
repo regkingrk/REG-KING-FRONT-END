@@ -1,5 +1,6 @@
 import { getPolicy, type PolicyKey } from "@/lib/shopify";
 import { SiteFooter } from "./HomeSections";
+import { MakeProvider } from "./MakeProvider";
 import { ModeProvider } from "./ModeProvider";
 import { SiteHeader } from "./SiteHeader";
 
@@ -14,7 +15,8 @@ export async function PolicyPage({ policy, title }: { policy: PolicyKey; title: 
     throw new Error(`${title} is missing. Connect Shopify (SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_TOKEN) and fill it in under Settings > Policies before launch.`);
   }
   return (
-    <ModeProvider>
+    <ModeProvider standalone>
+      <MakeProvider>
       <SiteHeader />
       <main className="rk-policy">
         <div className="rk-wrap rk-policy__in">
@@ -30,6 +32,7 @@ export async function PolicyPage({ policy, title }: { policy: PolicyKey; title: 
         </div>
       </main>
       <SiteFooter />
+      </MakeProvider>
     </ModeProvider>
   );
 }

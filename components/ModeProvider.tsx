@@ -91,20 +91,53 @@ const targetFor = (section: SectionKey, item: string | null) => {
   return "rk-hero";
 };
 
-export function ModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<SearchMode>("buy");
+/**
+ * Real web addresses. A plate's page lives at /products/<handle> (the same address as on the old
+ * Shopify site, so links and Google results keep working); everything else is the homepage with a
+ * # link. The single-file preview has no real addresses, so it keeps to # links.
+ */
+const pathRoutes = () => typeof window !== "undefined" && !(window as { __RK_PREVIEW?: boolean }).__RK_PREVIEW;
+/** The address to show for a # link: a plate's own page, or the homepage with the link. */
+function urlFor(hash: string) {
+  const h = hash.startsWith("#") ? hash : `#${hash}`;
+  if (!pathRoutes()) return location.pathname + location.search.replace(/([?&])q=[^&]*&?/, "$1").replace(/\?$/, "") + h;
+  const plate = h.match(/^#plate-([a-z0-9-]+)$/i);
+  if (plate && !plate[1].startsWith("dvla-")) return `/products/${plate[1].toLowerCase()}`;
+  return "/" + location.search.replace(/([?&])q=[^&]*&?/, "$1").replace(/\?$/, "") + h;
+}
+
+/** The view a page opens on before the browser takes over, so its first HTML is the right page. */
+function seed(initial?: string) {
+  const s = { mode: "buy" as SearchMode, item: null as string | null, info: null as string | null, acc: null as string | null, plate: null as string | null };
+  if (!initial) return s;
+  const h = initial.replace(/^#/, "").toLowerCase();
+  if (/^plate-[a-z0-9-]+$/.test(h)) return { ...s, plate: h.slice(6) };
+  const p = parseHash(h);
+  if (!p) return s;
+  if (p.section === "info") return { ...s, info: p.item ?? "about" };
+  if (p.section === "acc") return { ...s, acc: p.item ?? "all" };
+  return { ...s, mode: MODE_OF[p.section], item: p.item };
+}
+
+/**
+ * `initial`: the view this address opens on (/products/am12-aah → "plate-am12-aah").
+ * `standalone`: a page outside the main app (policies, content pages): its links go to the homepage.
+ */
+export function ModeProvider({ children, initial, standalone = false }: { children: ReactNode; initial?: string; standalone?: boolean }) {
+  const [first] = useState(() => seed(initial));
+  const [mode, setModeState] = useState<SearchMode>(first.mode);
   const [query, setQueryState] = useState("");
   const [sellReg, setSellReg] = useState("");
   const [sellOption, setSellOption] = useState<SellOption | "">("");
-  const [item, setItem] = useState<string | null>(null);
-  const [info, setInfoState] = useState<string | null>(null);
-  const [acc, setAcc] = useState<string | null>(null);
+  const [item, setItem] = useState<string | null>(first.item);
+  const [info, setInfoState] = useState<string | null>(first.info);
+  const [acc, setAcc] = useState<string | null>(first.acc);
   // Opening an Information page or anything else closes Accessories.
   const setInfo = useCallback((i: string | null) => {
     setInfoState(i);
     setAcc(null);
   }, []);
-  const [plate, setPlatePage] = useState<string | null>(null);
+  const [plate, setPlatePage] = useState<string | null>(first.plate);
   const [account, setAccount] = useState<string | null>(null);
   const [page, setPage] = useState<string | null>(null);
   // Opening any other page closes the account area.
@@ -135,7 +168,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       const url = new URL(location.href);
       if (q) url.searchParams.set("q", q);
       else url.searchParams.delete("q");
-      history.replaceState(null, "", url.pathname + url.search + (q ? "#buy" : url.hash));
+      history.replaceState(null, "", (pathRoutes() && url.pathname.startsWith("/products/") ? "/" : url.pathname) + url.search + (q ? "#buy" : url.hash));
     } catch {}
   }, []);
 
@@ -147,7 +180,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     setItem(null);
     setBrowseState(false);
     try {
-      history.replaceState(null, "", `#${HASH[m]}`);
+      history.replaceState(null, "", urlFor(HASH[m]));
     } catch {}
   }, []);
 
@@ -213,17 +246,23 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const go = useCallback(
     (hash: string) => {
       const h = hash.startsWith("#") ? hash : `#${hash}`;
+      // pages outside the main app open the homepage at that link
+      if (standalone) {
+        location.assign(`/${h}`);
+        return;
+      }
       try {
-        history.replaceState(null, "", location.pathname + location.search.replace(/([?&])q=[^&]*&?/, "$1").replace(/\?$/, "") + h);
+        history.replaceState(null, "", urlFor(h));
       } catch {}
       apply(h, true);
     },
-    [apply],
+    [apply, standalone],
   );
 
   // Open the tab or page named in the link, and follow links like #sell-commission.
   useEffect(() => {
-    apply(location.hash, false);
+    if (standalone) return;
+    apply(location.hash || (initial ? `#${initial}` : ""), false);
     try {
       const q = new URLSearchParams(location.search).get("q");
       if (q) {
@@ -235,7 +274,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     const onHash = () => apply(location.hash, true);
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
-  }, [apply]);
+  }, [apply, initial, standalone]);
 
   // Make keeps the full hero (so the Buy / Sell / Make tabs never move). A search, a sell enquiry
   // or an Information page focuses the page.

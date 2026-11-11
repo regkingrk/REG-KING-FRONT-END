@@ -5,7 +5,8 @@
  *   SHOPIFY_STOREFRONT_TOKEN   Storefront API access token (Shopify admin > Apps > Develop apps)
  *   SHOPIFY_API_VERSION        optional, defaults below
  */
-const API_VERSION = process.env.SHOPIFY_API_VERSION || "2025-04";
+// Shopify supports each API version for about a year: move this on each spring and autumn.
+const API_VERSION = process.env.SHOPIFY_API_VERSION || "2026-10";
 
 export type ShopPolicy = { title: string; body: string; url: string };
 export type PolicyKey = "privacyPolicy" | "termsOfService";
@@ -14,14 +15,14 @@ export function shopifyConfigured() {
   return Boolean(process.env.SHOPIFY_STORE_DOMAIN && process.env.SHOPIFY_STOREFRONT_TOKEN);
 }
 
-async function storefront<T>(query: string): Promise<T> {
+async function storefront<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const res = await fetch(`https://${process.env.SHOPIFY_STORE_DOMAIN}/api/${API_VERSION}/graphql.json`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Shopify-Storefront-Access-Token": process.env.SHOPIFY_STOREFRONT_TOKEN as string,
     },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify(variables ? { query, variables } : { query }),
     next: { revalidate: 3600 },
   });
   if (!res.ok) throw new Error(`Shopify Storefront API ${res.status}`);
@@ -108,6 +109,23 @@ export async function soldPlatePrices(): Promise<{ reg: string; handle?: string;
     after = json.data.orders.pageInfo.endCursor;
   }
   return out;
+}
+
+export type ShopPage = { title: string; body: string; seoTitle: string | null; seoDescription: string | null };
+
+/**
+ * One of REG KING's own content pages from Shopify (Online Store > Pages), cached for an hour.
+ * The wording is the shop's, written in Shopify admin, never here.
+ */
+export async function getPage(handle: string): Promise<ShopPage | null> {
+  if (!shopifyConfigured() || !/^[a-z0-9-]{1,80}$/.test(handle)) return null;
+  const data = await storefront<{ page: { title: string; body: string; bodySummary: string; seo: { title: string | null; description: string | null } | null } | null }>(
+    `query Page($handle: String!) { page(handle: $handle) { title body bodySummary seo { title description } } }`,
+    { handle },
+  );
+  const p = data.page;
+  if (!p) return null;
+  return { title: p.title, body: p.body, seoTitle: p.seo?.title || null, seoDescription: p.seo?.description || p.bodySummary || null };
 }
 
 /** One plate in the shop by its handle, asked now (not cached). null when it's gone or not for sale. */
