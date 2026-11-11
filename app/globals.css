@@ -38058,3 +38058,103 @@ body:has(.rk-studio) {
 .rk-studio__car .poc__stage {
   max-height: calc(100vh - 460px);
 }
+
+/* ================================================================== */
+/* Brokerage form: black and yellow (Task 3). Only the brokerage form; */
+/* the sourcing and other forms keep their own look.                   */
+/* ================================================================== */
+.bk[data-service="brk"] .bk__card {
+  border: 0;
+  border-radius: 12px;
+  background: #121211;
+  color: #f4f2ec;
+}
+.bk[data-service="brk"] .bk__card h2 {
+  color: #fff;
+}
+.bk[data-service="brk"] .bk-f > span:first-child,
+.bk[data-service="brk"] .bk-f label,
+.bk[data-service="brk"] .bk-money > span {
+  color: #f4f2ec;
+}
+.bk[data-service="brk"] .bk-f i {
+  color: #bdb8ad;
+}
+.bk[data-service="brk"] .bk-f input,
+.bk[data-service="brk"] .bk-f textarea {
+  border: 1.5px solid #7a7468;
+  background: #1f1e1c;
+  color: #fff;
+}
+.bk[data-service="brk"] .bk-f input::placeholder,
+.bk[data-service="brk"] .bk-f textarea::placeholder {
+  color: #a39d91;
+}
+.bk[data-service="brk"] .bk-f input:hover,
+.bk[data-service="brk"] .bk-f textarea:hover {
+  border-color: #a39d91;
+}
+.bk[data-service="brk"] .bk-f input:focus-visible,
+.bk[data-service="brk"] .bk-f textarea:focus-visible {
+  border-color: var(--rk-yellow);
+  outline: 2px solid var(--rk-yellow);
+  outline-offset: 1px;
+}
+.bk[data-service="brk"] .bk-f input[aria-invalid="true"],
+.bk[data-service="brk"] .bk-f textarea[aria-invalid="true"] {
+  border-color: #ff8a80;
+}
+.bk[data-service="brk"] .bk-err {
+  color: #ff8a80;
+  font-weight: 600;
+}
+/* the registration box stays a real white front plate */
+.bk[data-service="brk"] .bk-f input.bk-reg {
+  border: 0;
+}
+.bk[data-service="brk"] .bk-f input.bk-reg:focus-visible {
+  outline: 3px solid var(--rk-yellow);
+  outline-offset: 2px;
+}
+.bk[data-service="brk"] .bk-choice button {
+  border: 1.5px solid #7a7468;
+  background: #1f1e1c;
+  color: #fff;
+}
+.bk[data-service="brk"] .bk-choice button:hover {
+  border-color: #a39d91;
+}
+.bk[data-service="brk"] .bk-choice button[aria-checked="true"] {
+  border-color: var(--rk-yellow);
+  background: var(--rk-yellow);
+  color: #000;
+}
+.bk[data-service="brk"] .bk-choice button:focus-visible {
+  outline: 2px solid var(--rk-yellow);
+  outline-offset: 2px;
+}
+.bk[data-service="brk"] .bk-btn {
+  background: var(--rk-yellow);
+  color: #000;
+}
+.bk[data-service="brk"] .bk-btn:hover {
+  background: #ffd23f;
+}
+.bk[data-service="brk"] .bk-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+.bk[data-service="brk"] .bk-small,
+.bk[data-service="brk"] .bk-msg {
+  color: #bdb8ad;
+}
+.bk[data-service="brk"] .bk__sent p {
+  color: rgba(244, 242, 236, 0.88);
+}
+.bk[data-service="brk"] .bk__fee b {
+  color: var(--rk-yellow);
+}
+.bk[data-service="brk"] .bk__fee {
+  background: #1f1e1c;
+  color: #f4f2ec;
+}
