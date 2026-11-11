@@ -20,6 +20,7 @@ import { useMemo, useState } from "react";
 import { DEPOSIT_RATE, MEMBER_DISCOUNT, formatGBP, payl8rDisclaimer, supportEmail } from "@/lib/brand";
 import { HQ, phone } from "@/lib/infoContent";
 import { docsReady, LEGAL_DOCS_LIST } from "@/lib/builder";
+import { DELIVERY, FREE_STANDARD_OVER } from "@/lib/checkoutRules";
 import { lineTotal, useMake, type BasketItem, type RegistrationData } from "./MakeProvider";
 import { useAccount } from "./AccountProvider";
 import { useMode } from "./ModeProvider";
@@ -28,16 +29,6 @@ import { BrandLogo } from "./BrandLogo";
 const money = (n: number) => formatGBP(n, Number.isInteger(n));
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/**
- * Delivery, from REG KING's current shipping policy on Shopify (standard £3.99, express £5.99,
- * free standard delivery over £50). CONFIRM with REG KING before launch: that policy is from 2021.
- */
-export const DELIVERY = [
-  { key: "standard", name: "Standard delivery", line: "3 to 5 working days", price: 3.99 },
-  { key: "express", name: "Express delivery", line: "1 to 3 working days", price: 5.99 },
-  { key: "collect", name: "Collect from the HQ", line: HQ.lines.join(", "), price: 0 },
-] as const;
-export const FREE_STANDARD_OVER = 50;
 
 type Step = "details" | "registration" | "call" | "documents" | "delivery" | "payment";
 type Pay = "card" | "pay-in-3" | "finance" | "deposit";
@@ -107,6 +98,8 @@ export function Checkout() {
   const [dvlaOk, setDvlaOk] = useState(false);
   const [tried, setTried] = useState<Step | null>(null);
   const [placed, setPlaced] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payErr, setPayErr] = useState("");
   const [code, setCode] = useState("");
   const [codeMsg, setCodeMsg] = useState("");
 
@@ -447,17 +440,65 @@ export function Checkout() {
             <button
               type="button"
               className="co-btn co-pay"
-              onClick={() => {
+              disabled={paying}
+              onClick={async () => {
                 if (!valid.payment) return setTried("payment");
-                setPlaced("RK-EXAMPLE");
-                window.scrollTo({ top: 0 });
+                // the single-file preview has no server: show what happens without ordering anything
+                if ((window as { __RK_PREVIEW?: boolean }).__RK_PREVIEW) {
+                  setPlaced("RK-EXAMPLE");
+                  window.scrollTo({ top: 0 });
+                  return;
+                }
+                setPaying(true);
+                setPayErr("");
+                try {
+                  // only what's in the basket and the answers go to the server: it works out every price itself
+                  const res = await fetch("/api/checkout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      items: basket.map((b) => ({ kind: b.kind, data: b.data })),
+                      ship: physical ? ship : undefined,
+                      member: !!customer || join,
+                      pay,
+                      email,
+                      details: {
+                        name,
+                        phone: tel,
+                        holder: regs.length ? (gift ? holder : name) : "",
+                        holderAddress: regs.length ? [addr.line1, addr.line2, addr.town, addr.postcode].filter(Boolean).join(", ") : "",
+                        vehicle,
+                        call: callNeeded && callDay && callTime ? `${longDay(callDay)} at ${callTime}${callTel ? `, on ${callTel}` : ""}` : "",
+                        callNote,
+                        documents: docsNeeded ? (later ? "to follow" : "to follow (chosen at checkout)") : "",
+                        address: physical && ship !== "collect" ? addr : null,
+                      },
+                    }),
+                  });
+                  const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+                  if (res.ok && j.url) {
+                    window.location.href = j.url;
+                    return;
+                  }
+                  setPayErr(j.error || `We couldn't start checkout. Call us on ${phone.display} and we'll sort it.`);
+                } catch {
+                  setPayErr("We couldn't reach our checkout. Check your connection and try again.");
+                }
+                setPaying(false);
               }}
               data-co="place"
             >
-              {(pay === "card" || pay === "deposit") && <LockIcon />}
-              {pay === "finance" ? "Continue to Payl8r" : pay === "pay-in-3" ? "Continue to Pay in 3" : `Pay ${money(sums.today)}${pay === "deposit" ? " today" : ""}`}
+              <LockIcon />
+              {paying ? "Starting secure checkout" : pay === "deposit" ? `Continue to pay ${money(sums.today)} today` : "Continue to secure payment"}
             </button>
-            {(pay === "card" || pay === "deposit") && <p className="co-fine">Card payments are taken by our payment provider. REG KING never sees your card number.</p>}
+            {payErr && (
+              <p className="co-err" role="alert" data-co-error>
+                {payErr}
+              </p>
+            )}
+            {/* CONFIRM with REG KING: how Payl8r finance and Pay in 3 are taken once checkout is on Shopify
+                (Payl8r is an application form on the current site, not a payment option at checkout). */}
+            <p className="co-fine">You pay on Shopify&apos;s secure checkout. REG KING never sees your card number.</p>
           </>
         );
     }

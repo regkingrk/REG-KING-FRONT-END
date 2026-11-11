@@ -15,7 +15,7 @@ import { newThisWeek } from "@/lib/newThisWeek";
 import { exclusive } from "@/lib/exclusive";
 import { customerPlates, regkingStock } from "@/lib/stock";
 import { shopPlates } from "@/lib/valuationData";
-import { OWN_STOCK_DISCOUNT, emptyBuild, priceLines, summary, total as sumLines, type BuildConfig, type Pricing } from "@/lib/builder";
+import { OUR_INCLUDED, OWN_STOCK_DISCOUNT, emptyBuild, priceLines, summary, total as sumLines, type BuildConfig, type Pricing } from "@/lib/builder";
 import { Plate3D } from "./Plate3D";
 import { PlateBuilder } from "./PlateBuilder";
 import { PLATE_MEANINGS } from "@/lib/plateMeanings";
@@ -49,7 +49,6 @@ export const ALL_PLATES: { reg: string; price: number; handle: string; source: P
 })();
 
 /** REG KING's own plates come with a set of plates in one of these styles (as their listings say). */
-const OUR_INCLUDED = ["Printed", "3D Gel", "4D 3MM"];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -163,7 +162,7 @@ export function PlateView({ handle }: { handle: string }) {
       title: `${plate.reg} registration`,
       detail: [ours ? "REG KING stock" : fromDvla ? "New from the DVLA" : "Customer plate", opt ? opt.name : null, assigned ? ASSIGN.name : null].filter(Boolean).join(", "),
       lines,
-      data: { reg: plate.reg, handle: plate.handle, source: plate.source, price: plate.price, pay: how, plates: opt ? opt.name : null, platesLegal: !!opt && cfg.legal === "Legal", assign: assigned },
+      data: { reg: plate.reg, handle: plate.handle, source: plate.source, price: plate.price, pay: how, plates: opt ? opt.name : null, platesCfg: opt ? cfg : null, platesLegal: !!opt && cfg.legal === "Legal", assign: assigned },
     });
     go("checkout");
   };

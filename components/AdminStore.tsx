@@ -22,7 +22,7 @@ import { GALLERY } from "@/lib/gallery";
 import { HQ, PROVIDERS, phone, whatsapp } from "@/lib/infoContent";
 import { DVLA_FEE_RATE } from "@/lib/dvlaPricing";
 import { can, type AdminOrder, type Role } from "@/lib/admin";
-import { DELIVERY, FREE_STANDARD_OVER } from "./Checkout";
+import { DELIVERY, FREE_STANDARD_OVER } from "@/lib/checkoutRules";
 
 const money = (n: number) => formatGBP(n, Number.isInteger(n));
 const pct = (n: number) => `${Math.round(n * 1000) / 10}%`;

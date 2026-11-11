@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ACCESSORY_PRICES,
   FRAME_COLOURS,
+  logoLines,
+  surroundLines,
   LOGO_PLATE_TYPES,
   LOGO_FILE_TYPES,
   LOGO_FILE_MAX_MB,
@@ -48,7 +49,6 @@ import { SURROUND_GROUPS, SURROUND_SIZE_LIST, sizeShortName, surroundSize } from
 import { lineTotal, newId, useMake, useMakeOptional, type BasketLine } from "./MakeProvider";
 
 const money = (n: number | null) => (n === null ? "Price on request" : n === 0 ? "Free" : formatGBP(n, Number.isInteger(n)));
-const each = (n: number | null, qty: number): number | null => (n === null ? null : n * qty);
 
 /* ------------------------------------------------------------------ */
 /* Shared pieces                                                       */
@@ -202,10 +202,6 @@ function AddBar({ lines, label, onAdd, editing, waiting }: { lines: BasketLine[]
 /* Plate surrounds                                                     */
 /* ------------------------------------------------------------------ */
 
-export const surroundLines = (c: SurroundConfig): BasketLine[] => {
-  const qty = c.qty === "set" ? 2 : 1;
-  return [{ label: `Personalised ${c.style ?? ""} surround${qty > 1 ? "s × 2" : ""}`.replace("  ", " "), amount: each(ACCESSORY_PRICES.customSurround, qty) }];
-};
 
 /** A size card's picture: the plate (hex or rounded) in its surround, in proportion. */
 function SurroundSizeExample({ size, framed, side }: { size: SurroundSize; framed: boolean; side: "front" | "rear" }) {
@@ -976,10 +972,6 @@ const Tick = () => (
 /* Logo plates                                                         */
 /* ------------------------------------------------------------------ */
 
-const logoLines = (c: LogoPlateConfig): BasketLine[] => {
-  const price = c.type === "acrylic" ? ACCESSORY_PRICES.acrylicLogoPlate : ACCESSORY_PRICES.printedLogoPlate;
-  return [{ label: `${c.type === "acrylic" ? "4D acrylic" : "Printed"} logo plate${c.count > 1 ? `s × ${c.count}` : ""}`, amount: each(price, c.count) }];
-};
 
 export function LogoPlateCreator() {
   const { save, editing } = useMake();

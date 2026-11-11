@@ -32,6 +32,8 @@ export type RegistrationData = {
   pay: "full" | "deposit" | "monthly";
   /** Physical plates ordered with it (road legal ones need ID and proof of the reg). */
   plates: string | null;
+  /** Those plates' full design, so the checkout server can price them itself. */
+  platesCfg?: BuildConfig | null;
   platesLegal: boolean;
   assign: boolean;
 };

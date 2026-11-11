@@ -319,3 +319,20 @@ export const ADD_ONS = [
   { key: "fitting-kit", name: "Fitting kits", live: false },
   { key: "holders", name: "Plate holders", live: false },
 ] as const;
+
+/* ------------------------------------------------------------------ */
+/* Prices for the basket (shared by the site and the checkout server) */
+/* ------------------------------------------------------------------ */
+/** A price line: null amount = on request (no price set yet). */
+export type PriceLine = { label: string; amount: number | null };
+const each = (n: number | null, qty: number): number | null => (n === null ? null : n * qty);
+
+export const surroundLines = (c: SurroundConfig): PriceLine[] => {
+  const qty = c.qty === "set" ? 2 : 1;
+  return [{ label: `Personalised ${c.style ?? ""} surround${qty > 1 ? "s × 2" : ""}`.replace("  ", " "), amount: each(ACCESSORY_PRICES.customSurround, qty) }];
+};
+
+export const logoLines = (c: LogoPlateConfig): PriceLine[] => {
+  const price = c.type === "acrylic" ? ACCESSORY_PRICES.acrylicLogoPlate : ACCESSORY_PRICES.printedLogoPlate;
+  return [{ label: `${c.type === "acrylic" ? "4D acrylic" : "Printed"} logo plate${c.count > 1 ? `s × ${c.count}` : ""}`, amount: each(price, c.count) }];
+};

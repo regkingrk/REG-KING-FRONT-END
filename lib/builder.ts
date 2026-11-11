@@ -670,6 +670,8 @@ export type Pricing = { mode: "retail" } | { mode: "trade"; included?: string[];
  * size charge is the retail price less this share (REG KING, 2 Nov 2026).
  */
 export const OWN_STOCK_DISCOUNT = 0.3;
+/** Plate styles included free (as a set) with a REG KING-owned registration. */
+export const OUR_INCLUDED = ["Printed", "3D Gel", "4D 3MM"];
 const penceOf = (n: number) => Math.round(n * 100) / 100;
 const lessShare = (p: Price, d: number): Price => ({ set: p.set === null ? null : penceOf(p.set * (1 - d)), single: p.single === null ? null : penceOf(p.single * (1 - d)) });
 export const RETAIL: Pricing = { mode: "retail" };
