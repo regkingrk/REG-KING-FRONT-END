@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { formatGBP, instagram, payl8rDisclaimer, reviewScores, routes, spaceReg, supportEmail } from "@/lib/brand";
+import { BrandLogo } from "./BrandLogo";
 import { CONTACT_TOPICS, FAQS, HQ, PROVIDERS, STORY, STORY_NEXT, TEAM, phone, whatsapp, type ContactTopic, type FaqTab, type ProviderKey } from "@/lib/infoContent";
 import { GALLERY, type GalleryTab } from "@/lib/gallery";
 import { ArrowRight } from "./Icons";
@@ -216,7 +217,8 @@ export function AboutPage() {
         </button>
         <p className="ab-next__close">{STORY_NEXT.close}</p>
         <p className="ab-next__sign">
-          REG KING. <span>{STORY_NEXT.sign}</span>
+          <BrandLogo className="ab-next__logo" />
+          <span>{STORY_NEXT.sign}</span>
         </p>
       </section>
 
