@@ -260,6 +260,14 @@ export const LOGO_PLATE_TYPES: { key: LogoPlateType; name: string; line: string 
 
 export interface LogoDesign extends Artwork {
   background: string;
+  /** Logo plates: how wide the logo is, as a share of the plate face (0.6, 0.8 or 1). */
+  scale?: number;
+  /** Logo plates: where a logo narrower than the face sits. */
+  place?: "left" | "centre" | "right";
+  /** Logo plates: the logo's width ÷ height, from the file. */
+  aspect?: number;
+  /** Logo plates: the result of checking the file for the chosen finish (lib/logoArtwork.ts). */
+  check?: import("./logoArtwork").ArtworkCheck;
 }
 export const defaultLogoDesign = (): LogoDesign => ({ ...emptyArtwork(), logo: "make", make: "BMW", badge: "M Sport", textColour: "black", background: "yellow" });
 
@@ -332,6 +340,8 @@ export const surroundLines = (c: SurroundConfig): PriceLine[] => {
   return [{ label: `Personalised ${c.style ?? ""} surround${qty > 1 ? "s × 2" : ""}`.replace("  ", " "), amount: each(ACCESSORY_PRICES.customSurround, qty) }];
 };
 
+/** Logo plates come in exactly two finishes. Anything else in a saved basket isn't sold. */
+export const isLogoFinish = (t: unknown): t is LogoPlateType => t === "printed" || t === "acrylic";
 export const logoLines = (c: LogoPlateConfig): PriceLine[] => {
   const price = c.type === "acrylic" ? ACCESSORY_PRICES.acrylicLogoPlate : ACCESSORY_PRICES.printedLogoPlate;
   return [{ label: `${c.type === "acrylic" ? "4D acrylic" : "Printed"} logo plate${c.count > 1 ? `s × ${c.count}` : ""}`, amount: each(price, c.count) }];

@@ -5,7 +5,8 @@
  * the DVLA. The result becomes a Shopify draft order (app/api/checkout).
  */
 import { ACC_PRODUCTS } from "./accessoryShop";
-import { logoLines, surroundLines, type LogoPlateConfig, type SurroundConfig } from "./accessories";
+import { isLogoFinish, logoLines, surroundLines, type LogoPlateConfig, type SurroundConfig } from "./accessories";
+import { artworkOrderNote, logoMm, LOGO_FACE } from "./logoArtwork";
 import { DEPOSIT_RATE, MEMBER_DISCOUNT } from "./brand";
 import { OUR_INCLUDED, OWN_STOCK_DISCOUNT, buildFits, isComplete, priceLines, spacingNote, summary, type BuildConfig, type Pricing } from "./builder";
 import { DELIVERY, FREE_STANDARD_OVER, type DeliveryKey } from "./checkoutRules";
@@ -45,6 +46,19 @@ const cleanReg = (x: unknown) => {
   const r = str(x, 10).toUpperCase().replace(/\s+/g, " ");
   return REG.test(r) && /[0-9]/.test(r) && r.replace(" ", "").length <= 7 ? r : "";
 };
+/** What the workshop needs for a logo plate: finish, file, size and place, and the artwork check (never the file's data). */
+function logoAttributes(c: LogoPlateConfig): { key: string; value: string }[] {
+  const d = c.designs[0];
+  const size = logoMm(typeof d.aspect === "number" && d.aspect > 0 ? d.aspect : LOGO_FACE.w / LOGO_FACE.h, typeof d.scale === "number" ? d.scale : 1);
+  return [
+    { key: "Finish", value: c.type === "acrylic" ? "4D acrylic (laser cut)" : "Printed" },
+    { key: "Plates", value: String(c.count) },
+    { key: "Logo file", value: String(d.uploadName).slice(0, 120) },
+    { key: "Logo size", value: `${Math.round(size.w)} x ${Math.round(size.h)}mm, ${d.place ?? "centre"}` },
+    { key: "Artwork check", value: artworkOrderNote(d.check && d.check.finish === c.type ? d.check : undefined).slice(0, 480) },
+    { key: "Delivery", value: c.delivery === "Collect" ? "Collect" : "Deliver" },
+  ];
+}
 const ON_REQUEST = "Part of your basket doesn't have a price yet. Call us and we'll price it for you.";
 
 /** The plate builder's lines as one priced order line (all amounts must be known). */
@@ -101,11 +115,23 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
       }
       case "surrounds":
       case "logo": {
+        if (raw.kind === "logo") {
+          const lc = d.cfg as unknown as LogoPlateConfig;
+          // exactly two finishes, and nothing the check said can't be made as it is
+          if (!isObj(lc) || !isLogoFinish(lc.type) || !Array.isArray(lc.designs) || !lc.designs[0]?.uploadName) throw new CheckoutError("A logo plate in your basket isn't finished. Open it from the basket and finish it.");
+          const ck = lc.designs[0].check;
+          if (ck && ck.finish === lc.type && ck.level === "poor") throw new CheckoutError("The logo on a logo plate in your basket isn't suitable for that finish as it is. Open it from the basket to change it.");
+        }
         const pl = raw.kind === "surrounds" ? surroundLines(d.cfg as unknown as SurroundConfig) : logoLines(d.cfg as unknown as LogoPlateConfig);
         if (pl.some((l) => l.amount === null)) throw new CheckoutError(ON_REQUEST, 409);
         const amount = r2(pl.reduce((a, l) => a + (l.amount as number), 0));
         const reg = raw.kind === "surrounds" ? cleanReg(d.reg) : "";
-        const line: DraftLine = { title: pl.map((l) => l.label).join(", "), price: amount, physical: true, attributes: [...(reg ? [{ key: "Registration", value: reg }] : []), { key: "Design", value: JSON.stringify(d.cfg).slice(0, 500) }] };
+        const line: DraftLine = {
+          title: pl.map((l) => l.label).join(", "),
+          price: amount,
+          physical: true,
+          attributes: raw.kind === "logo" ? logoAttributes(d.cfg as unknown as LogoPlateConfig) : [...(reg ? [{ key: "Registration", value: reg }] : []), { key: "Design", value: JSON.stringify(d.cfg).slice(0, 500) }],
+        };
         lines.push(line);
         madeLines.push(line);
         physicalValue += amount;

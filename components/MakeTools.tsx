@@ -39,6 +39,7 @@ import { MEMBER_DISCOUNT, formatGBP } from "@/lib/brand";
 import { useAccount } from "./AccountProvider";
 import { useMode } from "./ModeProvider";
 import { LogoPlatePreview, SurroundPreview } from "./AccessoryPreview";
+import { LOGO_FACE, checkArtwork, logoMm } from "@/lib/logoArtwork";
 import { RealPhotos } from "./RealPhotos";
 import { ART_ITEMS, REGIONS, artItem, type ArtItem, type Region } from "@/lib/artLibrary";
 import { carLogo, carLogoSrc, carLogosFor, type CarLogo } from "@/lib/carLogos";
@@ -978,6 +979,9 @@ export function LogoPlateCreator() {
   const editItem = editing?.kind === "logo" ? editing : null;
   const [c, setC] = useState<LogoPlateConfig>(defaultLogoPlateConfig);
   const [error, setError] = useState("");
+  // an SVG's source, kept while it's open here so the check can read its paths (not saved with the order)
+  const [svgText, setSvgText] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
   useEffect(() => {
     if (editItem) setC({ ...defaultLogoPlateConfig(), ...editItem.data.cfg });
   }, [editItem]);
@@ -985,6 +989,8 @@ export function LogoPlateCreator() {
   const qtyKey = c.count === 1 ? "single" : c.count === 2 ? "set" : "multiple";
   const d = c.designs[0];
   const hasFile = !!d.uploadName;
+  const scale = d.scale ?? 1;
+  const setDesign = (p: Partial<LogoDesign>) => setC((x) => ({ ...x, designs: [{ ...x.designs[0], ...p }] }));
   const setCount = (count: number) => setC((x) => ({ ...x, count, same: true }));
   const onFile = (f: File | undefined) => {
     setError("");
@@ -992,26 +998,58 @@ export function LogoPlateCreator() {
     if (f.size > LOGO_FILE_MAX_MB * 1024 * 1024) return setError(`That file is over ${LOGO_FILE_MAX_MB}MB. Try a smaller file.`);
     if (!/\.(png|jpe?g|webp|svg|pdf|ai|eps)$/i.test(f.name)) return setError("Please choose a PNG, JPG, WEBP, SVG, PDF, AI or EPS file.");
     const image = /\.(png|jpe?g|webp|svg)$/i.test(f.name);
-    const put = (upload: string | null) => setC((x) => ({ ...x, designs: [{ ...x.designs[0], logo: "upload", upload, uploadName: f.name }] }));
+    const put = (upload: string | null, aspect?: number) =>
+      setC((x) => ({ ...x, designs: [{ ...x.designs[0], logo: "upload", upload, uploadName: f.name, aspect, check: undefined }] }));
+    setSvgText(null);
     if (!image) return put(null); // design files are proofed by the team, so there's nothing to draw yet
+    if (/\.svg$/i.test(f.name)) f.text().then(setSvgText).catch(() => setSvgText(null));
     const r = new FileReader();
-    r.onload = () => put(String(r.result));
+    r.onload = () => {
+      const url = String(r.result);
+      const i = new Image();
+      i.onload = () => put(url, i.naturalWidth && i.naturalHeight ? i.naturalWidth / i.naturalHeight : undefined);
+      i.onerror = () => put(url);
+      i.src = url;
+    };
     r.readAsDataURL(f);
   };
+
+  // Check the file for the chosen finish, at the size it's made, whenever any of those change.
+  useEffect(() => {
+    if (!d.uploadName) return;
+    let live = true;
+    setChecking(true);
+    const size = logoMm(d.aspect ?? LOGO_FACE.w / LOGO_FACE.h, scale);
+    void checkArtwork({ finish: c.type, name: d.uploadName, src: d.upload, svgText, wMm: size.w, hMm: size.h }).then((check) => {
+      if (!live) return;
+      setDesign({ check });
+      setChecking(false);
+    });
+    return () => {
+      live = false;
+    };
+  }, [c.type, d.upload, d.uploadName, d.aspect, scale, svgText]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Before a file is chosen (or for a design file), the preview says where the logo goes.
   const shown: LogoDesign = d.upload ? d : { ...d, logo: "none", text: "YOUR LOGO" };
+  const check = d.check && d.check.finish === c.type ? d.check : undefined;
+  const size = logoMm(d.aspect ?? LOGO_FACE.w / LOGO_FACE.h, scale);
+  const finishName = c.type === "acrylic" ? "4D acrylic" : "Printed";
+  // the finish in a sentence: "for 4D acrylic", "for printing"
+  const finishFor = c.type === "acrylic" ? "4D acrylic" : "printing";
 
   const add = () => {
     const cfg = { ...c, same: true, designs: Array.from({ length: c.count }, () => ({ ...d })) };
     save({
       id: editItem?.id ?? newId(),
       kind: "logo",
-      title: `${c.type === "acrylic" ? "4D acrylic" : "Printed"} logo plate${c.count > 1 ? `s (${c.count})` : ""}`,
-      detail: `Your logo: ${d.uploadName} · ${c.delivery === "Collect" ? "collect in Bilston" : "delivered"}`,
+      title: `${finishName} logo plate${c.count > 1 ? `s (${c.count})` : ""}`,
+      detail: `Your logo: ${d.uploadName} · ${Math.round(size.w)} × ${Math.round(size.h)}mm, ${d.place ?? "centre"}${check?.review ? " · our team prepares your artwork" : ""} · ${c.delivery === "Collect" ? "collect in Bilston" : "delivered"}`,
       lines: logoLines(c),
       data: { cfg },
     });
     if (!editItem) setC(defaultLogoPlateConfig());
+    setSvgText(null);
     requestAnimationFrame(() => document.getElementById("rk-basket")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
@@ -1019,24 +1057,23 @@ export function LogoPlateCreator() {
   return (
     <div className="rk-acc rk-acc--live" id="rk-logoplates">
       <div className="rk-acc__preview" aria-live="polite">
-        {/* Real photos of REG KING's work until there's a logo to show, then a clean, flat artwork preview (a proof always follows). */}
-        {d.upload ? (
-          <figure className="rk-lproof" data-lproof>
-            <div className="rk-lproof__plate">
-              <LogoPlatePreview type={c.type} design={shown} flat label="Your logo on the plate" />
-            </div>
-            <figcaption>
-              <b>Artwork preview.</b> Layout only. Any see-through parts of your file show as a check pattern. We agree the colours and send you a proper {c.type === "acrylic" ? "4D" : "printed"} proof to approve before we make anything.
-            </figcaption>
-          </figure>
-        ) : (
-          <figure className="rk-lproof" data-lproof>
-            <div className="rk-lproof__plate">
-              <LogoPlatePreview type={c.type} design={shown} flat label="Where your logo goes on the plate" />
-            </div>
-            <figcaption>Add your logo and it shows here.</figcaption>
-          </figure>
-        )}
+        {/* The customer's own logo on the plate: flat for Printed, raised acrylic for 4D. A proof always follows. */}
+        <figure className="rk-lproof" data-lproof data-finish={c.type}>
+          <div className="rk-lproof__plate">
+            <LogoPlatePreview type={c.type} design={shown} label={d.upload ? `Your logo as a ${c.type === "acrylic" ? "4D acrylic" : "printed"} logo plate` : "Where your logo goes on the plate"} />
+          </div>
+          <figcaption>
+            {d.upload ? (
+              <>
+                <b>{c.type === "acrylic" ? "4D acrylic: your logo cut from acrylic and raised off the plate." : "Printed: your logo printed flat under the gloss face."}</b> Shown at {Math.round(size.w)} × {Math.round(size.h)}mm. We agree the colours and send you a proof to approve before we make anything.
+              </>
+            ) : hasFile ? (
+              "Design files can't be shown here. Our team proofs them and sends you a picture to approve."
+            ) : (
+              "Add your logo and it shows here."
+            )}
+          </figcaption>
+        </figure>
         {c.count > 1 && <p className="rk-acc__cap">{c.count} plates, all with your logo</p>}
       </div>
 
@@ -1047,15 +1084,14 @@ export function LogoPlateCreator() {
           </h2>
         </div>
         <ol className="rk-bsteps">
-          <Step n={++n} title="Printed or 4D">
+          <Step n={++n} title="Printed or 4D acrylic">
             <Options
-              label="Printed or 4D"
+              label="Printed or 4D acrylic"
               name="ltype"
               value={c.type}
               onPick={(v) => setC((x) => ({ ...x, type: v }))}
               options={LOGO_PLATE_TYPES.map((t) => ({
                 ...t,
-                name: t.key === "acrylic" ? "4D" : t.name,
                 visual: <img className="rk-lopt" src={t.key === "acrylic" ? "examples/logo-4d-card.jpg" : "examples/logo-printed-card.jpg"} alt="" loading="lazy" />,
               }))}
             />
@@ -1099,7 +1135,57 @@ export function LogoPlateCreator() {
                 {error}
               </p>
             )}
-            <p className="rk-bfine">PNG, JPG, WEBP or SVG shows on the preview. PDF, AI and EPS design files are welcome too. Up to {LOGO_FILE_MAX_MB}MB.</p>
+            <p className="rk-bfine">
+              {c.type === "acrylic"
+                ? "For 4D acrylic, an SVG, PDF, AI or EPS file is best: we laser cut from its outlines. A picture file (PNG, JPG) can be used, but our team traces it by hand first."
+                : "For printing, an SVG or PDF, or a large PNG with a see-through background, is best. JPG and WEBP work too."}{" "}
+              Up to {LOGO_FILE_MAX_MB}MB.
+            </p>
+            {hasFile && (
+              <div className="rk-lcheck" data-level={checking ? "checking" : check?.level} role="status" data-lcheck>
+                {checking || !check ? (
+                  <p>Checking your logo for {finishFor}…</p>
+                ) : (
+                  <>
+                    <b>
+                      {check.level === "good"
+                        ? `Looks good for ${finishFor}`
+                        : check.level === "review"
+                          ? "Our team will prepare this by hand"
+                          : `Not suitable for ${finishFor} as it is`}
+                    </b>
+                    {check.notes.map((t) => (
+                      <p key={t}>{t}</p>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </Step>
+          <Step n={++n} title="Size and position">
+            <Options
+              label="Logo size"
+              name="lscale"
+              value={String(scale) as "1" | "0.8" | "0.6"}
+              onPick={(v) => setDesign({ scale: Number(v) })}
+              options={[
+                { key: "1", name: "Large", line: "As big as fits the plate" },
+                { key: "0.8", name: "Medium", line: "Four fifths of the width" },
+                { key: "0.6", name: "Small", line: "Three fifths of the width" },
+              ]}
+            />
+            <Options
+              label="Position"
+              name="lplace"
+              value={d.place ?? "centre"}
+              onPick={(v) => setDesign({ place: v })}
+              options={[
+                { key: "left", name: "Left", line: "" },
+                { key: "centre", name: "Centre", line: "" },
+                { key: "right", name: "Right", line: "" },
+              ]}
+            />
+            <p className="rk-bfine">Your logo keeps its own shape and stays at least 11mm in from every edge of the plate.</p>
           </Step>
           <Step n={++n} title="Delivery">
             <Options
@@ -1120,7 +1206,17 @@ export function LogoPlateCreator() {
           label="Add to basket"
           onAdd={add}
           editing={!!editItem}
-          waiting={!hasFile ? "Upload your logo to continue." : !c.delivery ? "Choose delivery or collection to continue." : undefined}
+          waiting={
+            !hasFile
+              ? "Upload your logo to continue."
+              : checking || !check
+                ? "Checking your logo."
+                : check.level === "poor"
+                  ? `Upload a file that suits ${finishFor}, or make the logo bigger, to continue.`
+                  : !c.delivery
+                    ? "Choose delivery or collection to continue."
+                    : undefined
+          }
         />
       </div>
     </div>

@@ -364,7 +364,14 @@ export function LogoPlatePreview({ type, design, label, flat = false }: { type: 
   // (a wordmark with a small spaced line under it).
   const art = (fill: string) =>
     img ? (
-      <image href={img} x={P + 30} y={P + 10} width={W - 60} height={H - 20} preserveAspectRatio="xMidYMid meet" />
+      (() => {
+        // the logo inside the face (11mm in from every edge), at the chosen width and position
+        const faceW = W - 22, boxW = faceW * (design.scale ?? 1);
+        const place = design.place ?? "centre";
+        const x = place === "left" ? P + 11 : place === "right" ? P + W - 11 - boxW : P + 11 + (faceW - boxW) / 2;
+        const align = place === "left" ? "xMinYMid" : place === "right" ? "xMaxYMid" : "xMidYMid";
+        return <image href={img} x={x} y={P + 11} width={boxW} height={H - 22} preserveAspectRatio={`${align} meet`} />;
+      })()
     ) : (
       <g fill={fill} style={{ fontFamily: "var(--rk-body)" }} textAnchor="middle">
         <text x={P + W / 2} y={P + H * 0.5} fontSize={text.length > 14 ? 30 : 38} fontWeight={700} letterSpacing="3" dominantBaseline="alphabetic">
