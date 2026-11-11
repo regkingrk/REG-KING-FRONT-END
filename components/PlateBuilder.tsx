@@ -50,6 +50,7 @@ import {
   type StepKey,
   plateGaps,
   regChars,
+  fromSetPrice,
 } from "@/lib/builder";
 import { formatGBP } from "@/lib/brand";
 import { useAccount } from "./AccountProvider";
@@ -670,7 +671,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                 {t.onRequest && !(trade && t.known === 0) ? (trade ? " + trade price" : "+") : ""}
               </b>
             ) : (
-              <span className="rk-blive__hint">Price shows when you pick a style</span>
+              <span className="rk-blive__hint">{fromSetPrice() !== null ? `Sets from ${formatGBP(fromSetPrice()!, false)}` : "Price shows when you pick a style"}</span>
             )}
           </div>
         </div>

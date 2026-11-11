@@ -2,7 +2,7 @@
 
 import { forwardRef, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { formatGBP, modeUrl, spaceReg, searchModes, type SearchMode } from "@/lib/brand";
-import { withLegal, withVehicle, emptyBuild, isComplete, plateGaps, priceLines, rearOnly, regChars, regLength, sizeFits, spacingNote, summary, total, SPACING_PRESETS, type BuildConfig } from "@/lib/builder";
+import { fromSetPrice, withLegal, withVehicle, emptyBuild, isComplete, plateGaps, priceLines, rearOnly, regChars, regLength, sizeFits, spacingNote, summary, total, SPACING_PRESETS, type BuildConfig } from "@/lib/builder";
 import { SpacingEditor } from "./SpacingEditor";
 import { navigate } from "@/lib/nav";
 import { ArrowRight, SearchIcon } from "./Icons";
@@ -149,6 +149,9 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
   // Motorbikes: the plate becomes a two-line bike plate.
   const bike = building && cfg.vehicle === "Bike";
 
+  // Make: the lowest set price up front, worked out from the price list so it's never out of date
+  const from = fromSetPrice();
+  const makeHelp = mode === "build" && from !== null ? `Road-legal and show plates from ${formatGBP(from, false)} a set, made to order and delivered to your door.` : m.help;
   const buttonLabel = building
     ? ready
       ? `${editingPlates ? "Update basket" : "Add to basket"} · ${t.known === 0 && t.onRequest ? "price on request" : formatGBP(t.known, Number.isInteger(t.known)) + (t.onRequest ? "+" : "")}`
@@ -212,7 +215,7 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
               <ArrowRight /> <span id="rk-go-label">{buttonLabel}</span>
             </button>
             <p className="rk-search__help" id="rk-help" data-after>
-              {cfg.style ? [summary(cfg), spacingNote(cfg, reg)].filter(Boolean).join(", ") : m.help}
+              {cfg.style ? [summary(cfg), spacingNote(cfg, reg)].filter(Boolean).join(", ") : makeHelp}
             </p>
           </div>
         </div>
@@ -272,7 +275,7 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
             <SearchIcon /> <span id="rk-go-label">{buttonLabel}</span>
           </button>
           <p className="rk-search__help" id="rk-help" data-after>
-            {m.help}
+            {makeHelp}
           </p>
         </>
       )}

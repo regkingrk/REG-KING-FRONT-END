@@ -46,7 +46,7 @@ const st = (name: string, look: PlateLook, set: number | null = null, single: nu
 /** Every style, with the prices the workshop tool publishes (null = price on request). */
 export const STYLES: Record<string, StyleOption> = Object.fromEntries(
   [
-    st("Printed", "printed", 20, 13),
+    st("Printed", "printed", 19.99, 13),
     st("Metal Press", "raised", 50, 30),
     st("3D Gel", "gel", 35, 20),
     st("4D 3MM", "raised", 35, 20),
@@ -69,6 +69,12 @@ export const STYLES: Record<string, StyleOption> = Object.fromEntries(
     st("Metal Press Black & Silver", "metal-silver", 60, 35),
   ].map((s) => [s.name, s]),
 );
+
+/** The lowest price for a set of plates (road legal, car), for "from" prices: worked out, never typed. */
+export function fromSetPrice(): number | null {
+  const sets = CAR_LEGAL.map((n) => STYLES[n]?.set).filter((p): p is number => typeof p === "number");
+  return sets.length ? Math.min(...sets) : null;
+}
 
 /** Cars, vans and SUVs. */
 export const CAR_LEGAL = ["Printed", "Metal Press", "3D Gel", "4D 3MM", "4D 6MM", "4D Gel 3MM", "Retro", "Vintage", "Retro X", "Vintage X", "RK"];
