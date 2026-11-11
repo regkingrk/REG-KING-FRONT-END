@@ -143,23 +143,41 @@ export function PlateGL({
       camera.lookAt(panX, panY, 0);
       camera.updateProjectionMatrix();
     };
-    // "Letters laid on": after a style change each character drops onto the plate, left to right
-    const LIFT = 130, SLIDE = 26, DROP = 380, STAGGER = 60; // mm towards you, mm above, ms each, ms between letters
-    let lay: { t0: number; items: { m: THREE.Object3D; n: number; z: number; y: number }[] } | null = null;
+    // The reveal after a style change: the view starts turned a little so the depth shows, each
+    // character rises out of the plate left to right and settles, then the plates glide back to
+    // straight on. Restrained timings and easings, all driven by the clock (not the frame rate).
+    const RISE = 520, STAGGER = 70, HOLD = 160, GLIDE = 950; // ms
+    const TURN = { yaw: -0.38, pitch: 0.26 }, TURN_ZOOM = 0.84; // turned, and a little further back so both plates fit
+    const easeOutBack = (t: number) => 1 + 2.1 * Math.pow(t - 1, 3) + 1.1 * Math.pow(t - 1, 2); // a gentle 3% settle
+    const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    type LayItem = { m: THREE.Object3D; n: number; z: number; floor: number; sz: number };
+    let lay: { t0: number; items: LayItem[]; letters: number; from: { yaw: number; pitch: number } | null } | null = null;
     const layStep = () => {
       if (!lay) return false;
-      const now = performance.now();
-      let busy = false;
+      const now = performance.now() - lay.t0;
       for (const it of lay.items) {
-        const t = (now - lay.t0 - it.n * STAGGER) / DROP;
-        it.m.visible = t >= 0;
-        const e = t >= 1 ? 1 : t <= 0 ? 0 : 1 - Math.pow(1 - t, 3);
-        it.m.position.z = it.z + (1 - e) * LIFT;
-        it.m.position.y = it.y + (1 - e) * SLIDE;
-        if (t < 1) busy = true;
+        const t = Math.max(0, Math.min(1, (now - it.n * STAGGER) / RISE));
+        const e = t === 0 ? 0 : easeOutBack(t);
+        it.m.visible = t > 0;
+        // the whole stack of a letter (4D Gel, Retro X) grows from the plate's surface together
+        it.m.scale.z = Math.max(0.0001, it.sz * e);
+        it.m.position.z = it.floor + (it.z - it.floor) * e;
       }
-      if (!busy) lay = null;
-      return busy;
+      const lettersDone = lay.letters ? (lay.letters - 1) * STAGGER + RISE : 0;
+      if (lay.from) {
+        const g = Math.max(0, Math.min(1, (now - lettersDone - HOLD) / GLIDE));
+        const e = easeInOut(g);
+        yaw = tYaw = lay.from.yaw + (start.yaw - lay.from.yaw) * e;
+        pitch = tPitch = lay.from.pitch + (start.pitch - lay.from.pitch) * e;
+        z = tz = TURN_ZOOM + (1 - TURN_ZOOM) * e;
+      }
+      const done = now >= lettersDone + (lay.from ? HOLD + GLIDE : 0);
+      if (done) lay = null;
+      return !done;
+    };
+    // the customer grabs the plates: hand the view straight back to them
+    const stopGlide = () => {
+      if (lay) lay.from = null;
     };
     const draw = () => {
       raf = 0;
@@ -216,6 +234,7 @@ export function PlateGL({
     // the scroll wheel (and a trackpad pinch) zooms towards the pointer
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
+      stopGlide();
       const { nx, ny } = ndc(e.clientX, e.clientY);
       const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       zoomAt(tz * Math.exp(-d * 0.0018), nx, ny);
@@ -225,6 +244,7 @@ export function PlateGL({
     const pts = new Map<number, { x: number; y: number }>();
     let px = 0, py = 0, pinch = 0;
     const down = (e: PointerEvent) => {
+      stopGlide();
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       el.setPointerCapture(e.pointerId);
       px = e.clientX;
@@ -296,18 +316,31 @@ export function PlateGL({
         });
         span = { w: Math.max(...heights.map((v) => v.x)), h: totalH };
         if (layOn && !reduce) {
-          const items: { m: THREE.Object3D; n: number; z: number; y: number }[] = [];
-          plates.forEach((g) => g.traverse((o) => {
-            if (typeof o.userData.letter === "number") items.push({ m: o, n: o.userData.letter, z: o.position.z, y: o.position.y });
-          }));
-          if (items.length) {
-            lay = { t0: performance.now(), items };
-            layStep();
-          }
+          const items: LayItem[] = [];
+          plates.forEach((g) => {
+            const mine: LayItem[] = [];
+            g.traverse((o) => {
+              if (typeof o.userData.letter === "number") mine.push({ m: o, n: o.userData.letter, z: o.position.z, floor: 0, sz: o.scale.z });
+            });
+            // each letter's stack rises from where its lowest layer sits
+            const floors = new Map<number, number>();
+            mine.forEach((it) => floors.set(it.n, Math.min(floors.get(it.n) ?? Infinity, it.z)));
+            mine.forEach((it) => (it.floor = floors.get(it.n)!));
+            items.push(...mine);
+          });
+          const letters = items.reduce((a, it) => Math.max(a, it.n + 1), 0);
+          lay = { t0: performance.now(), items, letters, from: { ...TURN } };
+          yaw = tYaw = TURN.yaw;
+          pitch = tPitch = TURN.pitch;
+          z = tz = TURN_ZOOM;
+          tPanX = panX = 0;
+          tPanY = panY = 0;
+          layStep();
         }
         ask();
       },
       reset: () => {
+        stopGlide();
         tYaw = start.yaw;
         tPitch = start.pitch;
         tz = 1;
@@ -317,6 +350,7 @@ export function PlateGL({
       },
       zoomBy: (f) => zoomAt(tz * f),
       view: (v) => {
+        stopGlide();
         tYaw = v.yaw;
         tPitch = v.pitch;
         tz = Math.max(MIN_Z, Math.min(MAX_Z, v.zoom));
