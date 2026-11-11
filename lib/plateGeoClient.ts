@@ -25,7 +25,7 @@ let seq = 0;
 const byId = new Map<number, Task>();
 
 function startWorker(): Worker {
-  return new Worker(new URL("./plateGeo.worker.ts", import.meta.url), { type: "module" });
+  return new Worker(new URL("./plateGeo.worker.ts", import.meta.url));
 }
 
 function getPool(): Slot[] | false {
