@@ -7,12 +7,12 @@
  */
 import { THREE, buildPlate, raisedText, textWidthMm, PLATE_THICKNESS } from "./plate3d";
 import { hexPoints } from "./builder";
-import { FRAME_COLOURS, MATT_COLOURS, TEXT_COLOURS, artCategoryOf, swatch, type SurroundDesign, type SurroundShape, type SurroundSize, type SurroundStyle, type SurroundSurface } from "./accessories";
+import { FRAME_COLOURS, MATT_COLOURS, TEXT_COLOURS, artCategoryOf, stripSurfaceOf, swatch, type SurroundDesign, type SurroundShape, type SurroundSize, type SurroundStyle, type SurroundSurface } from "./accessories";
 import type { PlateSpec } from "./plateRender";
 import { surroundGeometry, type Pt } from "./surroundShape";
 import { isBikeSize, surroundSize } from "./surroundSizes";
 import { artCanvas, artItem, flagLipLayers, type FlagDef } from "./artLibrary";
-import { askRedraw } from "./carLogos";
+import { askRedraw, carLogo, carLogoCanvas } from "./carLogos";
 
 export type SurroundView = { style: SurroundStyle; shape: SurroundShape; size: SurroundSize; design: SurroundDesign; side: "front" | "rear"; reg: string };
 
@@ -137,12 +137,13 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
   const back = PLATE_THICKNESS / 2; // the plate's back face
   const env = acrylicEnv ?? softEnv;
 
-  const surface = d.surface ?? "gloss";
+  const surface = d.surface ?? "gloss"; // the frame
+  const stripSurface = stripSurfaceOf(d); // the strip (frameless: the whole surround)
   // a country's flag is printed across the whole strip under the plate, stripes running along it
   const lipFlag = artCategoryOf(d) === "country" ? artItem(d.item)?.flag : undefined;
   // the strip under the plate: one flat piece (no raised or recessed panel set into it)
   const strip = G.tab ?? G.panel;
-  const stripMat = finish(d.backing, env, surface);
+  const stripMat = finish(d.backing, env, stripSurface);
   const flagMat = lipFlag ? lipFlagMaterial(lipFlag, strip, env) : null;
   const STRIP_BEVEL = framed ? 0.06 : 0.5;
 
@@ -192,7 +193,7 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
   };
   const picture = (tex: THREE.Texture, aspect: number) => {
     const { w, h } = fit(aspect);
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshPhysicalMaterial({ map: tex, transparent: true, roughness: 0.35, clearcoat: surface === "matt" ? 0 : 1, clearcoatRoughness: 0.05, envMapIntensity: 0.6 }));
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshPhysicalMaterial({ map: tex, transparent: true, roughness: 0.35, clearcoat: stripSurface === "matt" ? 0 : 1, clearcoatRoughness: 0.05, envMapIntensity: 0.6 }));
     plane.position.set(a.cx, a.cy, faceZ + 0.05);
     group.add(plane);
   };
@@ -217,7 +218,22 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
       group.add(m);
     }
   };
+  // car brands: the brand's own logo (one-colour logos in the chosen colour, badges in their own), else its name
+  const brand = d.make ? `${d.make}${d.badge && d.badge !== "Logo only" ? ` ${d.badge}` : ""}` : "";
   if (cat === "text" && d.text.trim()) words(d.text.trim(), d.font ?? "plate");
+  else if (cat === "car" && carLogo(d.carLogo)) {
+    const logo = carLogo(d.carLogo)!;
+    let tex: THREE.CanvasTexture | null = null;
+    const cv = carLogoCanvas(logo, ts.hex, () => {
+      if (tex) tex.needsUpdate = true;
+      askRedraw();
+    });
+    if (cv) {
+      tex = new THREE.CanvasTexture(cv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      picture(tex, logo.w / logo.h);
+    }
+  } else if (cat === "car" && brand) words(brand);
   else if ((cat === "country" || cat === "other") && d.item && !lipFlag) {
     const item = artItem(d.item);
     const cv = item ? artCanvas(item, ts.hex) : null;
@@ -233,6 +249,5 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
     if (d.artFinish === "acrylic") raisedPicture(tex, aspect);
     else picture(tex, aspect);
   }
-  // (car brand logos are no longer offered: older saved designs with one show the plain strip)
   return group;
 }

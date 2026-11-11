@@ -38272,3 +38272,41 @@ body:has(.rk-studio) {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* Surround and logo makers: the step you're on stands out (yellow edge, warm tint, yellow number);
+   answered steps sit quietly above it with their answer and a Change link. */
+.rk-acc__panel .rk-bstep {
+  margin: 0 -4px;
+  padding: 0 4px;
+  border-radius: 8px;
+}
+.rk-acc__panel .rk-bstep.is-open {
+  margin: 8px -8px;
+  padding: 2px 12px 16px;
+  border: 0;
+  border-left: 5px solid var(--rk-yellow);
+  background: #fff8e1;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+.rk-acc__panel .rk-bstep.is-open .rk-bstep__n {
+  width: 28px;
+  height: 28px;
+  background: var(--rk-yellow);
+  color: #000;
+  font-size: 15px;
+}
+.rk-acc__panel .rk-bstep.is-open .rk-bstep__t {
+  font-size: 19px;
+}
+.rk-acc__panel .rk-bstep.is-done .rk-bstep__a {
+  font-weight: 600;
+}
+/* parts within a step ("Finish", "Colour", "Model") read as small headings */
+.rk-acc__panel .rk-art__l {
+  display: block;
+  margin: 12px 0 6px;
+  font: 800 13px/1.2 var(--rk-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #2b2925;
+}

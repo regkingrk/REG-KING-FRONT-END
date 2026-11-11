@@ -5,12 +5,14 @@ import { useId } from "react";
 import { surroundGeometry, type Pt } from "@/lib/surroundShape";
 import { surroundSize } from "@/lib/surroundSizes";
 import { artItem, flagLipLayers } from "@/lib/artLibrary";
+import { carLogo, carLogoSrc } from "@/lib/carLogos";
 import {
   ART_FONTS,
   FRAME_COLOURS,
   MATT_COLOURS,
   PLATE_BACKGROUNDS,
   artCategoryOf,
+  stripSurfaceOf,
   TEXT_COLOURS,
   swatch,
   type Artwork,
@@ -119,8 +121,28 @@ const paint = (value: string, list: typeof FRAME_COLOURS, id: string) => {
 function ArtworkInBox({ a, x, y, w, h, colour, base, raised }: { a: Artwork; x: number; y: number; w: number; h: number; colour: string; base: string; raised?: boolean }) {
   const cat = artCategoryOf(a);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  // car brands are no longer offered: an older saved brand design shows nothing (the customer picks again)
-  if (cat === "car") return null;
+  // a brand logo picture: one-colour logos drawn in the chosen colour (as raised acrylic), badges as they are
+  const logo = cat === "car" ? carLogo(a.carLogo) : null;
+  if (logo) {
+    const k = Math.min(w / logo.w, h / logo.h) * 0.94;
+    const lw = logo.w * k, lh = logo.h * k, lx = x + (w - lw) / 2, ly = y + (h - lh) / 2;
+    const src = carLogoSrc(logo.key);
+    const depth = Math.min(3.5, Math.max(1.2, h * 0.07));
+    const shape = (dx: number, dy: number, fill: string, key: string) => <rect key={key} x={lx + dx} y={ly + dy} width={lw} height={lh} fill={fill} mask={`url(#lm${uid})`} />;
+    const side = shade(base, lum(base) > 0.5 ? -0.45 : -0.6);
+    return (
+      <>
+        <defs>
+          <mask id={`lm${uid}`} maskUnits="userSpaceOnUse" x={lx - 10} y={ly - 10} width={lw + 20} height={lh + 20} style={{ maskType: "alpha" }}>
+            <image href={src} x={lx} y={ly} width={lw} height={lh} preserveAspectRatio="none" />
+          </mask>
+        </defs>
+        {raised && shape(depth * 0.6, depth * 1.4, "rgba(0,0,0,0.35)", "s")}
+        {raised && Array.from({ length: 4 }, (_, i) => shape((depth * (4 - i)) / 8, (depth * (4 - i)) / 4, logo.fullColour ? "#1c1c1c" : side, `e${i}`))}
+        {logo.fullColour ? <image href={src} x={lx} y={ly} width={lw} height={lh} preserveAspectRatio="none" /> : shape(0, 0, colour, "f")}
+      </>
+    );
+  }
   // flags, faith symbols and library shapes: drawn from the library, fitted to the box
   if ((cat === "country" || cat === "other") && a.item) {
     const it = artItem(a.item);
@@ -254,9 +276,12 @@ export function SurroundPreview({
   const pathOf = (pts: Pt[]) => pts.map(([x, y], i) => `${i ? "L" : "M"}${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ") + " Z";
   const px = X(-plateW / 2), py = Y(plateH / 2);
 
-  const matt = design.surface === "matt";
-  const frame = paint(design.frame, matt ? MATT_COLOURS : FRAME_COLOURS, id);
-  const backing = paint(design.backing, matt ? MATT_COLOURS : FRAME_COLOURS, id);
+  const frameMatt = design.surface === "matt";
+  const stripMatt = stripSurfaceOf(design) === "matt";
+  const frame = paint(design.frame, frameMatt ? MATT_COLOURS : FRAME_COLOURS, id);
+  const backing = paint(design.backing, stripMatt ? MATT_COLOURS : FRAME_COLOURS, id);
+  // framed: the body is the frame; frameless: the body is the strip's backing
+  const bodyMatt = framed ? frameMatt : stripMatt;
   const textSw = swatch(TEXT_COLOURS, design.textColour);
   const textFill = textSw.carbon ? `url(#${id}-carbon)` : textSw.hex;
   const plateText = (reg || "YOUR REG").toUpperCase();
@@ -288,8 +313,8 @@ export function SurroundPreview({
         <path d={body} fill={holder.fill} />
         {under && <path d={under} fill={underPaint.fill} />}
       </g>
-      {!framed && !matt && <path d={body} fill={`url(#${id}-gloss)`} />}
-      {under && !matt && <path d={under} fill={`url(#${id}-gloss)`} />}
+      {!framed && !bodyMatt && <path d={body} fill={`url(#${id}-gloss)`} />}
+      {under && !stripMatt && <path d={under} fill={`url(#${id}-gloss)`} />}
       <path d={body} fill="none" stroke={shade(holder.base, lum(holder.base) > 0.5 ? -0.3 : 0.4)} strokeOpacity="0.55" strokeWidth="1.3" />
       {under && <path d={under} fill="none" stroke={shade(underPaint.base, lum(underPaint.base) > 0.5 ? -0.3 : 0.4)} strokeOpacity="0.5" strokeWidth="1" />}
 
@@ -322,12 +347,12 @@ export function SurroundPreview({
               <path key={i} d={l.d} fill={l.fill} fillRule={l.evenodd ? "evenodd" : "nonzero"} />
             ))}
           </g>
-          {!matt && <path d={stripPath} fill={`url(#${id}-gloss)`} />}
+          {!stripMatt && <path d={stripPath} fill={`url(#${id}-gloss)`} />}
         </>
       )}
 
       {/* reflections across the gloss acrylic */}
-      {!framed && !matt && <path d={body} fill={`url(#${id}-streak)`} />}
+      {!framed && !bodyMatt && <path d={body} fill={`url(#${id}-streak)`} />}
 
       {/* lettering, a library design or the customer's own design, on the flat strip */}
       {hasArt && !lipLayers && <ArtworkInBox a={design} x={art.x} y={art.y} w={art.w} h={art.h} colour={textFill} base={textSw.carbon ? "#2a2a2a" : textSw.hex} raised />}
@@ -337,7 +362,7 @@ export function SurroundPreview({
 
 /** Does this design have text or a logo to show? */
 function a(d: Artwork) {
-  return artCategoryOf(d) !== "car" && (!!d.text.trim() || (d.logo === "upload" && !!d.upload) || (!!d.item && (d.cat === "country" || d.cat === "other")));
+  return !!d.text.trim() || (d.logo === "make" && !!d.make) || (d.logo === "upload" && !!d.upload) || (!!d.item && (d.cat === "country" || d.cat === "other"));
 }
 
 /**

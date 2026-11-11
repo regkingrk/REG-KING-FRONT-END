@@ -56,9 +56,15 @@ export const surroundColours = (surface: SurroundSurface | undefined): Swatch[] 
 /** Whether a colour is on offer in a finish (matt: black or white only, no custom colours). */
 export const colourOffered = (surface: SurroundSurface | undefined, key: string) =>
   surface === "matt" ? MATT_COLOURS.some((c) => c.key === key) : FRAME_COLOURS.some((c) => c.key === key) || /^#[0-9a-f]{6}$/i.test(key);
+/** The strip's finish (frameless: the whole surround). */
+export const stripSurfaceOf = (d: { surface?: SurroundSurface; stripSurface?: SurroundSurface }): SurroundSurface => d.stripSurface ?? d.surface ?? "gloss";
 /** A surround colour's name in its finish ("Matt Black", "Gloss White", "Red"). */
-export const surroundColourName = (surface: SurroundSurface | undefined, key: string) =>
-  !key ? "Not chosen" : surface === "matt" ? swatch(MATT_COLOURS, key).name : swatch(FRAME_COLOURS, key).name;
+export const surroundColourName = (surface: SurroundSurface | undefined, key: string) => {
+  if (!key) return "Not chosen";
+  if (surface === "matt") return swatch(MATT_COLOURS, key).name;
+  const n = swatch(FRAME_COLOURS, key).name;
+  return /^gloss /i.test(n) ? n : `Gloss ${n}`;
+};
 
 export const TEXT_COLOURS: Swatch[] = [
   { key: "white", name: "White", hex: "#ffffff" },
@@ -155,11 +161,9 @@ export type LogoKind = "none" | "make" | "upload";
 /** What goes on a surround's lower strip, or on a logo plate. */
 /** What goes on the strip: the five kinds the customer chooses between (or none). */
 export type ArtCategory = "car" | "text" | "country" | "other" | "custom" | "plain";
-/**
- * The kinds on offer. There's no car brand catalogue: we don't supply manufacturers' logos. Customers
- * upload their own reference ("Your design") and the team reviews it. ("car" stays a type for old saves.)
- */
+/** The kinds on offer. Car brands: names and logos as before, checked by the team on the proof. */
 export const ART_CATEGORIES: { key: ArtCategory; name: string; line: string }[] = [
+  { key: "car", name: "Car Related", line: "Car brands and badges" },
   { key: "custom", name: "Your design", line: "Upload an example of what you'd like" },
   { key: "text", name: "Custom Text", line: "Your words, in the font you pick" },
   { key: "country", name: "Country & Caste", line: "Flags, faith and heritage" },
@@ -246,8 +250,10 @@ export function surroundFitFor(plateSize: string | null): { shape: SurroundShape
 }
 
 export interface SurroundDesign extends Artwork {
-  /** Gloss (every colour) or matt (black or white). Older saves: gloss. */
+  /** The frame's finish: gloss (every colour) or matt (black or white). Older saves: gloss. */
   surface?: SurroundSurface;
+  /** The strip's finish (frameless: the whole surround), chosen separately. Older saves: as the frame. */
+  stripSurface?: SurroundSurface;
   /** Framed: the border and rim round the plate. */
   frame: string;
   /** Framed: the tab hanging under the frame. Frameless: the wing under the plate. */
@@ -256,7 +262,7 @@ export interface SurroundDesign extends Artwork {
   panel?: string;
 }
 
-export const defaultSurround = (): SurroundDesign => ({ ...emptyArtwork(), surface: "gloss", frame: "black", backing: "black" });
+export const defaultSurround = (): SurroundDesign => ({ ...emptyArtwork(), surface: "gloss", stripSurface: "gloss", frame: "black", backing: "black" });
 
 export interface SurroundConfig {
   /** Nothing is chosen until the customer picks framed or frameless; the design steps follow. */
@@ -344,10 +350,8 @@ export function artworkText(a: Artwork) {
 
 export function surroundSummary(c: SurroundConfig) {
   const one = (d: SurroundDesign) => {
-    const name = (k: string) => surroundColourName(d.surface, k).toLowerCase();
-    const finish = d.surface === "matt" ? "matt" : "gloss";
-    const colours = c.style === "framed" ? `${name(d.frame)} frame, ${name(d.backing)} strip` : `${name(d.backing)}`;
-    return `${finish}, ${colours}, ${artworkText(d)}`;
+    const colours = c.style === "framed" ? `${surroundColourName(d.surface, d.frame).toLowerCase()} frame, ${surroundColourName(stripSurfaceOf(d), d.backing).toLowerCase()} strip` : surroundColourName(stripSurfaceOf(d), d.backing).toLowerCase();
+    return `${colours}, ${artworkText(d)}`;
   };
   const legacy: Record<string, string> = { standard: "standard size", "18": '18"', "16": '16"', "14": '14"', Normal: "standard size" };
   const fitOf = (_shape: SurroundShape, size: SurroundSize) => legacy[size] ?? size;
@@ -401,12 +405,12 @@ export function surroundProblem(c: SurroundConfig): string | null {
   if (!c || (c.style !== "framed" && c.style !== "frameless")) return "Choose framed or frameless.";
   const d = c.front;
   if (!d) return "Finish your surround design.";
-  const surface = d.surface ?? "gloss";
-  if (surface !== "gloss" && surface !== "matt") return "Choose gloss or matt.";
+  const surface = d.surface ?? "gloss", strip = stripSurfaceOf(d);
+  if ((surface !== "gloss" && surface !== "matt") || (strip !== "gloss" && strip !== "matt")) return "Choose gloss or matt.";
   if (c.style === "framed" && !colourOffered(surface, d.frame)) return `Choose a frame colour available in ${surface}.`;
-  if (!colourOffered(surface, d.backing)) return `Choose a surround colour available in ${surface}.`;
+  if (!colourOffered(strip, d.backing)) return `Choose a ${c.style === "framed" ? "strip" : "surround"} colour available in ${strip}.`;
   const cat = artCategoryOf(d);
-  if (cat === "car") return "Car brand logos aren't offered any more: choose what goes on your surround again.";
+  if (cat === "car" && !d.make) return "Choose a car brand.";
   if (cat === "custom") {
     if (!d.uploadName) return "Upload an example of your design.";
     if (!isArtFinish(d.artFinish)) return "Choose flat printed or 4D acrylic for your design.";
@@ -419,13 +423,11 @@ export function surroundProblem(c: SurroundConfig): string | null {
 /** What the workshop needs for a surround (never the file's data). */
 export function surroundOrderDetails(c: SurroundConfig, reg = ""): { key: string; value: string }[] {
   const d = c.front;
-  const surface = d.surface === "matt" ? "Matt" : "Gloss";
   const cat = artCategoryOf(d);
   const out: { key: string; value: string }[] = [];
   if (reg) out.push({ key: "Registration", value: reg });
   out.push({ key: "Surround", value: `${c.style === "framed" ? "Framed" : "Frameless"}, ${c.qty === "set" ? "front and rear" : "single"}, size ${c.size}${c.qty === "set" && c.rearSize && c.rearSize !== c.size ? ` (rear ${c.rearSize})` : ""}` });
-  out.push({ key: "Finish", value: surface });
-  out.push({ key: "Colours", value: c.style === "framed" ? `Frame ${surroundColourName(d.surface, d.frame)}, strip ${surroundColourName(d.surface, d.backing)}` : surroundColourName(d.surface, d.backing) });
+  out.push({ key: "Colours", value: c.style === "framed" ? `Frame ${surroundColourName(d.surface, d.frame)}; strip ${surroundColourName(stripSurfaceOf(d), d.backing)}` : surroundColourName(stripSurfaceOf(d), d.backing) });
   if (c.vehicleMake) out.push({ key: "Vehicle", value: [c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ").slice(0, 80) });
   out.push({ key: "Design", value: artworkText(d).slice(0, 300) });
   if (cat === "custom") {

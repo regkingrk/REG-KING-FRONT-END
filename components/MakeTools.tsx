@@ -8,6 +8,7 @@ import {
   LOGO_PLATE_TYPES,
   LOGO_FILE_TYPES,
   LOGO_FILE_MAX_MB,
+  MANUFACTURERS,
   ART_CATEGORIES,
   ART_FINISHES,
   MATT_COLOURS,
@@ -15,7 +16,7 @@ import {
   colourOffered,
   surroundColourName,
   surroundColours,
-  type SurroundSurface,
+  stripSurfaceOf,
   ART_FONTS,
   artCategoryOf,
   type ArtCategory,
@@ -51,6 +52,7 @@ const DESIGN_TYPES = ".png,.jpg,.jpeg,.svg,.pdf,.webp";
 const DESIGN_MAX_MB = 20;
 import { RealPhotos } from "./RealPhotos";
 import { ART_ITEMS, REGIONS, artItem, type ArtItem, type Region } from "@/lib/artLibrary";
+import { carLogo, carLogoSrc, carLogosFor, type CarLogo } from "@/lib/carLogos";
 import { VEHICLE_MAKES, OTHER_MODEL, modelsFor } from "@/lib/vehicles";
 import { surroundGeometry } from "@/lib/surroundShape";
 import { PlateGL } from "./PlateGL";
@@ -145,7 +147,8 @@ function SurroundSizeExample({ size, framed, side }: { size: SurroundSize; frame
 
 /** Why the artwork isn't ready yet (null when it is). */
 function artProblem(kind: ArtCategory | null, d: Artwork, rights = true): string | null {
-  if (!kind || kind === "car") return "Choose what goes on it.";
+  if (!kind) return "Choose what goes on it.";
+  if (kind === "car" && !d.make) return "Choose a car brand.";
   if (kind === "text" && !d.text.trim()) return "Type your text.";
   if ((kind === "country" || kind === "other") && !d.item) return "Choose one from the list.";
   if (kind === "custom") {
@@ -236,6 +239,14 @@ function VehiclePick({ make, model, onPick, onDone }: { make: string; model: str
 }
 
 
+/** A brand logo as a small picture for its button: one-colour logos in dark ink, badges in their own colours. */
+function LogoThumb({ logo }: { logo: CarLogo }) {
+  const src = carLogoSrc(logo.key);
+  if (logo.fullColour) return <img className="rk-artlib__logo" src={src} alt="" />;
+  const mask = `url("${src}") center / contain no-repeat`;
+  return <span className="rk-artlib__logo rk-artlib__logo--ink" style={{ WebkitMask: mask, mask }} aria-hidden />;
+}
+
 /** A library item as a small picture for its button. */
 function ArtThumb({ item }: { item: ArtItem }) {
   if (!item.layers.length) return <span className="rk-artlib__name">{item.name}</span>;
@@ -290,6 +301,9 @@ function ArtPicker<A extends Artwork>({
   const [svgText, setSvgText] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [drag, setDrag] = useState(false);
+  const make = MANUFACTURERS.find((m) => m.make === d.make);
+  const logos = d.make ? carLogosFor(d.make) : [];
+  const chosenLogo = carLogo(d.carLogo);
   const pickKind = (k: ArtCategory) => {
     setKind(k);
     const clear = { text: "", make: "", badge: "", item: undefined, carLogo: undefined, upload: null, uploadName: "" };
@@ -360,6 +374,55 @@ function ArtPicker<A extends Artwork>({
           </button>
         ))}
       </div>
+
+      {kind === "car" && (
+        <>
+          <span className="rk-art__l">Brand</span>
+          <div className="rk-pills rk-pills--wrap">
+            {MANUFACTURERS.map((m) => (
+              <button
+                key={m.make}
+                type="button"
+                aria-pressed={d.make === m.make}
+                data-b={`sart-make:${m.make}`}
+                onClick={() => {
+                  const first = carLogosFor(m.make)[0];
+                  setD({ make: m.make, badge: first ? first.name : m.badges[0], carLogo: first?.key, logo: "make" } as Partial<A>);
+                }}
+              >
+                {m.make}
+              </button>
+            ))}
+          </div>
+          {logos.length > 0 && (
+            <>
+              <span className="rk-art__l">Logo</span>
+              <div className="rk-artlib rk-artlib--logos" role="radiogroup" aria-label={`${d.make} logos`}>
+                {logos.map((l) => (
+                  <button key={l.key} type="button" role="radio" aria-checked={d.carLogo === l.key} data-b={`sart-logo:${l.key}`} onClick={() => setD({ carLogo: l.key, badge: l.name } as Partial<A>)} title={l.name}>
+                    <LogoThumb logo={l} />
+                    <small>{l.name}</small>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {make && !logos.length && make.badges.length > 1 && (
+            <>
+              <span className="rk-art__l">Badge</span>
+              <div className="rk-pills rk-pills--wrap">
+                {make.badges.map((b) => (
+                  <button key={b} type="button" aria-pressed={d.badge === b} data-b={`sart-badge:${b}`} onClick={() => setD({ badge: b } as Partial<A>)}>
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {make && !logos.length && <p className="rk-bfine">The preview shows the name; we add the real badge artwork on your proof.</p>}
+          {chosenLogo?.fullColour ? <p className="rk-bfine">This badge is made in its own colours.</p> : make && colour}
+        </>
+      )}
 
       {kind === "text" && (
         <>
@@ -518,7 +581,7 @@ function ArtPicker<A extends Artwork>({
   );
 }
 
-type SurroundStep = "style" | "qty" | "size" | "rearSize" | "surface" | "frame" | "backing" | "vehicle" | "art";
+type SurroundStep = "style" | "qty" | "size" | "rearSize" | "frame" | "backing" | "vehicle" | "art";
 
 /**
  * Surround creator, one question at a time (like the plate builder): style, single or set, a size for
@@ -555,7 +618,7 @@ export function SurroundCreator({
   const fresh = (): SurroundConfig => ({ ...defaultSurroundConfig(plateQty ?? "set"), ...(compact ? {} : { style: "framed" as SurroundStyle }), ...(fit ?? {}) });
   const [c, setC] = useState<SurroundConfig>(() => initial ?? fresh());
   // Which questions have been answered (colours have defaults, so a pick is what answers them).
-  const [done, setDone] = useState<Set<SurroundStep>>(() => new Set(initial ? (["style", "qty", "size", "rearSize", "surface", "frame", "backing", "vehicle", "art"] as SurroundStep[]) : []));
+  const [done, setDone] = useState<Set<SurroundStep>>(() => new Set(initial ? (["style", "qty", "size", "rearSize", "frame", "backing", "vehicle", "art"] as SurroundStep[]) : []));
   const [open, setOpen] = useState<SurroundStep | null>(null);
   const [sizeTab, setSizeTab] = useState<string | null>(null);
   const [artKind, setArtKind] = useState<ArtCategory | null>(() => (initial?.front ? artCategoryOf(initial.front) : null));
@@ -563,7 +626,7 @@ export function SurroundCreator({
   useEffect(() => {
     if (editItem) {
       setC(editItem.data.cfg);
-      setDone(new Set(["style", "qty", "size", "rearSize", "surface", "frame", "backing", "vehicle", "art"]));
+      setDone(new Set(["style", "qty", "size", "rearSize", "frame", "backing", "vehicle", "art"]));
       const d = editItem.data.cfg.front;
       setArtKind(artCategoryOf(d));
     }
@@ -591,7 +654,6 @@ export function SurroundCreator({
     ...(compact ? [] : (["qty"] as SurroundStep[])),
     ...(framed && !compact ? (["size"] as SurroundStep[]) : []),
     ...(framed && !compact && isSet ? (["rearSize"] as SurroundStep[]) : []),
-    "surface",
     ...(framed ? (["frame"] as SurroundStep[]) : []),
     "backing",
     ...(compact || studio ? [] : (["vehicle"] as SurroundStep[])),
@@ -605,9 +667,8 @@ export function SurroundCreator({
     qty: "Single or set",
     size: isSet ? "Front surround size" : "Size",
     rearSize: "Rear surround size",
-    surface: "Choose your surround finish",
-    frame: "Frame colour",
-    backing: framed ? "Strip colour" : "Surround colour",
+    frame: "Frame: finish and colour",
+    backing: framed ? "Strip: finish and colour" : "Surround: finish and colour",
     vehicle: "Select your vehicle",
     art: "Your design",
   };
@@ -616,9 +677,8 @@ export function SurroundCreator({
     qty: c.qty === "set" ? "Set (front and rear)" : "Single",
     size: sizeName(c.size),
     rearSize: sizeName(rearSize),
-    surface: d.surface === "matt" ? "Matt" : "Gloss",
     frame: surroundColourName(d.surface, d.frame),
-    backing: surroundColourName(d.surface, d.backing),
+    backing: surroundColourName(stripSurfaceOf(d), d.backing),
     vehicle: c.vehicleMake ? [c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ") : "Not given",
     art: artKind === "plain" ? "None" : `${ART_CATEGORIES.find((x) => x.key === artKind)?.name ?? ""}: ${artworkText(d)}`,
   };
@@ -738,53 +798,31 @@ export function SurroundCreator({
         return sizeBody(false);
       case "rearSize":
         return sizeBody(true);
-      case "surface":
-        return (
-          <Options
-            label="Surround finish"
-            name="ssurface"
-            value={done.has("surface") ? d.surface ?? "gloss" : ("" as SurroundSurface)}
-            onPick={(v) => {
-              // matt comes in black or white only: a colour that isn't on offer is cleared and asked again
-              const p: Partial<SurroundDesign> = { surface: v };
-              const redo: SurroundStep[] = [];
-              if (!colourOffered(v, d.frame)) {
-                p.frame = "";
-                redo.push("frame");
-              }
-              if (!colourOffered(v, d.backing)) {
-                p.backing = "";
-                redo.push("backing");
-              }
-              setD(p);
-              setDone((x) => {
-                const n = new Set(x);
-                redo.forEach((k) => n.delete(k));
-                n.add("surface");
-                return n;
-              });
-              setOpen(null);
-            }}
-            options={SURROUND_SURFACES.map((f) => ({ ...f, line: f.key === "matt" ? `${f.line}. Black or white.` : `${f.line}. Every colour.` }))}
-          />
-        );
       case "frame":
       case "backing": {
-        const key = k === "frame" ? d.frame : d.backing;
-        const ok = !!key && colourOffered(d.surface, key);
+        const isFrame = k === "frame";
+        const surf = isFrame ? d.surface ?? "gloss" : stripSurfaceOf(d);
+        const key = isFrame ? d.frame : d.backing;
+        const ok = !!key && colourOffered(surf, key);
+        const nm = isFrame ? "sframe" : "sbacking";
         return (
           <>
-            <ColourPicker
-              label={title[k]}
-              list={surroundColours(d.surface)}
-              value={ok ? key : ""}
-              onPick={(v) => setD(k === "frame" ? { frame: v } : { backing: v })}
-              name={k === "frame" ? "sframe" : "sbacking"}
-              noWheel={d.surface === "matt"}
+            <span className="rk-art__l">Finish</span>
+            <Options
+              label={isFrame ? "Frame finish" : "Strip finish"}
+              name={isFrame ? "sframe-finish" : "sbacking-finish"}
+              value={surf}
+              onPick={(v) =>
+                // matt comes in black or white only: a colour that isn't on offer is cleared, to pick again
+                setD(isFrame ? { surface: v, ...(colourOffered(v, d.frame) ? {} : { frame: "" }) } : { stripSurface: v, ...(colourOffered(v, d.backing) ? {} : { backing: "" }) })
+              }
+              options={SURROUND_SURFACES.map((f) => ({ ...f, line: f.key === "matt" ? "Non-reflective. Black or white." : "Shiny and reflective. Every colour." }))}
             />
-            {k === "backing" && <p className="rk-bfine">{framed ? "The strip under the frame, where your design goes. It's completely flat." : "The surround behind the plate and the flat strip under it, where your design goes."}</p>}
-            <button type="button" className="rk-bnext" data-b={`${k === "frame" ? "sframe" : "sbacking"}:done`} disabled={!ok} onClick={() => answer(k)}>
-              {ok ? `Use ${surroundColourName(d.surface, key)}` : "Choose a colour"}
+            <span className="rk-art__l">Colour</span>
+            <ColourPicker label={isFrame ? "Frame colour" : "Strip colour"} list={surroundColours(surf)} value={ok ? key : ""} onPick={(v) => setD(isFrame ? { frame: v } : { backing: v })} name={nm} noWheel={surf === "matt"} />
+            {!isFrame && <p className="rk-bfine">{framed ? "The strip under the frame, where your design goes. It's completely flat." : "The surround behind the plate and the flat strip under it, where your design goes."}</p>}
+            <button type="button" className="rk-bnext" data-b={`${nm}:done`} disabled={!ok} onClick={() => answer(k)}>
+              {ok ? `Use ${surroundColourName(surf, key)}` : "Choose a colour"}
             </button>
           </>
         );
