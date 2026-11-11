@@ -21,7 +21,11 @@ export function ListPlate({ startReg = "", startPkg = "" }: { startReg?: string;
   const [tried, setTried] = useState<Set<number>>(new Set());
   const [done, setDone] = useState<Submission[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const top = useRef<HTMLFormElement>(null);
+  const top = useRef<HTMLElement | null>(null);
+  // The list is a form, and becomes a plain box once submitted: one ref serves both.
+  const setTop = (el: HTMLElement | null) => {
+    top.current = el;
+  };
 
   // Details, collected once
   const [name, setName] = useState(customer?.name ?? "");
@@ -137,7 +141,7 @@ export function ListPlate({ startReg = "", startPkg = "" }: { startReg?: string;
 
   if (done) {
     return (
-      <div className="pt-list" ref={top}>
+      <div className="pt-list" ref={setTop}>
         <div className="pt-done" role="status">
           <h2>Thank you, your plates have been submitted for review.</h2>
           <p>We&apos;ll check the details and be in touch. Nothing goes on the site until we&apos;ve reviewed it.</p>
@@ -162,7 +166,7 @@ export function ListPlate({ startReg = "", startPkg = "" }: { startReg?: string;
   const label = customer ? `Submit ${n} plate${n === 1 ? "" : "s"}` : `Create account & submit ${n} plate${n === 1 ? "" : "s"}`;
 
   return (
-    <form className="pt-list" ref={top} onSubmit={submit} noValidate>
+    <form className="pt-list" ref={setTop} onSubmit={submit} noValidate>
       <section className="pt-block" aria-labelledby="pt-plates-h">
         <h2 id="pt-plates-h" className="pt-block__h">
           <small>Step 1 of 2</small>
