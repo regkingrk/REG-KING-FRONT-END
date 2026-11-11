@@ -27,8 +27,9 @@ const SIZE = 200;
  * The wheel picks hue (around) and strength (out from the middle); the slider sets brightness.
  * Value is a preset key, "carbon", or "#rrggbb".
  */
-export function ColourPicker({ label, list, value, onPick, name }: { label: string; list: Swatch[]; value: string; onPick: (v: string) => void; name: string }) {
+export function ColourPicker({ label, list, value, onPick, name, noWheel }: { label: string; list: Swatch[]; value: string; onPick: (v: string) => void; name: string; /** Only the swatches (matt surrounds: black or white). */ noWheel?: boolean }) {
   const current = swatch(list, value);
+  const chosen = !!value && (/^#/.test(value) || list.some((s) => s.key === value));
   const custom = /^#/.test(value);
   const [open, setOpen] = useState(false);
   const start = hexToHsv(current.carbon ? "#1c1c1c" : current.hex);
@@ -108,6 +109,7 @@ export function ColourPicker({ label, list, value, onPick, name }: { label: stri
             onClick={() => onPick(s.key)}
           />
         ))}
+        {!noWheel && (
         <button
           type="button"
           className={`rk-sw rk-sw--wheel${custom ? " is-on" : ""}`}
@@ -118,10 +120,11 @@ export function ColourPicker({ label, list, value, onPick, name }: { label: stri
           onClick={() => setOpen((o) => !o)}
           style={custom ? { boxShadow: `inset 0 0 0 7px ${value}` } : undefined}
         />
+        )}
       </div>
-      <span className="rk-swatches__name">{current.name}</span>
+      <span className="rk-swatches__name">{chosen ? current.name : "Choose a colour"}</span>
 
-      {open && (
+      {open && !noWheel && (
         <div className="rk-cp__panel">
           <div className="rk-cp__wheel">
             <canvas

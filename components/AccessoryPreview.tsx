@@ -2,13 +2,13 @@
 import { hexPoints } from "@/lib/builder";
 
 import { useId } from "react";
-import { panelColourHex, surroundGeometry, type Pt } from "@/lib/surroundShape";
+import { surroundGeometry, type Pt } from "@/lib/surroundShape";
 import { surroundSize } from "@/lib/surroundSizes";
 import { artItem, flagLipLayers } from "@/lib/artLibrary";
-import { carLogo, carLogoSrc } from "@/lib/carLogos";
 import {
   ART_FONTS,
   FRAME_COLOURS,
+  MATT_COLOURS,
   PLATE_BACKGROUNDS,
   artCategoryOf,
   TEXT_COLOURS,
@@ -119,28 +119,8 @@ const paint = (value: string, list: typeof FRAME_COLOURS, id: string) => {
 function ArtworkInBox({ a, x, y, w, h, colour, base, raised }: { a: Artwork; x: number; y: number; w: number; h: number; colour: string; base: string; raised?: boolean }) {
   const cat = artCategoryOf(a);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  // a brand logo picture: one-colour logos drawn in the chosen colour (as raised acrylic), badges as they are
-  const logo = cat === "car" ? carLogo(a.carLogo) : null;
-  if (logo) {
-    const k = Math.min(w / logo.w, h / logo.h) * 0.94;
-    const lw = logo.w * k, lh = logo.h * k, lx = x + (w - lw) / 2, ly = y + (h - lh) / 2;
-    const src = carLogoSrc(logo.key);
-    const depth = Math.min(3.5, Math.max(1.2, h * 0.07));
-    const shape = (dx: number, dy: number, fill: string, key: string) => <rect key={key} x={lx + dx} y={ly + dy} width={lw} height={lh} fill={fill} mask={`url(#lm${uid})`} />;
-    const side = shade(base, lum(base) > 0.5 ? -0.45 : -0.6);
-    return (
-      <>
-        <defs>
-          <mask id={`lm${uid}`} maskUnits="userSpaceOnUse" x={lx - 10} y={ly - 10} width={lw + 20} height={lh + 20} style={{ maskType: "alpha" }}>
-            <image href={src} x={lx} y={ly} width={lw} height={lh} preserveAspectRatio="none" />
-          </mask>
-        </defs>
-        {raised && shape(depth * 0.6, depth * 1.4, "rgba(0,0,0,0.35)", "s")}
-        {raised && Array.from({ length: 4 }, (_, i) => shape((depth * (4 - i)) / 8, (depth * (4 - i)) / 4, logo.fullColour ? "#1c1c1c" : side, `e${i}`))}
-        {logo.fullColour ? <image href={src} x={lx} y={ly} width={lw} height={lh} preserveAspectRatio="none" /> : shape(0, 0, colour, "f")}
-      </>
-    );
-  }
+  // car brands are no longer offered: an older saved brand design shows nothing (the customer picks again)
+  if (cat === "car") return null;
   // flags, faith symbols and library shapes: drawn from the library, fitted to the box
   if ((cat === "country" || cat === "other") && a.item) {
     const it = artItem(a.item);
@@ -160,6 +140,27 @@ function ArtworkInBox({ a, x, y, w, h, colour, base, raised }: { a: Artwork; x: 
       );
     }
     if (it) a = { ...a, logo: "none", text: it.name };
+  }
+  // the customer's own design: fitted to the box keeping its proportions; flat printed, or raised 4D
+  // acrylic drawn from its own outline (sides stacked under it). Illustrative: the team proofs it.
+  if (cat === "custom" && a.upload) {
+    const aspect = a.aspect && a.aspect > 0 ? a.aspect : w / h;
+    const ih = Math.min(h, w / aspect), iw = ih * aspect, ix = x + (w - iw) / 2, iy = y + (h - ih) / 2;
+    if (a.artFinish !== "acrylic") return <image href={a.upload} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="none" />;
+    const depth = Math.min(3, Math.max(1.4, ih * 0.08));
+    const layer = (dx: number, dy: number, fill: string, key: string) => <rect key={key} x={ix + dx} y={iy + dy} width={iw} height={ih} fill={fill} mask={`url(#um${uid})`} />;
+    return (
+      <>
+        <defs>
+          <mask id={`um${uid}`} maskUnits="userSpaceOnUse" x={ix - 10} y={iy - 10} width={iw + 20} height={ih + 20} style={{ maskType: "alpha" }}>
+            <image href={a.upload} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="none" />
+          </mask>
+        </defs>
+        {layer(depth * 0.6, depth * 1.4, "rgba(0,0,0,0.3)", "s")}
+        {Array.from({ length: 5 }, (_, i) => layer((depth * (5 - i)) / 10, (depth * (5 - i)) / 5, "#2b2b2b", `e${i}`))}
+        <image href={a.upload} x={ix} y={iy} width={iw} height={ih} preserveAspectRatio="none" />
+      </>
+    );
   }
   const fontCss = cat === "text" && a.font === "metro" ? ART_FONTS[1].css : PLATE_FONT;
   const hasLogo = (a.logo === "make" && !!a.make) || (a.logo === "upload" && !!a.upload);
@@ -253,8 +254,9 @@ export function SurroundPreview({
   const pathOf = (pts: Pt[]) => pts.map(([x, y], i) => `${i ? "L" : "M"}${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ") + " Z";
   const px = X(-plateW / 2), py = Y(plateH / 2);
 
-  const frame = paint(design.frame, FRAME_COLOURS, id);
-  const backing = paint(design.backing, FRAME_COLOURS, id);
+  const matt = design.surface === "matt";
+  const frame = paint(design.frame, matt ? MATT_COLOURS : FRAME_COLOURS, id);
+  const backing = paint(design.backing, matt ? MATT_COLOURS : FRAME_COLOURS, id);
   const textSw = swatch(TEXT_COLOURS, design.textColour);
   const textFill = textSw.carbon ? `url(#${id}-carbon)` : textSw.hex;
   const plateText = (reg || "YOUR REG").toUpperCase();
@@ -265,15 +267,15 @@ export function SurroundPreview({
   // framed: the tab under the frame has its own colour; frameless: the wing is the backing colour
   const underPaint = backing;
   const body = G.frame ? shapePath(X(-G.frame.w / 2), Y(G.frame.cy + G.frame.h / 2), G.frame.w, G.frame.h, G.frame.r, hex) : shapePath(px, py, plateW, plateH, 6, hex);
-  const under = G.tab ? pathOf(G.tab) : G.wing ? pathOf(G.wing) : "";
-  const panelPath = pathOf(G.panel);
-  const panelFill = panelColourHex(design.backing, design.panel, framed);
+  // the strip under the plate is one flat piece: framed, the tab; frameless, the wing and its centre together
+  const under = G.tab ? pathOf(G.tab) : G.wing ? `${pathOf(G.wing)} ${pathOf(G.panel)}` : "";
+  const stripPath = G.tab ? pathOf(G.tab) : pathOf(G.panel);
   const plate = shapePath(px, py, plateW, plateH, 6, hex);
   const rim = shapePath(px - 2.5, py - 2.5, plateW + 5, plateH + 5, 7.5, hex);
   const art = { x: X(G.art.cx - G.art.w / 2), y: Y(G.art.cy + G.art.h / 2), w: G.art.w, h: G.art.h };
   // a country's flag is printed across the whole lip (the panel), stripes running along it
   const lipFlag = artCategoryOf(design) === "country" ? artItem(design.item)?.flag : undefined;
-  const lipLayers = lipFlag ? flagLipLayers(lipFlag, G.panel.map(([x, y]) => [X(x), Y(y)] as [number, number])) : null;
+  const lipLayers = lipFlag ? flagLipLayers(lipFlag, (G.tab ?? G.panel).map(([x, y]) => [X(x), Y(y)] as [number, number])) : null;
 
   return (
     <svg className="rk-acc-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label ?? `${framed ? "Framed" : "Frameless"} plate holder preview`}>
@@ -286,8 +288,8 @@ export function SurroundPreview({
         <path d={body} fill={holder.fill} />
         {under && <path d={under} fill={underPaint.fill} />}
       </g>
-      {!framed && <path d={body} fill={`url(#${id}-gloss)`} />}
-      {under && <path d={under} fill={`url(#${id}-gloss)`} />}
+      {!framed && !matt && <path d={body} fill={`url(#${id}-gloss)`} />}
+      {under && !matt && <path d={under} fill={`url(#${id}-gloss)`} />}
       <path d={body} fill="none" stroke={shade(holder.base, lum(holder.base) > 0.5 ? -0.3 : 0.4)} strokeOpacity="0.55" strokeWidth="1.3" />
       {under && <path d={under} fill="none" stroke={shade(underPaint.base, lum(underPaint.base) > 0.5 ? -0.3 : 0.4)} strokeOpacity="0.5" strokeWidth="1" />}
 
@@ -309,29 +311,25 @@ export function SurroundPreview({
         {plateText}
       </text>
 
-      {/* the panel (in its own colour) carrying the lettering */}
-      <g filter={`url(#${id}-lift)`}>
-        <path d={panelPath} fill={panelFill} />
-      </g>
+      {/* a flag printed across the flat strip */}
       {lipLayers && (
         <>
           <clipPath id={`${id}-lip`}>
-            <path d={panelPath} />
+            <path d={stripPath} />
           </clipPath>
           <g clipPath={`url(#${id}-lip)`}>
             {lipLayers.map((l, i) => (
               <path key={i} d={l.d} fill={l.fill} fillRule={l.evenodd ? "evenodd" : "nonzero"} />
             ))}
           </g>
+          {!matt && <path d={stripPath} fill={`url(#${id}-gloss)`} />}
         </>
       )}
-      <path d={panelPath} fill={`url(#${id}-gloss)`} />
-      <path d={panelPath} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="0.8" />
 
       {/* reflections across the gloss acrylic */}
-      {!framed && <path d={body} fill={`url(#${id}-streak)`} />}
+      {!framed && !matt && <path d={body} fill={`url(#${id}-streak)`} />}
 
-      {/* raised lettering / logo on the panel */}
+      {/* lettering, a library design or the customer's own design, on the flat strip */}
       {hasArt && !lipLayers && <ArtworkInBox a={design} x={art.x} y={art.y} w={art.w} h={art.h} colour={textFill} base={textSw.carbon ? "#2a2a2a" : textSw.hex} raised />}
     </svg>
   );
@@ -339,7 +337,7 @@ export function SurroundPreview({
 
 /** Does this design have text or a logo to show? */
 function a(d: Artwork) {
-  return !!d.text.trim() || (d.logo === "make" && !!d.make) || (d.logo === "upload" && !!d.upload) || (!!d.item && (d.cat === "country" || d.cat === "other"));
+  return artCategoryOf(d) !== "car" && (!!d.text.trim() || (d.logo === "upload" && !!d.upload) || (!!d.item && (d.cat === "country" || d.cat === "other")));
 }
 
 /**

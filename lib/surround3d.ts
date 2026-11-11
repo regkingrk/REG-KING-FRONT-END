@@ -7,16 +7,18 @@
  */
 import { THREE, buildPlate, raisedText, textWidthMm, PLATE_THICKNESS } from "./plate3d";
 import { hexPoints } from "./builder";
-import { FRAME_COLOURS, TEXT_COLOURS, artCategoryOf, swatch, type SurroundDesign, type SurroundShape, type SurroundSize, type SurroundStyle } from "./accessories";
+import { FRAME_COLOURS, MATT_COLOURS, TEXT_COLOURS, artCategoryOf, swatch, type SurroundDesign, type SurroundShape, type SurroundSize, type SurroundStyle, type SurroundSurface } from "./accessories";
 import type { PlateSpec } from "./plateRender";
-import { panelColourHex, surroundGeometry, type Pt } from "./surroundShape";
+import { surroundGeometry, type Pt } from "./surroundShape";
 import { isBikeSize, surroundSize } from "./surroundSizes";
 import { artCanvas, artItem, flagLipLayers, type FlagDef } from "./artLibrary";
-import { askRedraw, carLogo, carLogoCanvas } from "./carLogos";
+import { askRedraw } from "./carLogos";
 
 export type SurroundView = { style: SurroundStyle; shape: SurroundShape; size: SurroundSize; design: SurroundDesign; side: "front" | "rear"; reg: string };
 
 const BACK_T = 4; // backing thickness, mm
+/** 4D acrylic thickness in the preview, mm. CONFIRM with REG KING's workshop. */
+export const ACRYLIC_T = 3;
 
 function roundRect(w: number, h: number, r: number, cx = 0, cy = 0, path: THREE.Shape | THREE.Path = new THREE.Shape()) {
   const x = cx - w / 2, y = cy - h / 2;
@@ -38,8 +40,13 @@ function hexPath(w: number, h: number, cx = 0, cy = 0, path: THREE.Shape | THREE
 }
 const outline = (hex: boolean, w: number, h: number, r: number, cx = 0, cy = 0, path?: THREE.Shape | THREE.Path) => (hex ? hexPath(w, h, cx, cy, path) : roundRect(w, h, r, cx, cy, path));
 
-/** Gloss acrylic (or metallic, or carbon fibre) in a surround colour. */
-function finish(key: string, env?: THREE.Texture): THREE.MeshPhysicalMaterial {
+/** Gloss acrylic (or metallic, or carbon fibre) in a surround colour; or matt, which barely reflects. */
+function finish(key: string, env?: THREE.Texture, surface: SurroundSurface = "gloss"): THREE.MeshPhysicalMaterial {
+  if (surface === "matt") {
+    const m = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(swatch(MATT_COLOURS, key).hex), roughness: 0.78, metalness: 0, clearcoat: 0, envMapIntensity: 0.35 });
+    if (env) m.envMap = env;
+    return m;
+  }
   const sw = swatch(FRAME_COLOURS, key);
   const m = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(sw.hex),
@@ -126,48 +133,43 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
   const plateW = sz.w;
   const PLATE_H = sz.h;
   const d = v.design;
-  // car brands are shown by name (the real badges need licensed artwork, added on the proof)
-  const text = d.make ? `${d.make}${d.badge && d.badge !== "Logo only" ? ` ${d.badge}` : ""}` : "";
   const G = surroundGeometry(framed, plateW, PLATE_H);
   const back = PLATE_THICKNESS / 2; // the plate's back face
   const env = acrylicEnv ?? softEnv;
 
+  const surface = d.surface ?? "gloss";
+  // a country's flag is printed across the whole strip under the plate, stripes running along it
+  const lipFlag = artCategoryOf(d) === "country" ? artItem(d.item)?.flag : undefined;
+  // the strip under the plate: one flat piece (no raised or recessed panel set into it)
+  const strip = G.tab ?? G.panel;
+  const stripMat = finish(d.backing, env, surface);
+  const flagMat = lipFlag ? lipFlagMaterial(lipFlag, strip, env) : null;
+  const STRIP_BEVEL = framed ? 0.06 : 0.5;
+
   if (G.frame) {
     // framed: the frame (border round the plate, and the tab under it) in the frame colour
-    const frameMat = finish(d.frame, env);
+    const frameMat = finish(d.frame, env, surface);
     // the frame is plain laser-cut acrylic, like a 4D letter: flat faces and crisp, straight-cut edges
     group.add(slab(outline(hex, G.frame.w, G.frame.h, G.frame.r, 0, G.frame.cy) as THREE.Shape, BACK_T, -back - BACK_T, frameMat, 0.06));
-    // the tab under the frame, in its own colour
-    if (G.tab) group.add(slab(poly(G.tab), BACK_T, -back - BACK_T, finish(d.backing, env), 0.06));
+    // the tab under the frame, flat, in its own colour
+    if (G.tab) group.add(slab(poly(G.tab), BACK_T, -back - BACK_T, flagMat ? [flagMat, stripMat] : stripMat, STRIP_BEVEL));
     // the outline round the plate: a 4D acrylic ring standing 3mm proud of the plate's face
     const rimShape = outline(hex, G.frame.w, PLATE_H + 14, G.frame.r, 0, 0) as THREE.Shape;
     rimShape.holes.push(outline(hex, plateW + 0.6, PLATE_H + 0.6, 6, 0, 0, new THREE.Path()) as THREE.Path);
     group.add(slab(rimShape, PLATE_THICKNESS + 3, -back, frameMat, 0.06));
   } else {
-    // frameless: the backing behind the plate, and the wing poking out under it
-    const backMat = finish(d.backing, env);
-    group.add(slab(outline(hex, plateW, PLATE_H, 6) as THREE.Shape, BACK_T, -back - BACK_T, backMat, 0.4));
-    if (G.wing) group.add(slab(poly(G.wing), BACK_T, -back - BACK_T, backMat, 0.5));
+    // frameless: the backing behind the plate, and the flat strip under it (wing and centre as one surface)
+    group.add(slab(outline(hex, plateW, PLATE_H, 6) as THREE.Shape, BACK_T, -back - BACK_T, stripMat, 0.4));
+    if (G.wing) group.add(slab(poly(G.wing), BACK_T, -back - BACK_T, stripMat, STRIP_BEVEL));
+    group.add(slab(poly(G.panel), BACK_T, -back - BACK_T, flagMat ? [flagMat, stripMat] : stripMat, STRIP_BEVEL));
   }
 
   // the number plate itself (printed, as on the plate builder)
   const spec: PlateSpec = { reg: (v.reg || "YOUR REG").toUpperCase(), side: isBikeSize(sz) ? "rear" : v.side, look: "printed", styleName: "Printed", extras: [], w: plateW, h: PLATE_H, hex, bike: isBikeSize(sz) };
   group.add(buildPlate(spec, softEnv, acrylicEnv));
 
-  // the panel (the "triangle" piece) in its own colour, carrying the lettering
-  const panelT = 1.6;
-  const panelHex = panelColourHex(d.backing, d.panel, framed);
-  const pSw = swatch(FRAME_COLOURS, framed ? d.backing : d.panel || d.backing);
-  const panelMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(panelHex), roughness: 0.18, metalness: pSw.metal ? 0.7 : 0, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1 });
-  if (pSw.carbon) panelMat.map = carbonTexture();
-  if (env) panelMat.envMap = env;
-  const panelZ = framed ? -back : -back + 0.01;
-  // a country's flag is printed across the whole lip (the panel's face), stripes running along it
-  const lipFlag = artCategoryOf(d) === "country" ? artItem(d.item)?.flag : undefined;
-  const flagMat = lipFlag ? lipFlagMaterial(lipFlag, G.panel, env) : null;
-  group.add(slab(poly(G.panel), panelT, panelZ, flagMat ? [flagMat, panelMat] : panelMat, 0.4));
-
-  // the artwork on the panel
+  // the artwork sits straight on the strip's flat face
+  const faceZ = -back + STRIP_BEVEL;
   const a = G.art;
   const cat = artCategoryOf(d);
   const ts = swatch(TEXT_COLOURS, d.textColour);
@@ -180,31 +182,42 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
   const words = (txt: string, font: "plate" | "metro" = "plate") => {
     const h = Math.min(a.h, (a.w / Math.max(1, textWidthMm(txt, 1, font))) * 0.97);
     const t = raisedText(txt, h, 2.2, textMat(), font);
-    t.position.set(a.cx, a.cy, panelZ + panelT);
+    t.position.set(a.cx, a.cy, faceZ);
     group.add(t);
   };
+  // fitted inside the artwork area, keeping its proportions (never stretched or clipped)
+  const fit = (aspect: number) => {
+    const h = Math.min(a.h, a.w / aspect);
+    return { w: h * aspect, h };
+  };
   const picture = (tex: THREE.Texture, aspect: number) => {
-    const h = Math.min(a.h + 3, a.w / aspect), w = h * aspect;
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshPhysicalMaterial({ map: tex, transparent: true, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 0.6 }));
-    // just above the panel's face (its bevel stands 0.4mm proud of panelT)
-    plane.position.set(a.cx, a.cy, panelZ + panelT + 0.9);
+    const { w, h } = fit(aspect);
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshPhysicalMaterial({ map: tex, transparent: true, roughness: 0.35, clearcoat: surface === "matt" ? 0 : 1, clearcoatRoughness: 0.05, envMapIntensity: 0.6 }));
+    plane.position.set(a.cx, a.cy, faceZ + 0.05);
     group.add(plane);
   };
-  if (cat === "text" && d.text.trim()) words(d.text.trim(), d.font ?? "plate");
-  else if (cat === "car" && carLogo(d.carLogo)) {
-    // the brand's own logo: one-colour logos in the chosen colour, badges in their own colours
-    const logo = carLogo(d.carLogo)!;
-    let tex: THREE.CanvasTexture | null = null;
-    const cv = carLogoCanvas(logo, ts.hex, () => {
-      if (tex) tex.needsUpdate = true;
-      askRedraw();
-    });
-    if (cv) {
-      tex = new THREE.CanvasTexture(cv);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      picture(tex, logo.w / logo.h);
+  /**
+   * 4D acrylic from the customer's own file: the artwork's shape stacked through the acrylic's thickness,
+   * so turning the view shows real sides and depth, with the artwork on the top face. Illustrative: the
+   * workshop cuts from the outline our team prepares.
+   */
+  const raisedPicture = (tex: THREE.Texture, aspect: number) => {
+    const { w, h } = fit(aspect);
+    const geo = new THREE.PlaneGeometry(w, h);
+    const sideMat = new THREE.MeshStandardMaterial({ map: tex, color: new THREE.Color(0x4a4a4a), alphaTest: 0.5, roughness: 0.4 });
+    const topMat = new THREE.MeshPhysicalMaterial({ map: tex, alphaTest: 0.5, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 0.9 });
+    if (env) topMat.envMap = env;
+    const depthMat = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: tex, alphaTest: 0.5 });
+    const layers = 14;
+    for (let i = 0; i <= layers; i++) {
+      const m = new THREE.Mesh(geo, i === layers ? topMat : sideMat);
+      m.position.set(a.cx, a.cy, faceZ + 0.05 + (ACRYLIC_T * i) / layers);
+      m.castShadow = i === 0;
+      m.customDepthMaterial = depthMat;
+      group.add(m);
     }
-  } else if (cat === "car" && text) words(text);
+  };
+  if (cat === "text" && d.text.trim()) words(d.text.trim(), d.font ?? "plate");
   else if ((cat === "country" || cat === "other") && d.item && !lipFlag) {
     const item = artItem(d.item);
     const cv = item ? artCanvas(item, ts.hex) : null;
@@ -216,7 +229,10 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
   } else if (cat === "custom" && d.upload) {
     const tex = new THREE.TextureLoader().load(d.upload, askRedraw);
     tex.colorSpace = THREE.SRGBColorSpace;
-    picture(tex, 2.5);
+    const aspect = d.aspect && d.aspect > 0 ? d.aspect : 2.5;
+    if (d.artFinish === "acrylic") raisedPicture(tex, aspect);
+    else picture(tex, aspect);
   }
+  // (car brand logos are no longer offered: older saved designs with one show the plain strip)
   return group;
 }

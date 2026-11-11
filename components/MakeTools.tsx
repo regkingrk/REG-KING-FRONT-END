@@ -8,8 +8,14 @@ import {
   LOGO_PLATE_TYPES,
   LOGO_FILE_TYPES,
   LOGO_FILE_MAX_MB,
-  MANUFACTURERS,
   ART_CATEGORIES,
+  ART_FINISHES,
+  MATT_COLOURS,
+  SURROUND_SURFACES,
+  colourOffered,
+  surroundColourName,
+  surroundColours,
+  type SurroundSurface,
   ART_FONTS,
   artCategoryOf,
   type ArtCategory,
@@ -40,9 +46,13 @@ import { useAccount } from "./AccountProvider";
 import { useMode } from "./ModeProvider";
 import { LogoPlatePreview, SurroundPreview } from "./AccessoryPreview";
 import { LOGO_FACE, checkArtwork, logoMm } from "@/lib/logoArtwork";
+/** Surround designs: the files we take, and their size limit. */
+const DESIGN_TYPES = ".png,.jpg,.jpeg,.svg,.pdf,.webp";
+const DESIGN_MAX_MB = 20;
 import { RealPhotos } from "./RealPhotos";
 import { ART_ITEMS, REGIONS, artItem, type ArtItem, type Region } from "@/lib/artLibrary";
-import { carLogo, carLogoSrc, carLogosFor, type CarLogo } from "@/lib/carLogos";
+import { VEHICLE_MAKES, OTHER_MODEL, modelsFor } from "@/lib/vehicles";
+import { surroundGeometry } from "@/lib/surroundShape";
 import { PlateGL } from "./PlateGL";
 import { canRender3D } from "@/lib/plate3d";
 import { buildSurround, type SurroundView } from "@/lib/surround3d";
@@ -84,95 +94,6 @@ function Options<T extends string>({ label, value, options, onPick, name }: { la
   );
 }
 
-/** Text, a manufacturer logo, the customer's own logo, or text with a logo. */
-function ArtworkEditor<A extends Artwork>({ a, set, name, textLabel = "Your text" }: { a: A; set: (p: Partial<A>) => void; name: string; textLabel?: string }) {
-  const [error, setError] = useState("");
-  const make = MANUFACTURERS.find((m) => m.make === a.make);
-  const onFile = (f: File | undefined) => {
-    setError("");
-    if (!f) return;
-    if (f.size > 5 * 1024 * 1024) {
-      setError("That file is over 5MB. Try a smaller image.");
-      return;
-    }
-    if (!/\.(png|jpe?g|webp|svg)$/i.test(f.name)) {
-      setError("Please choose a PNG, JPG, WEBP or SVG file.");
-      return;
-    }
-    const r = new FileReader();
-    r.onload = () => set({ upload: String(r.result), uploadName: f.name, logo: "upload" } as Partial<A>);
-    r.readAsDataURL(f);
-  };
-  return (
-    <div className="rk-art">
-      <label className="rk-art__field">
-        <span>
-          {textLabel} <i>optional</i>
-        </span>
-        <input value={a.text} maxLength={22} onChange={(e) => set({ text: e.target.value } as Partial<A>)} placeholder="For example REG KING" data-b={`${name}:text`} />
-      </label>
-      <div className="rk-art__sub">
-        <span className="rk-art__l">Text colour</span>
-        <ColourPicker label="Text colour" list={TEXT_COLOURS} value={a.textColour} onPick={(k) => set({ textColour: k } as Partial<A>)} name={`${name}-textcolour`} />
-      </div>
-
-      <div className="rk-art__sub">
-        <span className="rk-art__l">Logo</span>
-        <div className="rk-seg rk-art__logo" role="radiogroup" aria-label="Logo">
-          {(
-            [
-              ["none", "No logo"],
-              ["make", "Car brand"],
-              ["upload", "Upload my own"],
-            ] as const
-          ).map(([k, l]) => (
-            <button key={k} type="button" role="radio" aria-checked={a.logo === k} data-b={`${name}-logo:${k}`} onClick={() => set({ logo: k } as Partial<A>)}>
-              {l}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {a.logo === "make" && (
-        <div className="rk-art__sub">
-          <span className="rk-art__l">Choose the make</span>
-          <div className="rk-pills rk-pills--wrap">
-            {MANUFACTURERS.map((m) => (
-              <button key={m.make} type="button" aria-pressed={a.make === m.make} data-b={`${name}-make:${m.make}`} onClick={() => set({ make: m.make, badge: "Logo only" } as Partial<A>)}>
-                {m.make}
-              </button>
-            ))}
-          </div>
-          {make && make.badges.length > 1 && (
-            <>
-              <span className="rk-art__l">Model or badge</span>
-              <div className="rk-pills rk-pills--wrap">
-                {make.badges.map((b) => (
-                  <button key={b} type="button" aria-pressed={a.badge === b} data-b={`${name}-badge:${b}`} onClick={() => set({ badge: b } as Partial<A>)}>
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          <p className="rk-bfine">The preview shows the brand name. The finished product uses the official logo artwork.</p>
-        </div>
-      )}
-
-      {a.logo === "upload" && (
-        <div className="rk-art__sub">
-          <label className="rk-upload">
-            <input type="file" accept={UPLOAD_TYPES} onChange={(e) => onFile(e.target.files?.[0])} data-b={`${name}:upload`} />
-            <span className="rk-upload__btn">{a.upload ? "Choose a different file" : "Choose a file"}</span>
-            <span className="rk-upload__name">{a.uploadName || "No file chosen"}</span>
-          </label>
-          {error && <p className="rk-sellflow__err">{error}</p>}
-          <p className="rk-bfine">{UPLOAD_NOTE}</p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function AddBar({ lines, label, onAdd, editing, waiting }: { lines: BasketLine[]; label: string; onAdd: () => void; editing: boolean; waiting?: string }) {
   const t = lineTotal(lines);
@@ -223,22 +144,97 @@ function SurroundSizeExample({ size, framed, side }: { size: SurroundSize; frame
 }
 
 /** Why the artwork isn't ready yet (null when it is). */
-function artProblem(kind: ArtCategory | null, d: Artwork): string | null {
-  if (!kind) return "Choose what goes on it.";
-  if (kind === "car" && !d.make) return "Choose a car brand.";
+function artProblem(kind: ArtCategory | null, d: Artwork, rights = true): string | null {
+  if (!kind || kind === "car") return "Choose what goes on it.";
   if (kind === "text" && !d.text.trim()) return "Type your text.";
   if ((kind === "country" || kind === "other") && !d.item) return "Choose one from the list.";
-  if (kind === "custom" && !d.upload && !d.note?.trim()) return "Upload your image, or tell us what you'd like in the note.";
+  if (kind === "custom") {
+    if (!d.uploadName) return "Upload an example of your design.";
+    if (!d.artFinish) return "Choose flat printed or 4D acrylic.";
+    const ck = d.artCheck && d.artCheck.finish === d.artFinish ? d.artCheck : null;
+    if (!ck) return "Your file is still being checked. One moment.";
+    if (ck.level === "poor") return `This file can't be made ${d.artFinish === "acrylic" ? "in 4D acrylic" : "as a print"} as it is. Upload a different file, or choose the other finish.`;
+    if (!rights) return "Please confirm you own or have permission to use this artwork.";
+  }
   return null;
 }
 
-/** A brand logo as a small picture for its button: one-colour logos in dark ink, badges in their own colours. */
-function LogoThumb({ logo }: { logo: CarLogo }) {
-  const src = carLogoSrc(logo.key);
-  if (logo.fullColour) return <img className="rk-artlib__logo" src={src} alt="" />;
-  const mask = `url("${src}") center / contain no-repeat`;
-  return <span className="rk-artlib__logo rk-artlib__logo--ink" style={{ WebkitMask: mask, mask }} aria-hidden />;
+/** Artwork check results in the three words customers see. */
+const CHECK_STATUS = { good: "Suitable", review: "Review required", poor: "Unsuitable" } as const;
+
+/** The customer's car: a searchable make, then its models (or Other, typed). For the order only. */
+function VehiclePick({ make, model, onPick, onDone }: { make: string; model: string; onPick: (make: string, model: string) => void; onDone: () => void }) {
+  const [q, setQ] = useState("");
+  const [other, setOther] = useState(() => (make && model && !modelsFor(make).includes(model) ? model : ""));
+  const typedOther = !!make && !!model && !modelsFor(make).includes(model);
+  const makes = VEHICLE_MAKES.filter((m) => m.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <div className="rk-art">
+      <p className="rk-bfine">For your order only. Choosing a make never adds its badge to your surround.</p>
+      <label className="rk-art__field rk-art__search">
+        <span>Manufacturer</span>
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search, for example BMW" data-b="sveh:q" />
+      </label>
+      <div className="rk-pills rk-pills--wrap" role="radiogroup" aria-label="Manufacturer">
+        {makes.map((m) => (
+          <button key={m} type="button" role="radio" aria-checked={make === m} aria-pressed={make === m} data-b={`sveh-make:${m}`} onClick={() => onPick(m, "")}>
+            {m}
+          </button>
+        ))}
+        <button type="button" role="radio" aria-checked={make === "Other"} aria-pressed={make === "Other"} data-b="sveh-make:Other" onClick={() => onPick("Other", "")}>
+          Other / not listed
+        </button>
+      </div>
+      {make && make !== "Other" && (
+        <>
+          <span className="rk-art__l">Model</span>
+          <div className="rk-pills rk-pills--wrap" role="radiogroup" aria-label={`${make} model`}>
+            {modelsFor(make).map((m) => {
+              const on = m === OTHER_MODEL ? typedOther || (model === "" && other !== "") : model === m;
+              return (
+                <button key={m} type="button" role="radio" aria-checked={on} aria-pressed={on} data-b={`sveh-model:${m}`} onClick={() => onPick(make, m === OTHER_MODEL ? other || OTHER_MODEL : m)}>
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {(make === "Other" || typedOther || model === OTHER_MODEL) && (
+        <label className="rk-art__field">
+          <span>{make === "Other" ? "Your make and model" : "Your model"}</span>
+          <input
+            value={other}
+            maxLength={60}
+            onChange={(e) => {
+              setOther(e.target.value);
+              onPick(make, e.target.value || OTHER_MODEL);
+            }}
+            placeholder={make === "Other" ? "For example Genesis GV70" : "Type your model"}
+            data-b="sveh:other"
+          />
+        </label>
+      )}
+      <div className="rk-bnextrow">
+        <button type="button" className="rk-bnext" data-b="sveh:done" disabled={!make || !model || model === OTHER_MODEL} onClick={onDone}>
+          {make && model && model !== OTHER_MODEL ? `Use ${make === "Other" ? model : `${make} ${model}`}` : "Choose your vehicle"}
+        </button>
+        <button
+          type="button"
+          className="rk-blink rk-blink--sm"
+          data-b="sveh:skip"
+          onClick={() => {
+            onPick("", "");
+            onDone();
+          }}
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  );
 }
+
 
 /** A library item as a small picture for its button. */
 function ArtThumb({ item }: { item: ArtItem }) {
@@ -269,6 +265,9 @@ function ArtPicker<A extends Artwork>({
   where,
   onDone,
   studio,
+  areaMm,
+  rights,
+  setRights,
 }: {
   d: A;
   setD: (p: Partial<A>) => void;
@@ -279,14 +278,18 @@ function ArtPicker<A extends Artwork>({
   onDone: () => void;
   /** In-store studio: no note for our team (nothing is being ordered). */
   studio?: boolean;
+  /** The size of the design's area on the strip, mm (for checking the file at the size it's made). */
+  areaMm: { w: number; h: number };
+  rights: boolean;
+  setRights: (v: boolean) => void;
 }) {
   const [sub, setSub] = useState<"country" | "faith">(() => (artItem(d.item)?.group === "faith" ? "faith" : "country"));
   const [fileErr, setFileErr] = useState("");
   const [region, setRegion] = useState<Region>(() => artItem(d.item)?.region ?? "uk");
   const [flagQ, setFlagQ] = useState("");
-  const make = MANUFACTURERS.find((m) => m.make === d.make);
-  const logos = d.make ? carLogosFor(d.make) : [];
-  const chosenLogo = carLogo(d.carLogo);
+  const [svgText, setSvgText] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [drag, setDrag] = useState(false);
   const pickKind = (k: ArtCategory) => {
     setKind(k);
     const clear = { text: "", make: "", badge: "", item: undefined, carLogo: undefined, upload: null, uploadName: "" };
@@ -297,12 +300,39 @@ function ArtPicker<A extends Artwork>({
   const onFile = (f: File | undefined) => {
     setFileErr("");
     if (!f) return;
-    if (f.size > 5 * 1024 * 1024) return setFileErr("That file is over 5MB. Try a smaller image.");
-    if (!/\.(png|jpe?g|webp|svg)$/i.test(f.name)) return setFileErr("Please choose a PNG, JPG, WEBP or SVG file.");
+    if (f.size > DESIGN_MAX_MB * 1024 * 1024) return setFileErr(`That file is over ${DESIGN_MAX_MB}MB. Try a smaller file.`);
+    if (!/\.(png|jpe?g|webp|svg|pdf)$/i.test(f.name)) return setFileErr("Please choose a PNG, JPG, SVG, PDF or WEBP file.");
+    setSvgText(null);
+    const put = (upload: string | null, aspect?: number) => setD({ upload, uploadName: f.name, logo: "upload", aspect, artCheck: undefined } as Partial<A>);
+    if (/\.pdf$/i.test(f.name)) return put(null); // a PDF can't be drawn here: our team prepares the mockup from it
+    if (/\.svg$/i.test(f.name)) f.text().then(setSvgText).catch(() => setSvgText(null));
     const r = new FileReader();
-    r.onload = () => setD({ upload: String(r.result), uploadName: f.name, logo: "upload" } as Partial<A>);
+    r.onload = () => {
+      const url = String(r.result);
+      const i = new Image();
+      i.onload = () => put(url, i.naturalWidth && i.naturalHeight ? i.naturalWidth / i.naturalHeight : undefined);
+      i.onerror = () => put(url);
+      i.src = url;
+    };
     r.readAsDataURL(f);
   };
+  // check the file for its finish, at the size it's made on the strip
+  useEffect(() => {
+    if (kind !== "custom" || !d.uploadName || !d.artFinish) return;
+    let live = true;
+    setChecking(true);
+    const aspect = d.aspect && d.aspect > 0 ? d.aspect : areaMm.w / areaMm.h;
+    const h = Math.min(areaMm.h, areaMm.w / aspect);
+    void checkArtwork({ finish: d.artFinish, name: d.uploadName, src: d.upload, svgText, wMm: h * aspect, hMm: h }).then((artCheck) => {
+      if (!live) return;
+      setD({ artCheck } as Partial<A>);
+      setChecking(false);
+    });
+    return () => {
+      live = false;
+    };
+  }, [kind, d.upload, d.uploadName, d.artFinish, d.aspect, svgText, areaMm.w, areaMm.h]); // eslint-disable-line react-hooks/exhaustive-deps
+  const check = d.artCheck && d.artCheck.finish === d.artFinish ? d.artCheck : null;
   const colour = (
     <div className="rk-art__sub">
       <span className="rk-art__l">Colour</span>
@@ -321,7 +351,7 @@ function ArtPicker<A extends Artwork>({
   );
   return (
     <div className="rk-art">
-      <p className="rk-bfine">Cut in raised 3D acrylic {where}.</p>
+      <p className="rk-bfine">Your design goes {where}.</p>
       <div className="rk-choice rk-art__cats" role="radiogroup" aria-label="What goes on it">
         {ART_CATEGORIES.map((x) => (
           <button key={x.key} type="button" role="radio" aria-checked={kind === x.key} data-b={`sartkind:${x.key}`} onClick={() => pickKind(x.key)}>
@@ -330,55 +360,6 @@ function ArtPicker<A extends Artwork>({
           </button>
         ))}
       </div>
-
-      {kind === "car" && (
-        <>
-          <span className="rk-art__l">Brand</span>
-          <div className="rk-pills rk-pills--wrap">
-            {MANUFACTURERS.map((m) => (
-              <button
-                key={m.make}
-                type="button"
-                aria-pressed={d.make === m.make}
-                data-b={`sart-make:${m.make}`}
-                onClick={() => {
-                  const first = carLogosFor(m.make)[0];
-                  setD({ make: m.make, badge: first ? first.name : m.badges[0], carLogo: first?.key, logo: "make" } as Partial<A>);
-                }}
-              >
-                {m.make}
-              </button>
-            ))}
-          </div>
-          {logos.length > 0 && (
-            <>
-              <span className="rk-art__l">Logo</span>
-              <div className="rk-artlib rk-artlib--logos" role="radiogroup" aria-label={`${d.make} logos`}>
-                {logos.map((l) => (
-                  <button key={l.key} type="button" role="radio" aria-checked={d.carLogo === l.key} data-b={`sart-logo:${l.key}`} onClick={() => setD({ carLogo: l.key, badge: l.name } as Partial<A>)} title={l.name}>
-                    <LogoThumb logo={l} />
-                    <small>{l.name}</small>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          {make && !logos.length && make.badges.length > 1 && (
-            <>
-              <span className="rk-art__l">Badge</span>
-              <div className="rk-pills rk-pills--wrap">
-                {make.badges.map((b) => (
-                  <button key={b} type="button" aria-pressed={d.badge === b} data-b={`sart-badge:${b}`} onClick={() => setD({ badge: b } as Partial<A>)}>
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          {make && !logos.length && <p className="rk-bfine">The preview shows the name; we add the real badge artwork on your proof.</p>}
-          {chosenLogo?.fullColour ? <p className="rk-bfine">This badge is made in its own colours.</p> : make && colour}
-        </>
-      )}
 
       {kind === "text" && (
         <>
@@ -450,23 +431,75 @@ function ArtPicker<A extends Artwork>({
 
       {kind === "custom" && (
         <>
-          <label className="rk-art__file">
-            <span>{d.upload ? `Chosen: ${d.uploadName}` : "Upload your image or logo"}</span>
-            <input type="file" accept={UPLOAD_TYPES} onChange={(e) => onFile(e.target.files?.[0])} data-b="sart:upload" />
+          <h4 className="rk-art__h">Upload your design</h4>
+          <p className="rk-bfine">Upload an example of what you&apos;d like on your surround. Our team will review your artwork and prepare a final mockup for your approval.</p>
+          <label
+            className={`rk-drop${drag ? " is-over" : ""}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDrag(true);
+            }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDrag(false);
+              onFile(e.dataTransfer.files?.[0]);
+            }}
+          >
+            <input type="file" accept={DESIGN_TYPES} onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} data-b="sart:upload" />
+            {d.upload ? <img className="rk-drop__thumb" src={d.upload} alt="Your uploaded design" /> : null}
+            <span className="rk-drop__t">{d.uploadName ? d.uploadName : "Drop your file here, or choose one"}</span>
+            <span className="rk-drop__s">{d.uploadName ? "Choose a different file" : `PNG, JPG, SVG, PDF or WEBP, up to ${DESIGN_MAX_MB}MB`}</span>
           </label>
-          <p className="rk-bfine">{UPLOAD_NOTE}</p>
+          {d.uploadName && (
+            <button type="button" className="rk-blink rk-blink--sm" data-b="sart:remove" onClick={() => setD({ upload: null, uploadName: "", aspect: undefined, artCheck: undefined } as Partial<A>)}>
+              Remove this file
+            </button>
+          )}
           {fileErr && (
             <p className="rk-sellflow__err" role="alert">
               {fileErr}
             </p>
+          )}
+          {d.uploadName && !d.upload && <p className="rk-bfine">PDFs can&apos;t be shown here. Our team prepares your mockup from it.</p>}
+
+          <span className="rk-art__l">How would you like your design finished?</span>
+          <div className="rk-choice rk-art__cats" role="radiogroup" aria-label="How would you like your design finished?">
+            {ART_FINISHES.map((f) => (
+              <button key={f.key} type="button" role="radio" aria-checked={d.artFinish === f.key} data-b={`sart-finish:${f.key}`} onClick={() => setD({ artFinish: f.key } as Partial<A>)}>
+                <b>{f.name}</b>
+                <small>{f.line}</small>
+              </button>
+            ))}
+          </div>
+
+          {d.uploadName && d.artFinish && (
+            <div className="rk-lcheck" data-level={checking || !check ? "checking" : check.level} role="status" data-scheck>
+              {checking || !check ? (
+                <p>Checking your file for {d.artFinish === "acrylic" ? "4D acrylic" : "printing"}…</p>
+              ) : (
+                <>
+                  <b>{CHECK_STATUS[check.level]}</b>
+                  {check.notes.map((t) => (
+                    <p key={t}>{t}</p>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+          {!studio && (
+            <label className="rk-art__rights">
+              <input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} data-b="sart:rights" />
+              <span>I confirm that I own or have the necessary permission to use the artwork submitted, and understand that REG KING may refuse designs that infringe third-party rights.</span>
+            </label>
           )}
         </>
       )}
 
       {kind && kind !== "plain" && !studio && (
         <label className="rk-art__field rk-art__note">
-          <span>Note for our team (optional)</span>
-          <textarea rows={3} maxLength={400} value={d.note ?? ""} onChange={(e) => setD({ note: e.target.value } as Partial<A>)} placeholder={kind === "custom" ? "Tell us what you'd like, sizes, colours, anything to clarify" : "Anything to clarify, for example the exact badge, colours or spelling"} data-b="sart:note" />
+          <span>{kind === "custom" ? "Additional design instructions (optional)" : "Note for our team (optional)"}</span>
+          <textarea rows={3} maxLength={400} value={d.note ?? ""} onChange={(e) => setD({ note: e.target.value } as Partial<A>)} placeholder={kind === "custom" ? "For example: the model name on the left and a matching design on the right." : "Anything to clarify, for example colours or spelling"} data-b="sart:note" />
         </label>
       )}
       {kind === "plain" && <p className="rk-bfine">No text or logo.</p>}
@@ -485,7 +518,7 @@ function ArtPicker<A extends Artwork>({
   );
 }
 
-type SurroundStep = "style" | "qty" | "size" | "rearSize" | "frame" | "backing" | "panel" | "art";
+type SurroundStep = "style" | "qty" | "size" | "rearSize" | "surface" | "frame" | "backing" | "vehicle" | "art";
 
 /**
  * Surround creator, one question at a time (like the plate builder): style, single or set, a size for
@@ -522,7 +555,7 @@ export function SurroundCreator({
   const fresh = (): SurroundConfig => ({ ...defaultSurroundConfig(plateQty ?? "set"), ...(compact ? {} : { style: "framed" as SurroundStyle }), ...(fit ?? {}) });
   const [c, setC] = useState<SurroundConfig>(() => initial ?? fresh());
   // Which questions have been answered (colours have defaults, so a pick is what answers them).
-  const [done, setDone] = useState<Set<SurroundStep>>(() => new Set(initial ? (["style", "qty", "size", "rearSize", "frame", "backing", "panel", "art"] as SurroundStep[]) : []));
+  const [done, setDone] = useState<Set<SurroundStep>>(() => new Set(initial ? (["style", "qty", "size", "rearSize", "surface", "frame", "backing", "vehicle", "art"] as SurroundStep[]) : []));
   const [open, setOpen] = useState<SurroundStep | null>(null);
   const [sizeTab, setSizeTab] = useState<string | null>(null);
   const [artKind, setArtKind] = useState<ArtCategory | null>(() => (initial?.front ? artCategoryOf(initial.front) : null));
@@ -530,7 +563,7 @@ export function SurroundCreator({
   useEffect(() => {
     if (editItem) {
       setC(editItem.data.cfg);
-      setDone(new Set(["style", "qty", "size", "rearSize", "frame", "backing", "panel", "art"]));
+      setDone(new Set(["style", "qty", "size", "rearSize", "surface", "frame", "backing", "vehicle", "art"]));
       const d = editItem.data.cfg.front;
       setArtKind(artCategoryOf(d));
     }
@@ -558,9 +591,10 @@ export function SurroundCreator({
     ...(compact ? [] : (["qty"] as SurroundStep[])),
     ...(framed && !compact ? (["size"] as SurroundStep[]) : []),
     ...(framed && !compact && isSet ? (["rearSize"] as SurroundStep[]) : []),
+    "surface",
     ...(framed ? (["frame"] as SurroundStep[]) : []),
     "backing",
-    ...(framed ? [] : (["panel"] as SurroundStep[])),
+    ...(compact || studio ? [] : (["vehicle"] as SurroundStep[])),
     "art",
   ];
   const current = steps.find((k) => !done.has(k)) ?? null;
@@ -571,22 +605,26 @@ export function SurroundCreator({
     qty: "Single or set",
     size: isSet ? "Front surround size" : "Size",
     rearSize: "Rear surround size",
+    surface: "Choose your surround finish",
     frame: "Frame colour",
-    backing: framed ? "Wing colour" : "Side pieces colour",
-    panel: "Main part colour",
-    art: "Text or logo",
+    backing: framed ? "Strip colour" : "Surround colour",
+    vehicle: "Select your vehicle",
+    art: "Your design",
   };
   const answerOf: Record<SurroundStep, string> = {
     style: framed ? "Framed" : "Frameless",
     qty: c.qty === "set" ? "Set (front and rear)" : "Single",
     size: sizeName(c.size),
     rearSize: sizeName(rearSize),
-    frame: swatch(FRAME_COLOURS, d.frame).name,
-    backing: swatch(FRAME_COLOURS, d.backing).name,
-    panel: d.panel ? swatch(FRAME_COLOURS, d.panel).name : "Matching shade",
+    surface: d.surface === "matt" ? "Matt" : "Gloss",
+    frame: surroundColourName(d.surface, d.frame),
+    backing: surroundColourName(d.surface, d.backing),
+    vehicle: c.vehicleMake ? [c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ") : "Not given",
     art: artKind === "plain" ? "None" : `${ART_CATEGORIES.find((x) => x.key === artKind)?.name ?? ""}: ${artworkText(d)}`,
   };
-  const allDone = current === null;
+  // everything answered, and (for an uploaded design) still confirmed and not marked unsuitable
+  const artBlock = artKind === "custom" ? artProblem("custom", d, studio ? true : !!c.rightsOk) : null;
+  const allDone = current === null && !artBlock;
   const mmOf = (z: SurroundSize) => surroundSize(z).w;
   const scaleW = (z: SurroundSize) => `${((mmOf(z) + 38) / (Math.max(mmOf(c.size), mmOf(rearSize)) + 38)) * 100}%`;
 
@@ -633,6 +671,7 @@ export function SurroundCreator({
     );
   };
 
+  const artArea = surroundGeometry(framed, surroundSize(c.size).w, surroundSize(c.size).h).art;
   const artBody = (
     <ArtPicker
       d={d}
@@ -643,10 +682,13 @@ export function SurroundCreator({
         setErr("");
       }}
       err={err}
-      where={framed ? "on the wing under the frame" : "on the main part under the plate"}
+      where={framed ? "on the strip under the frame" : "on the strip under the plate"}
       studio={studio}
+      areaMm={{ w: artArea.w, h: artArea.h }}
+      rights={!!c.rightsOk}
+      setRights={(v) => set({ rightsOk: v })}
       onDone={() => {
-        const msg = artProblem(artKind, d);
+        const msg = artProblem(artKind, d, studio ? true : !!c.rightsOk);
         if (msg) return setErr(msg);
         setErr("");
         answer("art");
@@ -696,49 +738,61 @@ export function SurroundCreator({
         return sizeBody(false);
       case "rearSize":
         return sizeBody(true);
+      case "surface":
+        return (
+          <Options
+            label="Surround finish"
+            name="ssurface"
+            value={done.has("surface") ? d.surface ?? "gloss" : ("" as SurroundSurface)}
+            onPick={(v) => {
+              // matt comes in black or white only: a colour that isn't on offer is cleared and asked again
+              const p: Partial<SurroundDesign> = { surface: v };
+              const redo: SurroundStep[] = [];
+              if (!colourOffered(v, d.frame)) {
+                p.frame = "";
+                redo.push("frame");
+              }
+              if (!colourOffered(v, d.backing)) {
+                p.backing = "";
+                redo.push("backing");
+              }
+              setD(p);
+              setDone((x) => {
+                const n = new Set(x);
+                redo.forEach((k) => n.delete(k));
+                n.add("surface");
+                return n;
+              });
+              setOpen(null);
+            }}
+            options={SURROUND_SURFACES.map((f) => ({ ...f, line: f.key === "matt" ? `${f.line}. Black or white.` : `${f.line}. Every colour.` }))}
+          />
+        );
       case "frame":
+      case "backing": {
+        const key = k === "frame" ? d.frame : d.backing;
+        const ok = !!key && colourOffered(d.surface, key);
         return (
           <>
-            <ColourPicker label="Frame colour" list={FRAME_COLOURS} value={d.frame} onPick={(k) => setD({ frame: k })} name="sframe" />
-            <button type="button" className="rk-bnext" data-b="sframe:done" onClick={() => answer("frame")}>
-              Use {swatch(FRAME_COLOURS, d.frame).name}
+            <ColourPicker
+              label={title[k]}
+              list={surroundColours(d.surface)}
+              value={ok ? key : ""}
+              onPick={(v) => setD(k === "frame" ? { frame: v } : { backing: v })}
+              name={k === "frame" ? "sframe" : "sbacking"}
+              noWheel={d.surface === "matt"}
+            />
+            {k === "backing" && <p className="rk-bfine">{framed ? "The strip under the frame, where your design goes. It's completely flat." : "The surround behind the plate and the flat strip under it, where your design goes."}</p>}
+            <button type="button" className="rk-bnext" data-b={`${k === "frame" ? "sframe" : "sbacking"}:done`} disabled={!ok} onClick={() => answer(k)}>
+              {ok ? `Use ${surroundColourName(d.surface, key)}` : "Choose a colour"}
             </button>
           </>
         );
-      case "backing":
-        return (
-          <>
-            <ColourPicker label={framed ? "Wing colour" : "Side pieces colour"} list={FRAME_COLOURS} value={d.backing} onPick={(k) => setD({ backing: k })} name="sbacking" />
-            <p className="rk-bfine">{framed ? "The wing in the middle under the frame, where your text or logo goes." : "The two side pieces that show either side of the main part, under the plate."}</p>
-            <button type="button" className="rk-bnext" data-b="sbacking:done" onClick={() => answer("backing")}>
-              Use {swatch(FRAME_COLOURS, d.backing).name}
-            </button>
-          </>
-        );
-      case "panel":
-        return (
-          <>
-            <ColourPicker label="Main part colour" list={FRAME_COLOURS} value={d.panel ?? ""} onPick={(k) => setD({ panel: k })} name="spanel" />
-            <p className="rk-bfine">The main part in the middle under the plate, carrying your text or logo.</p>
-            <div className="rk-bnextrow">
-              <button type="button" className="rk-bnext" data-b="spanel:done" onClick={() => answer("panel")}>
-                {d.panel ? `Use ${swatch(FRAME_COLOURS, d.panel).name}` : "Use a matching shade"}
-              </button>
-              {d.panel && (
-                <button type="button" className="rk-blink rk-blink--sm" data-b="spanel:match" onClick={() => setD({ panel: undefined })}>
-                  Match the side pieces instead
-                </button>
-              )}
-            </div>
-          </>
-        );
+      }
+      case "vehicle":
+        return <VehiclePick make={c.vehicleMake ?? ""} model={c.vehicleModel ?? ""} onPick={(vehicleMake, vehicleModel) => set({ vehicleMake, vehicleModel })} onDone={() => answer("vehicle")} />;
       case "art":
-        return (
-          <>
-            <p className="rk-bfine">Cut in raised 3D acrylic {framed ? "on the wing under the frame" : "on the main part under the plate"}. Text or a logo, not both.</p>
-            {artBody}
-          </>
-        );
+        return artBody;
     }
   };
 
@@ -818,6 +872,12 @@ export function SurroundCreator({
               ))}
             </div>
           )}
+          {artKind === "custom" && d.uploadName && (
+            <p className="rk-acc__prelim">
+              <b>Preliminary design preview</b>
+              {d.artFinish === "acrylic" ? " Illustrative: the 4D acrylic is shown at 3mm. Your final mockup comes from our team." : " Your final mockup comes from our team."}
+            </p>
+          )}
           {gl ? (
             <PlateGL angles={false} tight onFail={() => setGl(false)} groups={(soft, acrylic) => views.map((v) => buildSurround(v, soft, acrylic))} groupsKey={JSON.stringify(views)} />
           ) : isSet ? (
@@ -889,79 +949,19 @@ export function SurroundCreator({
             </div>
           </div>
         ) : (
-          style && !studio && <AddBar lines={surroundLines(c)} label="Add to basket" onAdd={add} editing={!!editItem} waiting={allDone ? undefined : "Answer each question to add it to your basket."} />
+          style &&
+          !studio && (
+            <>
+              <AddBar lines={surroundLines(c)} label="Add to basket" onAdd={add} editing={!!editItem} waiting={allDone ? undefined : current === null && artBlock ? artBlock : "Answer each question to add it to your basket."} />
+              {artKind === "custom" && <p className="rk-bfine rk-acc__approval">Our team reviews your design and sends you a final mockup. Nothing is made until you approve it.</p>}
+            </>
+          )
         )}
       </div>
     </div>
   );
 }
 
-/** Car brand or the customer's own logo (no text: that's a separate choice). */
-function LogoPick<A extends Artwork>({ a, set, name }: { a: A; set: (p: Partial<A>) => void; name: string }) {
-  const [error, setError] = useState("");
-  const make = MANUFACTURERS.find((m) => m.make === a.make);
-  const onFile = (f: File | undefined) => {
-    setError("");
-    if (!f) return;
-    if (f.size > 5 * 1024 * 1024) return setError("That file is over 5MB. Try a smaller image.");
-    if (!/\.(png|jpe?g|webp|svg)$/i.test(f.name)) return setError("Please choose a PNG, JPG, WEBP or SVG file.");
-    const r = new FileReader();
-    r.onload = () => set({ upload: String(r.result), uploadName: f.name, logo: "upload" } as Partial<A>);
-    r.readAsDataURL(f);
-  };
-  return (
-    <>
-      <div className="rk-seg rk-art__logo" role="radiogroup" aria-label="Which logo">
-        {(
-          [
-            ["make", "Car brand"],
-            ["upload", "Upload my own"],
-          ] as const
-        ).map(([k, l]) => (
-          <button key={k} type="button" role="radio" aria-checked={a.logo === k} aria-selected={a.logo === k} data-b={`${name}-logo:${k}`} onClick={() => set({ logo: k } as Partial<A>)}>
-            {l}
-          </button>
-        ))}
-      </div>
-      {a.logo === "make" && (
-        <div className="rk-art__sub">
-          <span className="rk-art__l">Choose the make</span>
-          <div className="rk-pills rk-pills--wrap">
-            {MANUFACTURERS.map((m) => (
-              <button key={m.make} type="button" aria-pressed={a.make === m.make} data-b={`${name}-make:${m.make}`} onClick={() => set({ make: m.make, badge: "Logo only" } as Partial<A>)}>
-                {m.make}
-              </button>
-            ))}
-          </div>
-          {make && make.badges.length > 1 && (
-            <>
-              <span className="rk-art__l">Model or badge</span>
-              <div className="rk-pills rk-pills--wrap">
-                {make.badges.map((b) => (
-                  <button key={b} type="button" aria-pressed={a.badge === b} data-b={`${name}-badge:${b}`} onClick={() => set({ badge: b } as Partial<A>)}>
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          <p className="rk-bfine">The preview shows the brand name. The finished product uses the official logo artwork.</p>
-        </div>
-      )}
-      {a.logo === "upload" && (
-        <div className="rk-art__sub">
-          <label className="rk-upload">
-            <input type="file" accept={UPLOAD_TYPES} onChange={(e) => onFile(e.target.files?.[0])} data-b={`${name}:upload`} />
-            <span className="rk-upload__btn">{a.upload ? "Choose a different file" : "Choose a file"}</span>
-            <span className="rk-upload__name">{a.uploadName || "No file chosen"}</span>
-          </label>
-          {error && <p className="rk-sellflow__err">{error}</p>}
-          <p className="rk-bfine">{UPLOAD_NOTE}</p>
-        </div>
-      )}
-    </>
-  );
-}
 
 const Tick = () => (
   <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">

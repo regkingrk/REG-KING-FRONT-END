@@ -5,7 +5,7 @@
  * the DVLA. The result becomes a Shopify draft order (app/api/checkout).
  */
 import { ACC_PRODUCTS } from "./accessoryShop";
-import { isLogoFinish, logoLines, surroundLines, type LogoPlateConfig, type SurroundConfig } from "./accessories";
+import { isLogoFinish, logoLines, surroundLines, surroundOrderDetails, surroundProblem, type LogoPlateConfig, type SurroundConfig } from "./accessories";
 import { artworkOrderNote, logoMm, LOGO_FACE } from "./logoArtwork";
 import { DEPOSIT_RATE, MEMBER_DISCOUNT } from "./brand";
 import { OUR_INCLUDED, OWN_STOCK_DISCOUNT, buildFits, isComplete, priceLines, spacingNote, summary, type BuildConfig, type Pricing } from "./builder";
@@ -104,6 +104,10 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
         const cfg = d.cfg as unknown as BuildConfig;
         if (!reg || !isObj(cfg) || !isComplete(cfg)) throw new CheckoutError("A plate in your basket isn't finished. Open it from the basket and finish it.");
         if (!buildFits(cfg, reg)) throw new CheckoutError(`${reg} doesn't fit the plate size chosen for it. Open it from the basket and choose a size it fits.`);
+        if (cfg.surround?.kind === "custom") {
+          const problem = surroundProblem(cfg.surround.cfg);
+          if (problem) throw new CheckoutError(`The surrounds with ${reg} need changing: ${problem} Open them from the basket.`);
+        }
         const { line, amount } = plateLine(reg, cfg, undefined, `Number plates: ${reg}`);
         lines.push(line);
         madeLines.push(line);
@@ -122,6 +126,10 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
           const ck = lc.designs[0].check;
           if (ck && ck.finish === lc.type && ck.level === "poor") throw new CheckoutError("The logo on a logo plate in your basket isn't suitable for that finish as it is. Open it from the basket to change it.");
         }
+        if (raw.kind === "surrounds") {
+          const problem = isObj(d.cfg) ? surroundProblem(d.cfg as unknown as SurroundConfig) : "Finish your surround design.";
+          if (problem) throw new CheckoutError(`A surround in your basket needs changing: ${problem} Open it from the basket.`);
+        }
         const pl = raw.kind === "surrounds" ? surroundLines(d.cfg as unknown as SurroundConfig) : logoLines(d.cfg as unknown as LogoPlateConfig);
         if (pl.some((l) => l.amount === null)) throw new CheckoutError(ON_REQUEST, 409);
         const amount = r2(pl.reduce((a, l) => a + (l.amount as number), 0));
@@ -130,7 +138,7 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
           title: pl.map((l) => l.label).join(", "),
           price: amount,
           physical: true,
-          attributes: raw.kind === "logo" ? logoAttributes(d.cfg as unknown as LogoPlateConfig) : [...(reg ? [{ key: "Registration", value: reg }] : []), { key: "Design", value: JSON.stringify(d.cfg).slice(0, 500) }],
+          attributes: raw.kind === "logo" ? logoAttributes(d.cfg as unknown as LogoPlateConfig) : surroundOrderDetails(d.cfg as unknown as SurroundConfig, reg),
         };
         lines.push(line);
         madeLines.push(line);

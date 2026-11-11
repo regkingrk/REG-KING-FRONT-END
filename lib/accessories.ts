@@ -41,6 +41,25 @@ export const FRAME_COLOURS: Swatch[] = [
   { key: "carbon", name: "Carbon Fibre", hex: "#1b1b1b", carbon: true },
 ];
 
+/** Surround finishes: gloss in every colour above; matt only in black and white (more matt colours to confirm). */
+export type SurroundSurface = "gloss" | "matt";
+export const SURROUND_SURFACES: { key: SurroundSurface; name: string; line: string }[] = [
+  { key: "gloss", name: "Gloss", line: "A shiny, reflective finish" },
+  { key: "matt", name: "Matt", line: "A smooth, non-reflective finish" },
+];
+export const MATT_COLOURS: Swatch[] = [
+  { key: "black", name: "Matt Black", hex: "#141414" },
+  { key: "white", name: "Matt White", hex: "#ececea" },
+];
+/** The colours on offer for a surround finish. */
+export const surroundColours = (surface: SurroundSurface | undefined): Swatch[] => (surface === "matt" ? MATT_COLOURS : FRAME_COLOURS);
+/** Whether a colour is on offer in a finish (matt: black or white only, no custom colours). */
+export const colourOffered = (surface: SurroundSurface | undefined, key: string) =>
+  surface === "matt" ? MATT_COLOURS.some((c) => c.key === key) : FRAME_COLOURS.some((c) => c.key === key) || /^#[0-9a-f]{6}$/i.test(key);
+/** A surround colour's name in its finish ("Matt Black", "Gloss White", "Red"). */
+export const surroundColourName = (surface: SurroundSurface | undefined, key: string) =>
+  !key ? "Not chosen" : surface === "matt" ? swatch(MATT_COLOURS, key).name : swatch(FRAME_COLOURS, key).name;
+
 export const TEXT_COLOURS: Swatch[] = [
   { key: "white", name: "White", hex: "#ffffff" },
   { key: "black", name: "Black", hex: "#0a0a0b" },
@@ -136,14 +155,24 @@ export type LogoKind = "none" | "make" | "upload";
 /** What goes on a surround's lower strip, or on a logo plate. */
 /** What goes on the strip: the five kinds the customer chooses between (or none). */
 export type ArtCategory = "car" | "text" | "country" | "other" | "custom" | "plain";
+/**
+ * The kinds on offer. There's no car brand catalogue: we don't supply manufacturers' logos. Customers
+ * upload their own reference ("Your design") and the team reviews it. ("car" stays a type for old saves.)
+ */
 export const ART_CATEGORIES: { key: ArtCategory; name: string; line: string }[] = [
-  { key: "car", name: "Car Related", line: "Car brands and badges" },
+  { key: "custom", name: "Your design", line: "Upload an example of what you'd like" },
   { key: "text", name: "Custom Text", line: "Your words, in the font you pick" },
   { key: "country", name: "Country & Caste", line: "Flags, faith and heritage" },
   { key: "other", name: "Other", line: "Crowns, stars, flames and more" },
-  { key: "custom", name: "Custom", line: "Upload your own image or logo" },
   { key: "plain", name: "None", line: "No text or logo" },
 ];
+/** How an uploaded design is made: flat printed, or laser-cut 4D acrylic. Nothing else is offered. */
+export type ArtFinish = "printed" | "acrylic";
+export const ART_FINISHES: { key: ArtFinish; name: string; line: string }[] = [
+  { key: "printed", name: "Flat printed", line: "Your chosen design printed flat onto the surround for a clean, smooth finish." },
+  { key: "acrylic", name: "4D acrylic", line: "Your chosen design laser-cut from acrylic and applied to the surround for a premium raised finish." },
+];
+export const isArtFinish = (v: unknown): v is ArtFinish => v === "printed" || v === "acrylic";
 /** The artwork's kind, for designs saved before the five kinds existed too. */
 export const artCategoryOf = (a: Artwork): ArtCategory =>
   a.cat ?? (a.logo === "upload" && a.upload ? "custom" : a.logo === "make" && a.make ? "car" : a.text.trim() ? "text" : "plain");
@@ -172,6 +201,12 @@ export interface Artwork {
   /** Data URL of the customer's uploaded logo (kept in the browser for the prototype). */
   upload: string | null;
   uploadName: string;
+  /** Your design: flat printed or 4D acrylic. */
+  artFinish?: ArtFinish;
+  /** Your design: the file's width ÷ height. */
+  aspect?: number;
+  /** Your design: the result of checking the file for its finish (lib/logoArtwork.ts). */
+  artCheck?: import("./logoArtwork").ArtworkCheck;
 }
 
 export const emptyArtwork = (): Artwork => ({
@@ -211,6 +246,8 @@ export function surroundFitFor(plateSize: string | null): { shape: SurroundShape
 }
 
 export interface SurroundDesign extends Artwork {
+  /** Gloss (every colour) or matt (black or white). Older saves: gloss. */
+  surface?: SurroundSurface;
   /** Framed: the border and rim round the plate. */
   frame: string;
   /** Framed: the tab hanging under the frame. Frameless: the wing under the plate. */
@@ -219,7 +256,7 @@ export interface SurroundDesign extends Artwork {
   panel?: string;
 }
 
-export const defaultSurround = (): SurroundDesign => ({ ...emptyArtwork(), frame: "black", backing: "black" });
+export const defaultSurround = (): SurroundDesign => ({ ...emptyArtwork(), surface: "gloss", frame: "black", backing: "black" });
 
 export interface SurroundConfig {
   /** Nothing is chosen until the customer picks framed or frameless; the design steps follow. */
@@ -235,6 +272,11 @@ export interface SurroundConfig {
   /** A set can have a different shape and size at the rear (framed only). */
   rearShape?: SurroundShape;
   rearSize?: SurroundSize;
+  /** The customer's car, for the order (never puts a logo on the surround). */
+  vehicleMake?: string;
+  vehicleModel?: string;
+  /** Your design: the customer confirmed they own or may use the artwork. */
+  rightsOk?: boolean;
 }
 
 export const defaultSurroundConfig = (qty: "single" | "set" = "set"): SurroundConfig => ({
@@ -293,7 +335,7 @@ export function artworkText(a: Artwork) {
   const note = a.note?.trim() ? ` (note: ${a.note.trim()})` : "";
   if (a.cat === "country" || a.cat === "other") return `${a.item ? a.item.replace(/-/g, " ") : "artwork"}${note}`;
   if (a.carLogo && a.make) return `${a.make} ${a.badge && a.badge !== a.make ? `${a.badge} ` : ""}logo${note}`;
-  if (a.cat === "custom") return `your own artwork${a.uploadName ? ` (${a.uploadName})` : ""}${note}`;
+  if (a.cat === "custom") return `your design${a.artFinish ? `, ${a.artFinish === "acrylic" ? "4D acrylic" : "flat printed"}` : ""}${a.uploadName ? ` (${a.uploadName})` : ""}${note}`;
   if (a.cat === "text") return `"${a.text.trim()}" in ${a.font === "metro" ? "Metro" : "number plate"} font${note}`;
   const logo = a.logo === "make" && a.make ? `${a.make}${a.badge && a.badge !== "Logo only" ? ` ${a.badge}` : ""} logo` : a.logo === "upload" && a.upload ? "your logo" : null;
   const text = a.text.trim() ? `"${a.text.trim()}"` : null;
@@ -301,8 +343,12 @@ export function artworkText(a: Artwork) {
 }
 
 export function surroundSummary(c: SurroundConfig) {
-  const one = (d: SurroundDesign) =>
-    `${c.style === "framed" ? `${swatch(FRAME_COLOURS, d.frame).name.toLowerCase()} frame, ${swatch(FRAME_COLOURS, d.backing).name.toLowerCase()} wing` : `${swatch(FRAME_COLOURS, d.backing).name.toLowerCase()} side pieces, ${d.panel ? swatch(FRAME_COLOURS, d.panel).name.toLowerCase() : "matching"} main part`}, ${artworkText(d)}`;
+  const one = (d: SurroundDesign) => {
+    const name = (k: string) => surroundColourName(d.surface, k).toLowerCase();
+    const finish = d.surface === "matt" ? "matt" : "gloss";
+    const colours = c.style === "framed" ? `${name(d.frame)} frame, ${name(d.backing)} strip` : `${name(d.backing)}`;
+    return `${finish}, ${colours}, ${artworkText(d)}`;
+  };
   const legacy: Record<string, string> = { standard: "standard size", "18": '18"', "16": '16"', "14": '14"', Normal: "standard size" };
   const fitOf = (_shape: SurroundShape, size: SurroundSize) => legacy[size] ?? size;
   const rearShape = c.rearShape ?? c.shape;
@@ -316,7 +362,7 @@ export function surroundSummary(c: SurroundConfig) {
         : c.size !== "standard" && c.size !== "Normal"
           ? ` (${fitOf(c.shape, c.size)})`
           : "";
-  const style = (c.style === "frameless" ? "Frameless" : "Framed") + fit;
+  const style = (c.style === "frameless" ? "Frameless" : "Framed") + fit + (c.vehicleMake ? ` for a ${[c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ")}` : "");
   if (c.qty === "single") return `${style} surround: ${one(c.front)}`;
   return c.same ? `${style} surrounds (pair): ${one(c.front)}` : `${style} surrounds: front ${one(c.front)}; rear ${one(c.rear)}`;
 }
@@ -346,3 +392,50 @@ export const logoLines = (c: LogoPlateConfig): PriceLine[] => {
   const price = c.type === "acrylic" ? ACCESSORY_PRICES.acrylicLogoPlate : ACCESSORY_PRICES.printedLogoPlate;
   return [{ label: `${c.type === "acrylic" ? "4D acrylic" : "Printed"} logo plate${c.count > 1 ? `s × ${c.count}` : ""}`, amount: each(price, c.count) }];
 };
+
+/**
+ * What's wrong with a surround design for ordering (null: fine). Shared by the maker and the checkout
+ * server, so a saved basket or a hand-made request can't order something we don't offer.
+ */
+export function surroundProblem(c: SurroundConfig): string | null {
+  if (!c || (c.style !== "framed" && c.style !== "frameless")) return "Choose framed or frameless.";
+  const d = c.front;
+  if (!d) return "Finish your surround design.";
+  const surface = d.surface ?? "gloss";
+  if (surface !== "gloss" && surface !== "matt") return "Choose gloss or matt.";
+  if (c.style === "framed" && !colourOffered(surface, d.frame)) return `Choose a frame colour available in ${surface}.`;
+  if (!colourOffered(surface, d.backing)) return `Choose a surround colour available in ${surface}.`;
+  const cat = artCategoryOf(d);
+  if (cat === "car") return "Car brand logos aren't offered any more: choose what goes on your surround again.";
+  if (cat === "custom") {
+    if (!d.uploadName) return "Upload an example of your design.";
+    if (!isArtFinish(d.artFinish)) return "Choose flat printed or 4D acrylic for your design.";
+    if (d.artCheck && d.artCheck.finish === d.artFinish && d.artCheck.level === "poor") return "Your design's file can't be made in that finish as it is.";
+    if (!c.rightsOk) return "Confirm you own or have permission to use your artwork.";
+  }
+  return null;
+}
+
+/** What the workshop needs for a surround (never the file's data). */
+export function surroundOrderDetails(c: SurroundConfig, reg = ""): { key: string; value: string }[] {
+  const d = c.front;
+  const surface = d.surface === "matt" ? "Matt" : "Gloss";
+  const cat = artCategoryOf(d);
+  const out: { key: string; value: string }[] = [];
+  if (reg) out.push({ key: "Registration", value: reg });
+  out.push({ key: "Surround", value: `${c.style === "framed" ? "Framed" : "Frameless"}, ${c.qty === "set" ? "front and rear" : "single"}, size ${c.size}${c.qty === "set" && c.rearSize && c.rearSize !== c.size ? ` (rear ${c.rearSize})` : ""}` });
+  out.push({ key: "Finish", value: surface });
+  out.push({ key: "Colours", value: c.style === "framed" ? `Frame ${surroundColourName(d.surface, d.frame)}, strip ${surroundColourName(d.surface, d.backing)}` : surroundColourName(d.surface, d.backing) });
+  if (c.vehicleMake) out.push({ key: "Vehicle", value: [c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ").slice(0, 80) });
+  out.push({ key: "Design", value: artworkText(d).slice(0, 300) });
+  if (cat === "custom") {
+    out.push({ key: "Design finish", value: d.artFinish === "acrylic" ? "4D ACRYLIC (laser cut, raised)" : "FLAT PRINTED" });
+    out.push({ key: "Design file", value: d.uploadName.slice(0, 120) });
+    const ck = d.artCheck && d.artCheck.finish === d.artFinish ? d.artCheck : undefined;
+    out.push({ key: "Artwork check", value: (ck ? `${ck.level === "good" ? "Suitable" : ck.level === "review" ? "Review required" : "Unsuitable"}${ck.review ? ", needs preparing by hand" : ""}: ${ck.notes.join(" ")}` : "Not checked").slice(0, 480) });
+    if (d.note?.trim()) out.push({ key: "Design instructions", value: d.note.trim().slice(0, 400) });
+    out.push({ key: "Artwork rights", value: c.rightsOk ? "Customer confirmed they own or may use it (team to review)" : "Not confirmed" });
+    out.push({ key: "Production", value: "Hold: make only after the customer approves the final mockup" });
+  } else if (d.note?.trim()) out.push({ key: "Note", value: d.note.trim().slice(0, 400) });
+  return out;
+}
