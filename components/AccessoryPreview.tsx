@@ -245,7 +245,10 @@ export function SurroundPreview({
   label,
   shape = "standard",
   size = "standard",
+  focus,
 }: {
+  /** The part being chosen, lit up in yellow. */
+  focus?: "frame" | "strip" | "art" | null;
   style: SurroundStyle;
   design: SurroundDesign;
   side: "front" | "rear";
@@ -355,6 +358,10 @@ export function SurroundPreview({
       {!framed && !bodyMatt && <path d={body} fill={`url(#${id}-streak)`} />}
 
       {/* lettering, a library design or the customer's own design, on the flat strip */}
+      {/* the part being chosen: a yellow wash and edge */}
+      {focus === "frame" && framed && <path d={`${body} ${plate}`} fill="rgba(255,194,0,0.6)" fillRule="evenodd" stroke="#ffd34d" strokeWidth="3" />}
+      {focus === "strip" && under && <path d={under} fill="rgba(255,194,0,0.6)" stroke="#ffd34d" strokeWidth="3" />}
+      {focus === "art" && <rect x={art.x} y={art.y} width={art.w} height={art.h} fill="rgba(255,194,0,0.45)" stroke="#ffd34d" strokeWidth="2.5" strokeDasharray="5 3" />}
       {hasArt && !lipLayers && <ArtworkInBox a={design} x={art.x} y={art.y} w={art.w} h={art.h} colour={textFill} base={textSw.carbon ? "#2a2a2a" : textSw.hex} raised />}
     </svg>
   );

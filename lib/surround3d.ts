@@ -14,7 +14,9 @@ import { isBikeSize, surroundSize } from "./surroundSizes";
 import { artCanvas, artItem, flagLipLayers, type FlagDef } from "./artLibrary";
 import { askRedraw, carLogo, carLogoCanvas } from "./carLogos";
 
-export type SurroundView = { style: SurroundStyle; shape: SurroundShape; size: SurroundSize; design: SurroundDesign; side: "front" | "rear"; reg: string };
+/** The part of the surround the customer is choosing for, lit up in the preview. */
+export type SurroundFocus = "frame" | "strip" | "art";
+export type SurroundView = { style: SurroundStyle; shape: SurroundShape; size: SurroundSize; design: SurroundDesign; side: "front" | "rear"; reg: string; focus?: SurroundFocus | null };
 
 const BACK_T = 4; // backing thickness, mm
 /** 4D acrylic thickness in the preview, mm. CONFIRM with REG KING's workshop. */
@@ -220,6 +222,46 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
   };
   // car brands: the brand's own logo (one-colour logos in the chosen colour, badges in their own), else its name
   const brand = d.make ? `${d.make}${d.badge && d.badge !== "Logo only" ? ` ${d.badge}` : ""}` : "";
+  // the part being chosen: a yellow wash over it and a yellow edge round it
+  if (v.focus) {
+    const glow = new THREE.MeshBasicMaterial({ color: 0xffc200, transparent: true, opacity: 0.62, depthWrite: false, toneMapped: false });
+    const edge = new THREE.LineBasicMaterial({ color: 0xffd34d, toneMapped: false });
+    const mark = (shape: THREE.Shape, z: number) => {
+      const fill = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), glow);
+      fill.position.z = z;
+      fill.renderOrder = 5;
+      group.add(fill);
+      const pts = shape.getPoints(24);
+      // a few loops side by side, so the edge reads as a line rather than a hairline
+      for (const [dx, dy] of [[0, 0], [0.6, 0], [-0.6, 0], [0, 0.6], [0, -0.6]]) {
+        const loop = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts.map((q) => new THREE.Vector3(q.x + dx, q.y + dy, 0))), edge);
+        loop.position.z = z + 0.05;
+        loop.renderOrder = 6;
+        group.add(loop);
+      }
+      shape.holes.forEach((h) => {
+        const hl = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(h.getPoints(24).map((q) => new THREE.Vector3(q.x, q.y, 0))), edge);
+        hl.position.z = z + 0.05;
+        group.add(hl);
+      });
+    };
+    if (v.focus === "frame" && G.frame) {
+      const ring = outline(hex, G.frame.w, G.frame.h, G.frame.r, 0, G.frame.cy) as THREE.Shape;
+      ring.holes.push(outline(hex, plateW + 0.6, PLATE_H + 0.6, 6, 0, 0, new THREE.Path()) as THREE.Path);
+      mark(ring, -back + PLATE_THICKNESS + 3.3);
+    } else if (v.focus === "strip") {
+      mark(poly(strip), faceZ + 0.2);
+      if (G.wing) mark(poly(G.wing), faceZ + 0.2);
+    } else if (v.focus === "art") {
+      const r = new THREE.Shape();
+      r.moveTo(a.cx - a.w / 2, a.cy - a.h / 2);
+      r.lineTo(a.cx + a.w / 2, a.cy - a.h / 2);
+      r.lineTo(a.cx + a.w / 2, a.cy + a.h / 2);
+      r.lineTo(a.cx - a.w / 2, a.cy + a.h / 2);
+      r.closePath();
+      mark(r, faceZ + 3.6);
+    }
+  }
   if (cat === "text" && d.text.trim()) words(d.text.trim(), d.font ?? "plate");
   else if (cat === "car" && carLogo(d.carLogo)) {
     const logo = carLogo(d.carLogo)!;

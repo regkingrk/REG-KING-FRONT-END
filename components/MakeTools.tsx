@@ -57,7 +57,7 @@ import { VEHICLE_MAKES, OTHER_MODEL, modelsFor } from "@/lib/vehicles";
 import { surroundGeometry } from "@/lib/surroundShape";
 import { PlateGL } from "./PlateGL";
 import { canRender3D } from "@/lib/plate3d";
-import { buildSurround, type SurroundView } from "@/lib/surround3d";
+import { buildSurround, type SurroundFocus, type SurroundView } from "@/lib/surround3d";
 import { SURROUND_GROUPS, SURROUND_SIZE_LIST, sizeShortName, surroundSize } from "@/lib/surroundSizes";
 import { lineTotal, newId, useMake, useMakeOptional, type BasketLine } from "./MakeProvider";
 
@@ -888,13 +888,15 @@ export function SurroundCreator({
       cancelAnimationFrame(raf);
     };
   }, [compact]);
+  // light up the part of the surround the current step is about
+  const focus: SurroundFocus | null = shown === "frame" ? "frame" : shown === "backing" ? "strip" : shown === "art" ? "art" : null;
   const views: SurroundView[] = style
     ? isSet
       ? [
-          { style, shape: c.shape, size: c.size, design: d, side: "front", reg },
-          { style, shape: rearShape, size: rearSize, design: d, side: "rear", reg },
+          { style, shape: c.shape, size: c.size, design: d, side: "front", reg, focus },
+          { style, shape: rearShape, size: rearSize, design: d, side: "rear", reg, focus },
         ]
-      : [{ style, shape: c.shape, size: c.size, design: d, side: "rear", reg }]
+      : [{ style, shape: c.shape, size: c.size, design: d, side: "rear", reg, focus }]
     : [];
   return (
     <div ref={accRef} className={`rk-acc${compact ? " rk-acc--compact" : " rk-acc--live"}`} id={compact ? undefined : "rk-surrounds"}>
@@ -923,20 +925,20 @@ export function SurroundCreator({
               {/* both drawn to the same scale, so a smaller rear surround looks smaller */}
               <div className="rk-acc__pv">
                 <div style={{ width: scaleW(c.size) }}>
-                  <SurroundPreview style={style} shape={c.shape} size={c.size} design={d} side="front" reg={reg} label="Front surround preview" />
+                  <SurroundPreview style={style} shape={c.shape} size={c.size} design={d} side="front" reg={reg} label="Front surround preview" focus={focus} />
                 </div>
                 <span>Front</span>
               </div>
               <div className="rk-acc__pv">
                 <div style={{ width: scaleW(rearSize) }}>
-                  <SurroundPreview style={style} shape={rearShape} size={rearSize} design={d} side="rear" reg={reg} label="Rear surround preview" />
+                  <SurroundPreview style={style} shape={rearShape} size={rearSize} design={d} side="rear" reg={reg} label="Rear surround preview" focus={focus} />
                 </div>
                 <span>Rear</span>
               </div>
             </div>
           ) : (
             <div className="rk-acc__one">
-              <SurroundPreview style={style} shape={c.shape} size={c.size} design={d} side="rear" reg={reg} />
+              <SurroundPreview style={style} shape={c.shape} size={c.size} design={d} side="rear" reg={reg} focus={focus} />
             </div>
           )}
         </div>
