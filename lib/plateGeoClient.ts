@@ -20,6 +20,7 @@ type Slot = { w: Worker; task: Task | null };
 const tasks = new Map<string, Task>(); // waiting or being made
 const queue: Task[] = []; // waiting, most urgent first
 let pool: Slot[] | false | null = null;
+let started = false; // a worker has said it's loaded
 let seq = 0;
 const byId = new Map<number, Task>();
 
@@ -34,7 +35,11 @@ function getPool(): Slot[] | false {
     const n = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1));
     pool = Array.from({ length: n }, () => {
       const slot: Slot = { w: startWorker(), task: null };
-      slot.w.onmessage = (e: MessageEvent<{ id: number; pos?: Float32Array; nor?: Float32Array; error?: string }>) => {
+      slot.w.onmessage = (e: MessageEvent<{ ready?: boolean; id: number; pos?: Float32Array; nor?: Float32Array; error?: string }>) => {
+        if (e.data.ready) {
+          started = true;
+          return;
+        }
         const t = byId.get(e.data.id);
         byId.delete(e.data.id);
         slot.task = null;
@@ -51,6 +56,11 @@ function getPool(): Slot[] | false {
       };
       return slot;
     });
+    // A worker that fails while loading may not say so: if none has said it's ready in a few
+    // seconds, stop waiting for them and make the letters on the page.
+    setTimeout(() => {
+      if (!started) giveUp();
+    }, 4000);
   } catch {
     pool = false;
   }
@@ -95,6 +105,11 @@ function pump() {
       const id = ++seq;
       byId.set(id, t);
       slot.w.postMessage({ id, job: t.job });
+      // a letter normally takes well under a second; if a worker goes quiet, make it here instead
+      const mine = t;
+      setTimeout(() => {
+        if (tasks.get(mine.key) === mine && slot.task === mine) giveUp();
+      }, 15000);
     }
     return;
   }

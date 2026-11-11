@@ -2,11 +2,15 @@
  * Background worker: makes the chiselled (Retro / Vintage) and domed (3D Gel) letters off the page's
  * own thread, so the builder stays responsive while a new style is being made.
  */
+import "./workerWindow"; // must come first
 import { chiselArrays, domeArrays } from "./plateGeoCore";
 import type { LetterJob } from "./plate3d";
 
 type Ask = { id: number; job: LetterJob };
 const post = (self as unknown as { postMessage(m: unknown, transfer: Transferable[]): void }).postMessage.bind(self);
+
+// tell the page this worker has loaded and is ready for letters
+post({ ready: true }, []);
 
 self.onmessage = (e: MessageEvent<Ask>) => {
   const { id, job } = e.data;
