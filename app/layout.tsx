@@ -26,6 +26,8 @@ export const metadata: Metadata = {
   description:
     "Looking for number plates near you? REG KING makes legal, 3D, 4D, bevel and replacement number plates while you wait in Bilston, Wolverhampton.",
   metadataBase: new URL("https://regking.co.uk"),
+  // Hidden from Google until launch (LAUNCH=1 in Vercel), so the test address never competes with regking.co.uk.
+  robots: process.env.LAUNCH === "1" ? { index: true, follow: true } : { index: false, follow: false },
   openGraph: {
     siteName: "REG KING",
     images: ["/brand/regking-logo.png"],
