@@ -19,6 +19,7 @@ import {
   isAnswered,
   extrasFor,
   toggleExtra,
+  buildFits,
   BOTTOM_TEXT_MAX,
   priceLines,
   priceOf,
@@ -399,7 +400,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
         const chosen = forRear ? c.rearSize : c.size;
         const chars = regLength(reg);
         // only sizes the reg goes on at full size (never squeezed), for the style(s) this size is for
-        const list = sizesFor(c.vehicle, c.legal, reg, forRear ? [c.rearStyle ?? c.style] : [c.style, c.rearStyle], plateGaps(c, reg));
+        const list = sizesFor(c.vehicle, c.legal, reg, forRear ? [c.rearStyle ?? c.style] : [c.style, c.rearStyle], plateGaps(c, reg), c.extras);
         const shortest = offersShortest(c.vehicle, c.legal, reg);
         const hidden = allSizesFor(c.vehicle, c.legal).filter((x) => !list.some((y) => y.key === x.key)).length;
         const groups = [...new Set(list.map((x) => x.group))];
@@ -505,10 +506,13 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
               const list = extrasFor(c.vehicle, c.legal);
               const row = (x: (typeof list)[number]) => {
                 const on = c.extras.includes(x.name);
+                // a badge takes 50mm: not offered if the reg would no longer fit the chosen size(s)
+                const noRoom = !on && !!c.size && regLength(reg) > 0 && buildFits(c, reg) && !buildFits({ ...c, extras: toggleExtra(c.extras, x.name) }, reg);
                 return (
-                  <button key={x.name} type="button" aria-pressed={on} data-b={`extra:${x.name}`} onClick={() => set({ extras: toggleExtra(c.extras, x.name) })}>
+                  <button key={x.name} type="button" aria-pressed={on} disabled={noRoom} data-b={`extra:${x.name}`} onClick={() => set({ extras: toggleExtra(c.extras, x.name) })}>
                     {on ? <><TickMark />{" "}</> : "+ "}
                     {x.look === "text" ? "Custom text at the bottom" : x.name}
+                    {noRoom && <small>Not enough room on this plate size</small>}
                     {!studio && (() => {
                       const ep = extraPrice(x, pricing).single;
                       return ep !== null ? <small>{formatGBP(ep, Number.isInteger(ep))} per plate</small> : trade ? <small>Trade price</small> : null;

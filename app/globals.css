@@ -38158,3 +38158,8 @@ body:has(.rk-studio) {
   background: #1f1e1c;
   color: #f4f2ec;
 }
+/* an extra that doesn't fit the chosen plate size (a badge on a short plate) */
+.rk-pills button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -99,11 +99,11 @@ export function Studio() {
     setCfg((c) => {
       let next = c;
       const gaps = plateGaps(c, reg);
-      if (c.size && !sizeFits(c.size, c.vehicle, c.legal, reg, [c.style, sameSizes(c) ? c.rearStyle : null], gaps)) next = { ...next, size: null };
-      if (c.rearSize && !sizeFits(c.rearSize, c.vehicle, c.legal, reg, [c.rearStyle ?? c.style], gaps)) next = { ...next, rearSize: null };
+      if (c.size && !sizeFits(c.size, c.vehicle, c.legal, reg, [c.style, sameSizes(c) ? c.rearStyle : null], gaps, c.extras)) next = { ...next, size: null };
+      if (c.rearSize && !sizeFits(c.rearSize, c.vehicle, c.legal, reg, [c.rearStyle ?? c.style], gaps, c.extras)) next = { ...next, rearSize: null };
       return next;
     });
-  }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle, cfg.spacing]);
+  }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle, cfg.spacing, cfg.extras]);
   // Spacing REG KING has set up for a reg comes back when it's made a show plate again
   useEffect(() => {
     const preset = SPACING_PRESETS[regChars(reg)];

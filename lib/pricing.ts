@@ -7,7 +7,7 @@
 import { ACC_PRODUCTS } from "./accessoryShop";
 import { logoLines, surroundLines, type LogoPlateConfig, type SurroundConfig } from "./accessories";
 import { DEPOSIT_RATE, MEMBER_DISCOUNT } from "./brand";
-import { OUR_INCLUDED, OWN_STOCK_DISCOUNT, isComplete, priceLines, spacingNote, summary, type BuildConfig, type Pricing } from "./builder";
+import { OUR_INCLUDED, OWN_STOCK_DISCOUNT, buildFits, isComplete, priceLines, spacingNote, summary, type BuildConfig, type Pricing } from "./builder";
 import { DELIVERY, FREE_STANDARD_OVER, type DeliveryKey } from "./checkoutRules";
 import { ASSIGN } from "./services";
 import type { DraftLine } from "./shopify";
@@ -89,6 +89,7 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
         const reg = cleanReg(d.reg);
         const cfg = d.cfg as unknown as BuildConfig;
         if (!reg || !isObj(cfg) || !isComplete(cfg)) throw new CheckoutError("A plate in your basket isn't finished. Open it from the basket and finish it.");
+        if (!buildFits(cfg, reg)) throw new CheckoutError(`${reg} doesn't fit the plate size chosen for it. Open it from the basket and choose a size it fits.`);
         const { line, amount } = plateLine(reg, cfg, undefined, `Number plates: ${reg}`);
         lines.push(line);
         madeLines.push(line);
@@ -162,6 +163,7 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
         if (d.platesCfg && isObj(d.platesCfg)) {
           const cfg = d.platesCfg as unknown as BuildConfig;
           if (!isComplete(cfg)) throw new CheckoutError(`The plates for ${reg} aren't finished. Open the registration again and finish them.`);
+          if (!buildFits(cfg, reg)) throw new CheckoutError(`${reg} doesn't fit the plate size chosen for it. Open the registration again and choose a size it fits.`);
           // plates with a registration are at our trade price; with our own plates a set is included
           const pricing: Pricing = ours ? { mode: "trade", included: OUR_INCLUDED, offRetail: OWN_STOCK_DISCOUNT } : { mode: "trade", included: [] };
           const { line, amount } = plateLine(reg, cfg, pricing, `Number plates for ${reg}`);

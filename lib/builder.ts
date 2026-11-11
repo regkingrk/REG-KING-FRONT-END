@@ -298,21 +298,60 @@ const oneLine = (s: SizeOption) => s.group === "Standard" || s.group === "Hex" |
 /** Whether the shortest-legal option applies: road-legal car plates once a reg is typed. */
 export const offersShortest = (v: Vehicle | null, legal: Legal | null, reg: string) => legal === "Legal" && v !== "Bike" && regLength(reg) > 0;
 
-/** Sizes that fit: smaller plates only appear for shorter regs (the sizes and limits REG KING provided). With no reg typed yet, all are shown. */
-export function sizesFor(v: Vehicle | null, legal: Legal | null, reg = "", styles: (string | null | undefined)[] = [], gaps?: number[] | null): SizeOption[] {
+/**
+ * Sizes that fit: smaller plates only appear for shorter regs (the sizes and limits REG KING provided),
+ * and only sizes the reg goes on at its full size, never squeezed. With no reg typed yet, all are shown.
+ * `extras`: a badge (UK / EV) takes 50mm off the length for the reg.
+ */
+export function sizesFor(v: Vehicle | null, legal: Legal | null, reg = "", styles: (string | null | undefined)[] = [], gaps?: number[] | null, extras: string[] = []): SizeOption[] {
   const chars = regLength(reg);
-  const metro = styles.includes("Metro Print");
-  return allSizesFor(v, legal).filter((s) => (!s.maxChars || chars === 0 || chars <= s.maxChars) && fitsFullSize(s, reg, metro, gaps));
+  return allSizesFor(v, legal).filter((s) => (!s.maxChars || chars === 0 || chars <= s.maxChars) && fitsFullSize(s, reg, { v, legal, styles, gaps, badge: hasBadge(extras) }));
+}
+
+/** Badges sit in a 50mm panel at the left of a car plate, so the reg has that much less room. */
+const BADGE_LOOKS: ExtraLook[] = ["uk", "ev", "ev-uk", "flag", "badge"];
+export const hasBadge = (extras: string[]) => extras.some((n) => BADGE_LOOKS.includes(EXTRAS.find((e) => e.name === n)?.look as ExtraLook));
+/** Styles drawn with the smaller 64mm motorbike characters (also on car plates). */
+const SMALL_LOOKS: PlateLook[] = ["printed-bike", "gel-bike", "raised-bike", "gel-4d-bike"];
+const BIKE_CHAR_MM = 64;
+/** A bike plate's two lines: split at the space, or after the first four characters (as drawn). */
+export function bikeSplitLines(reg: string): string[] {
+  const r = reg.trim().toUpperCase();
+  const i = r.indexOf(" ");
+  if (i > 0) return [r.slice(0, i), r.slice(i + 1)];
+  return r.length > 4 ? [r.slice(0, 4), r.slice(4)] : [r];
 }
 
 /**
- * Whether the reg goes on a one-line plate this long at its full size, never squeezed: the road-legal
- * layout (79mm characters, 50mm wide, legal gaps and ends; hex ends set in for the cut corners), or for
- * Metro its own 60mm characters. Sizes it doesn't fit aren't offered.
+ * Whether the reg goes on this plate at its full size, never squeezed, worked out from the measured
+ * character widths of the font each style uses, the gaps (the customer's own spacing on show plates),
+ * the ends (set in further on a hex), a badge panel, and the character height the style is made at.
+ *
+ * Road-legal plates keep their own rule: the legal layout on one-line plates (79mm characters, legal
+ * gaps and ends). Show plates are checked on every size, as the plate is actually drawn: one line on a
+ * car plate, and on a bike the two lines at 64mm.
  */
-function fitsFullSize(s: SizeOption, reg: string, metro: boolean, gaps?: number[] | null) {
-  if (!regLength(reg) || !oneLine(s)) return true;
-  return s.w >= (metro ? metroLength(reg, s.hex, gaps) : legalLength(reg, s.hex, gaps));
+function fitsFullSize(s: SizeOption, reg: string, o: { v: Vehicle | null; legal: Legal | null; styles: (string | null | undefined)[]; gaps?: number[] | null; badge: boolean }) {
+  if (!regLength(reg)) return true;
+  const show = o.legal === "Show";
+  const metro = o.styles.includes("Metro Print");
+  const bike = o.v === "Bike";
+  if (!show && !oneLine(s)) return true;
+  // Bike show plates: two lines of 64mm characters, each line inside 11mm ends, both lines inside the height
+  if (show && bike) {
+    const lines = bikeSplitLines(reg);
+    const k = BIKE_CHAR_MM / LEGAL_MM.charH;
+    const fitsAcross = lines.every((l) => 2 * LEGAL_MM.margin + (legalLength(l) - 2 * LEGAL_MM.margin) * k <= s.w);
+    const tall = lines.length * BIKE_CHAR_MM + (lines.length - 1) * 14;
+    return fitsAcross && tall <= s.h - 8;
+  }
+  const ends = 2 * legalEndInset(s.hex);
+  const full = metro ? metroLength(reg, s.hex, o.gaps) : legalLength(reg, s.hex, o.gaps);
+  // the smaller 64mm characters take proportionally less room (the ends stay the same)
+  const small = !metro && o.styles.some((n) => !!n && SMALL_LOOKS.includes(STYLES[n]?.look));
+  const need = small ? ends + (full - ends) * (BIKE_CHAR_MM / LEGAL_MM.charH) : full;
+  const room = s.w - (o.badge && !bike ? BADGE_MM : 0);
+  return need <= room;
 }
 
 /** Metro's measured widths (mm, at 60mm high): characters, the narrow I and 1, the gaps, and the ends. */
@@ -332,8 +371,21 @@ export const legalFor = (s: SizeOption, reg: string) => !oneLine(s) || s.w >= le
 export const shortestLegalOf = (list: SizeOption[], reg: string) =>
   list.filter((s) => oneLine(s) && legalFor(s, reg)).sort((x, y) => x.w - y.w)[0] ?? null;
 
-export const sizeFits = (key: string | null, v: Vehicle | null, legal: Legal | null, reg: string, styles: (string | null | undefined)[] = [], gaps?: number[] | null) =>
-  !!key && sizesFor(v, legal, reg, styles, gaps).some((s) => s.key === key);
+export const sizeFits = (key: string | null, v: Vehicle | null, legal: Legal | null, reg: string, styles: (string | null | undefined)[] = [], gaps?: number[] | null, extras: string[] = []) =>
+  !!key && sizesFor(v, legal, reg, styles, gaps, extras).some((s) => s.key === key);
+
+/**
+ * Whether this finished plate design can be made as chosen: each plate's size takes the reg at full
+ * size with its style, spacing and badge. Checked in the builder and again on the server at checkout.
+ */
+export function buildFits(c: BuildConfig, reg: string): boolean {
+  const gaps = plateGaps(c, reg);
+  const same = !c.rearSize || c.rearSize === c.size;
+  const extras = Array.isArray(c.extras) ? c.extras : [];
+  const front = sizeFits(c.size, c.vehicle, c.legal, reg, [c.style, same ? c.rearStyle : null], gaps, extras);
+  const rear = !c.rearSize || sizeFits(c.rearSize, c.vehicle, c.legal, reg, [c.rearStyle ?? c.style], gaps, extras);
+  return front && rear;
+}
 
 /* ------------------------------------------------------------------ */
 /* Extras and fitting                                                  */
