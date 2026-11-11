@@ -31,7 +31,7 @@ export type PlateSource = "regking" | "customer" | "dvla";
 export const ALL_PLATES: { reg: string; price: number; handle: string; source: PlateSource }[] = (() => {
   const seen = new Set<string>();
   const out: { reg: string; price: number; handle: string; source: PlateSource }[] = [];
-  const add = (list: { reg: string; price: number; handle: string; ours?: boolean }[], source?: PlateSource) =>
+  const add = (list: readonly { reg: string; price: number; handle: string; ours?: boolean }[], source?: PlateSource) =>
     list.forEach((p) => {
       if (seen.has(p.handle)) return;
       seen.add(p.handle);
@@ -76,7 +76,8 @@ export function PlateView({ handle }: { handle: string }) {
   const listed = ALL_PLATES.find((p) => p.handle === handle);
   // DVLA plates aren't in the shop: their page asks the DVLA feed (#plate-dvla-ab12cde).
   const dvla = useDvlaPlate(listed ? null : handle);
-  const plate = listed ?? (dvla && typeof dvla === "object" ? { ...dvla, source: "dvla" as PlateSource } : undefined);
+  const dvlaRow: DvlaPlate | null = !listed && dvla && typeof dvla === "object" ? dvla : null;
+  const plate = listed ?? (dvlaRow ? { ...dvlaRow, source: "dvla" as PlateSource } : undefined);
   const [buying, setBuying] = useState<"" | "checking" | string>("");
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
@@ -234,9 +235,9 @@ export function PlateView({ handle }: { handle: string }) {
               ) : (
                 <p className="rk-pview__price">{formatGBP(plate.price, Number.isInteger(plate.price))}</p>
               )}
-              {fromDvla && "dvlaPrice" in plate && (
+              {fromDvla && dvlaRow && (
                 <p className="pv-dvla__split" data-dvla-split>
-                  DVLA price {formatGBP(plate.dvlaPrice, Number.isInteger(plate.dvlaPrice))} plus our {Math.round(DVLA_FEE_RATE * 100)}% service fee of {formatGBP(dvlaFee(plate.dvlaPrice), Number.isInteger(dvlaFee(plate.dvlaPrice)))}
+                  DVLA price {formatGBP(dvlaRow.dvlaPrice, Number.isInteger(dvlaRow.dvlaPrice))} plus our {Math.round(DVLA_FEE_RATE * 100)}% service fee of {formatGBP(dvlaFee(dvlaRow.dvlaPrice), Number.isInteger(dvlaFee(dvlaRow.dvlaPrice)))}
                 </p>
               )}
               {fromDvla && (
@@ -256,7 +257,7 @@ export function PlateView({ handle }: { handle: string }) {
                   {DVLA_FACTS.map((f) => (
                     <li key={f}>{f}</li>
                   ))}
-                  {"sample" in plate && plate.sample && <li className="pv-dvla__sample">Sample DVLA plate for the preview. Live prices come from the DVLA feed.</li>}
+                  {dvlaRow?.sample && <li className="pv-dvla__sample">Sample DVLA plate for the preview. Live prices come from the DVLA feed.</li>}
                 </ul>
               )}
 

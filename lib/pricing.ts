@@ -87,7 +87,7 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
     switch (raw.kind) {
       case "plates": {
         const reg = cleanReg(d.reg);
-        const cfg = d.cfg as BuildConfig;
+        const cfg = d.cfg as unknown as BuildConfig;
         if (!reg || !isObj(cfg) || !isComplete(cfg)) throw new CheckoutError("A plate in your basket isn't finished. Open it from the basket and finish it.");
         const { line, amount } = plateLine(reg, cfg, undefined, `Number plates: ${reg}`);
         lines.push(line);
@@ -100,7 +100,7 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
       }
       case "surrounds":
       case "logo": {
-        const pl = raw.kind === "surrounds" ? surroundLines(d.cfg as SurroundConfig) : logoLines(d.cfg as LogoPlateConfig);
+        const pl = raw.kind === "surrounds" ? surroundLines(d.cfg as unknown as SurroundConfig) : logoLines(d.cfg as unknown as LogoPlateConfig);
         if (pl.some((l) => l.amount === null)) throw new CheckoutError(ON_REQUEST, 409);
         const amount = r2(pl.reduce((a, l) => a + (l.amount as number), 0));
         const reg = raw.kind === "surrounds" ? cleanReg(d.reg) : "";
@@ -160,7 +160,7 @@ export async function priceBasket(req: CheckoutRequest, live: LiveLookups): Prom
           }
         }
         if (d.platesCfg && isObj(d.platesCfg)) {
-          const cfg = d.platesCfg as BuildConfig;
+          const cfg = d.platesCfg as unknown as BuildConfig;
           if (!isComplete(cfg)) throw new CheckoutError(`The plates for ${reg} aren't finished. Open the registration again and finish them.`);
           // plates with a registration are at our trade price; with our own plates a set is included
           const pricing: Pricing = ours ? { mode: "trade", included: OUR_INCLUDED, offRetail: OWN_STOCK_DISCOUNT } : { mode: "trade", included: [] };

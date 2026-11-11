@@ -410,7 +410,8 @@ function Overview(p: {
   role: Role;
   open: (t: AdminTab) => void;
 }) {
-  const waiting: { tab: AdminTab; n: number; label: string; line: string }[] = [
+  type Waiting = { tab: AdminTab; n: number; label: string; line: string };
+  const allWaiting: Waiting[] = [
     { tab: "dvla", n: p.dvla.filter((d) => d.status === "waiting").length, label: "DVLA purchases in progress", line: "Card held until the DVLA confirms" },
     { tab: "production", n: p.jobs.filter((j) => j.status === "waiting-docs").length, label: "Plates waiting for documents", line: "Road legal: ID and proof of the reg" },
     { tab: "production", n: p.jobs.filter((j) => j.status === "to-make").length, label: "Plates to make", line: "Ready for the workshop" },
@@ -418,7 +419,8 @@ function Overview(p: {
     { tab: "offers", n: p.offers.filter((o) => o.status === "new").length, label: "New offers", line: "On customer plates" },
     { tab: "enquiries", n: p.enquiries.filter((e) => e.status === "new").length, label: "New enquiries", line: "Not yet assigned" },
     { tab: "payouts", n: p.payouts.filter((x) => x.status === "ready").length, label: "Payouts ready", line: "Transfer complete, seller to be paid" },
-  ].filter((w) => can(p.role, tabNeeds(w.tab)));
+  ];
+  const waiting = allWaiting.filter((w) => can(p.role, tabNeeds(w.tab)));
   const today = p.orders.filter((o) => o.date >= "2026-11-01");
   return (
     <div className="ad-stack">

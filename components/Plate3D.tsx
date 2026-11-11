@@ -44,7 +44,7 @@ export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (st
   // Picking set or single in the builder resets the preview to match.
   useEffect(() => setPick(null), [c.qty, c.side, c.vehicle]);
   const both = show === "both";
-  const sides: Side[] = both ? ["front", "rear"] : [show === "both" ? "rear" : show];
+  const sides: Side[] = show === "both" ? ["front", "rear"] : [show];
 
   // drag to turn, then ease back into a slow sway (no sway for reduced motion)
   useEffect(() => {

@@ -21,7 +21,7 @@ export function ListPlate({ startReg = "", startPkg = "" }: { startReg?: string;
   const [tried, setTried] = useState<Set<number>>(new Set());
   const [done, setDone] = useState<Submission[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const top = useRef<HTMLDivElement>(null);
+  const top = useRef<HTMLFormElement>(null);
 
   // Details, collected once
   const [name, setName] = useState(customer?.name ?? "");

@@ -1020,7 +1020,7 @@ export function EmailPage({ record }: { record: Rec }) {
 export function ContentPage({ record }: { record: Rec }) {
   const [tab, setTab] = useState<FaqTab>("buy");
   const [faqs, setFaqs] = useState(() => Object.fromEntries(Object.entries(FAQS).map(([k, v]) => [k, v.items.map((x) => ({ ...x }))])) as Record<FaqTab, { q: string; a: string }[]>);
-  const [team, setTeam] = useState(() => TEAM.map((t) => ({ ...t })));
+  const [team, setTeam] = useState<{ [K in keyof (typeof TEAM)[number]]: string }[]>(() => TEAM.map((t) => ({ ...t })));
   const [open, setOpen] = useState<number | null>(null);
   return (
     <div className="as-stack">
@@ -1407,7 +1407,7 @@ export function TasksPage({ record }: { record: Rec }) {
           }}
         >
           <input className="as-input" placeholder="What needs doing" value={d.what} onChange={(e) => setD({ ...d, what: e.target.value })} aria-label="Task" data-am-task />
-          <select value={d.who} onChange={(e) => setD({ ...d, who: e.target.value })} aria-label="Who">
+          <select value={d.who} onChange={(e) => setD({ ...d, who: e.target.value as typeof d.who })} aria-label="Who">
             {names.map((n) => (
               <option key={n}>{n}</option>
             ))}

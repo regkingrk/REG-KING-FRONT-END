@@ -54,8 +54,9 @@ const savedNewThisWeek: NewPlate[] = [
 ];
 
 /** Plates added in the 7 days up to the last build (live when synced), newest first. */
-export const newThisWeek: NewPlate[] = shop
-  ? shop.plates
-      .filter((p) => Date.parse(`${shop.date}T00:00:00Z`) - Date.parse(`${p.added}T00:00:00Z`) < 7 * 86400000)
+const synced = shop;
+export const newThisWeek: NewPlate[] = synced
+  ? synced.plates
+      .filter((p) => Date.parse(`${synced.date}T00:00:00Z`) - Date.parse(`${p.added}T00:00:00Z`) < 7 * 86400000)
       .map((p) => ({ reg: p.reg, handle: p.handle, price: p.price, added: p.added }))
   : savedNewThisWeek;

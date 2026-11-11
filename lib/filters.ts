@@ -89,7 +89,7 @@ export type CatKey =
 type Cat = { key: CatKey; group: CatGroupKey; label: string; words?: string[]; tokens?: string[]; test?: (r: Result) => boolean };
 export type CatGroup = { key: CatGroupKey; label: string; line: string; subs: CatKey[] };
 
-const digitRuns = (reg: string) => reg.match(/\d+/g) ?? [];
+const digitRuns = (reg: string): string[] => reg.match(/\d+/g) ?? [];
 
 export const CAT_GROUPS: CatGroup[] = [
   { key: "names", label: "Name plates", line: "Male, female and other names", subs: ["male", "female", "othernames"] },

@@ -20,7 +20,7 @@ export type BasketItem =
   | { id: string; kind: "plates"; title: string; detail: string; lines: BasketLine[]; data: { reg: string; cfg: BuildConfig } }
   | { id: string; kind: "surrounds"; title: string; detail: string; lines: BasketLine[]; data: { reg: string; cfg: SurroundConfig } }
   | { id: string; kind: "logo"; title: string; detail: string; lines: BasketLine[]; data: { cfg: LogoPlateConfig } }
-  | { id: string; kind: "accessory"; title: string; detail: string; lines: BasketLine[]; data: { key: string } }
+  | { id: string; kind: "accessory"; title: string; detail: string; lines: BasketLine[]; data: { key: string; qty?: number } }
   | { id: string; kind: "registration"; title: string; detail: string; lines: BasketLine[]; data: RegistrationData };
 
 /** A registration bought from its plate page, with how the customer chose to pay for it. */
