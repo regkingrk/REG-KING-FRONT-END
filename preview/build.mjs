@@ -102,7 +102,7 @@ const rep = (k, v) => {
   if (!html.includes(k)) throw new Error("template is missing " + k);
   html = html.split(k).join(v);
 };
-rep("/*__CSS__*/", read("app/globals.css") + "\n" + read("app/day.css"));
+rep("/*__CSS__*/", read("app/globals.css"));
 rep("__BODY__", body);
 rep("/*__BUNDLE__*/", bundle);
 rep("__CROWN_JSON__", JSON.stringify(crown));

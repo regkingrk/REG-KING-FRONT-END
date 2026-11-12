@@ -51,6 +51,7 @@ export function PlateGL({
   groupsKey,
   angles = true,
   tight = false,
+  day = false,
 }: {
   reg?: string;
   c?: BuildConfig;
@@ -62,6 +63,8 @@ export function PlateGL({
   angles?: boolean;
   /** Fill the view more (less margin round the plates): the surround maker. */
   tight?: boolean;
+  /** Daylight: a brighter scene, to see the plates as they look outside in the day. */
+  day?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<{ setPlates: (g: THREE.Group[], lay?: boolean) => void; reset: () => void; view: (v: View) => void; zoomBy: (f: number) => void; setStart: (v: { yaw: number; pitch: number }) => void; prepare: (g: THREE.Group) => Promise<void> } | null>(null);
@@ -78,7 +81,18 @@ export function PlateGL({
   const tightRef = useRef(tight);
   tightRef.current = tight;
   const softEnv = useRef<THREE.Texture | null>(null);
+  const lights = useRef<{ renderer: THREE.WebGLRenderer; key: THREE.DirectionalLight; fill: THREE.AmbientLight } | null>(null);
   const acrylicEnv = useRef<THREE.Texture | null>(null);
+
+  // Day or night light on the plates (the builder's Day / Night switch)
+  useEffect(() => {
+    const l = lights.current;
+    if (!l) return;
+    l.renderer.toneMappingExposure = day ? 1.12 : 1;
+    l.fill.intensity = day ? 0.6 : 0.25;
+    l.key.intensity = day ? 1.4 : 1.2;
+    window.dispatchEvent(new Event("rk-gl-redraw"));
+  }, [day, ready]);
 
   // The scene: made once.
   useEffect(() => {
@@ -115,7 +129,9 @@ export function PlateGL({
     key.shadow.radius = 4;
     key.shadow.bias = -0.0004;
     key.shadow.normalBias = 0.35; // no shadow speckle on shallow faces such as Retro's facets
-    scene.add(key, new THREE.AmbientLight(0xffffff, 0.25));
+    const fill = new THREE.AmbientLight(0xffffff, 0.25);
+    scene.add(key, fill);
+    lights.current = { renderer, key, fill };
 
     const camera = new THREE.PerspectiveCamera(26, 1, 10, 5000);
     const rig = new THREE.Group();

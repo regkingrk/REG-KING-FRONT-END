@@ -145,7 +145,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="rk-header__chrome" data-intro-chrome>
-          <ThemeToggle />
           <a className="rk-hicon" href="#account" aria-label="Account" aria-current={account ? "page" : undefined} onClick={(e) => follow(e, "account")}>
             <UserIcon />
           </a>
@@ -341,49 +340,7 @@ function TalkToUs() {
           </span>
         ) : null}
       </div>
-      <div className="mt__theme">
-        <span>Day mode</span>
-        <ThemeToggle />
-      </div>
     </section>
   );
 }
 
-/**
- * Day or night. Night (REG KING black) is the default; day is a light version of the same site.
- * The choice is remembered on this device, and set before the page paints (app/layout.tsx).
- */
-function ThemeToggle() {
-  const [day, setDay] = useState(false);
-  // stay in step with the other switch (header and phone menu) and the saved choice
-  useEffect(() => {
-    const read = () => setDay(document.documentElement.getAttribute("data-theme") === "day");
-    read();
-    const mo = new MutationObserver(read);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => mo.disconnect();
-  }, []);
-  const flip = () => {
-    const next = !day;
-    setDay(next);
-    if (next) document.documentElement.setAttribute("data-theme", "day");
-    else document.documentElement.removeAttribute("data-theme");
-    try {
-      localStorage.setItem("rk-theme", next ? "day" : "night");
-    } catch {}
-  };
-  return (
-    <button type="button" className="rk-hicon rk-theme" onClick={flip} aria-pressed={day} aria-label={day ? "Switch to night mode" : "Switch to day mode"} title={day ? "Night mode" : "Day mode"} data-theme-toggle>
-      {day ? (
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
-        </svg>
-      )}
-    </button>
-  );
-}

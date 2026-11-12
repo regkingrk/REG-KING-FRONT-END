@@ -20,7 +20,3 @@
 - Connect regking.co.uk, set LAUNCH=1 in Vercel.
 - Favicon, no "Made with AI" tag, privacy policy and terms pages in place.
 
-## Day mode (how it works)
-- The day / night switch is in the header (and in the phone menu). Night is the default.
-- app/day.css is generated from app/globals.css: after changing globals.css, run
-  `python3 scripts/make-day-css.py`. Hand-made day tweaks go in app/day-extra.css.

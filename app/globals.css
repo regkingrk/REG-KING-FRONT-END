@@ -39589,43 +39589,67 @@ body:has(.rk-studio) {
   left: 32px;
 }
 
-/* Day / night switch in the header */
-.rk-theme {
+
+/* Live preview: Night / Day lighting switch */
+.rk-p3d__light {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(244, 242, 236, 0.1);
+}
+.rk-p3d__light button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
   border: 0;
+  border-radius: 6px;
   background: none;
+  color: rgba(244, 242, 236, 0.75);
+  font: 700 12.5px var(--rk-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   cursor: pointer;
 }
-.rk-theme:focus-visible {
+.rk-p3d__light button[aria-checked="true"] {
+  background: #f4f2ec;
+  color: #111;
+}
+.rk-p3d__light button:focus-visible,
+.rk-p3d__sides button:focus-visible {
   outline: 2px solid var(--rk-yellow);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
-/* in the phone menu */
-.mt__theme {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  padding: 10px 0 0;
-  border-top: 1px solid rgba(22, 21, 20, 0.12);
+/* Day: a light, daylight backdrop behind the plates */
+.rk-p3d[data-light="day"] {
+  background: radial-gradient(120% 90% at 50% 15%, #ffffff 0%, #eeece6 60%, #dedad0 100%);
   color: #161514;
-  font-weight: 600;
+  transition: background 0.35s ease;
 }
-.rk-header .mt__theme .rk-theme {
-  display: inline-grid;
-  color: var(--rk-yellow);
+.rk-search[data-mode="build"] .rk-p3d[data-light="day"] {
+  border-color: rgba(22, 21, 20, 0.12);
+}
+.rk-p3d[data-light="day"] .rk-p3d__t {
+  color: #161514;
+}
+.rk-p3d[data-light="day"] .rk-p3d__sides,
+.rk-p3d[data-light="day"] .rk-p3d__light {
+  background: rgba(22, 21, 20, 0.08);
+}
+.rk-p3d[data-light="day"] .rk-p3d__sides button,
+.rk-p3d[data-light="day"] .rk-p3d__light button {
+  color: rgba(22, 21, 20, 0.7);
+}
+.rk-p3d[data-light="day"] .rk-p3d__sides button[aria-checked="true"] {
+  background: var(--rk-yellow);
+  color: #111;
+}
+.rk-p3d[data-light="day"] .rk-p3d__light button[aria-checked="true"] {
   background: #161514;
+  color: #fff;
 }
-/* the switch stays in the bar on every screen size, next to Menu on phones */
-@media (max-width: 1099px) {
-  .rk-header .rk-header__chrome > .rk-theme {
-    display: inline-grid;
-  }
-}
-@media (max-width: 1020px) {
-  .rk-header .rk-header__chrome > .rk-theme {
-    position: absolute;
-    top: calc((var(--rk-header-h) - 44px) / 2);
-    right: calc(var(--rk-gutter-r) + var(--rk-hmore-w, 89px) + 6px);
-  }
+.rk-p3d[data-light="day"] .rk-p3d__hint,
+.rk-p3d[data-light="day"] .rk-p3d__which {
+  color: rgba(22, 21, 20, 0.6);
 }
