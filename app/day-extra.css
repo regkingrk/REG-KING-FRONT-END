@@ -49,3 +49,10 @@ html[data-theme="day"] .rk-proof__wide,
 html[data-theme="day"] .rk-proof__label {
   color: #161514 !important;
 }
+/* About: the story's yellow headings read better in black on the light page */
+html[data-theme="day"] .rk-story__card h2 {
+  color: #161514;
+}
+html[data-theme="day"] .rk-story__card .rk-more__btn {
+  color: #161514;
+}
