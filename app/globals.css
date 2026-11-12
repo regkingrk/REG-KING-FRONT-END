@@ -1881,15 +1881,15 @@ body::before {
     linear-gradient(180deg, #9b8613, #7a6809) !important;
 }
 
-/* Faded Tint: only the reflective fades, from black on the left into white (front) or yellow (rear) */
+/* Faded Tint: only the reflective fades, from black at the bottom up into white (front) or yellow (rear) */
 [data-extras~="fade"] {
   background:
-    linear-gradient(90deg, #141412 0%, rgba(20, 20, 18, 0.92) 12%, rgba(20, 20, 18, 0) 72%),
+    linear-gradient(0deg, #141412 0%, rgba(20, 20, 18, 0.92) 12%, rgba(20, 20, 18, 0) 72%),
     linear-gradient(180deg, #ffffff, #ececea) !important;
 }
 [data-extras~="fade"][data-side="rear"] {
   background:
-    linear-gradient(90deg, #141412 0%, rgba(20, 20, 18, 0.92) 12%, rgba(20, 20, 18, 0) 72%),
+    linear-gradient(0deg, #141412 0%, rgba(20, 20, 18, 0.92) 12%, rgba(20, 20, 18, 0) 72%),
     linear-gradient(180deg, #ffdc1a, #f6c800) !important;
 }
 
