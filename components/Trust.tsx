@@ -5,7 +5,7 @@ import { COMPANY, reviewScores, supportEmail } from "@/lib/brand";
 import { HQ, phone, whatsapp } from "@/lib/infoContent";
 import type { ReviewFeed, ReviewTopic, ShownReview } from "@/lib/reviewTopics";
 import { GoogleG } from "./HeroProof";
-import { ArrowRight, StarIcon } from "./Icons";
+import { ArrowRight, CrownIcon, StarIcon } from "./Icons";
 import { useMode } from "./ModeProvider";
 
 /**
@@ -197,11 +197,17 @@ export function WhyBuy() {
     return () => clearInterval(t);
   }, [running, lit]);
 
+  const g = useGoogleScore();
+  const ico = (d: string) => (
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={d} />
+    </svg>
+  );
   const points = [
     {
-      k: "Since 2017",
-      t: "Established",
-      d: "From two private registrations in 2017 to our own showroom in Bilston.",
+      k: "since",
+      icon: <CrownIcon />,
+      t: "Established 2017",
       link: (
         <a href="/about" onClick={(e) => (e.preventDefault(), go("info-about"))}>
           Our story <ArrowRight />
@@ -209,19 +215,19 @@ export function WhyBuy() {
       ),
     },
     {
-      k: "Genuine reviews",
-      t: "Rated by customers",
-      d: "Read what our customers say, in their own words, on Google and Trustpilot.",
+      k: "reviews",
+      icon: ico("M12 3.2l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z"),
+      t: g ? `${g.score.toFixed(1)} on Google` : "Genuine reviews",
       link: (
-        <a href={reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
-          {reviewScores.trustpilot.score} on Trustpilot <ArrowRight />
+        <a href={g?.url ?? reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
+          {g ? `Read ${fmtCount(g.count)} reviews` : "Read our reviews"} <ArrowRight />
         </a>
       ),
     },
     {
-      k: "Visit us",
-      t: "A real showroom",
-      d: `${HQ.lines.join(", ")}.`,
+      k: "visit",
+      icon: ico("M12 21s-7-7.2-7-12a7 7 0 0 1 14 0c0 4.8-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"),
+      t: "Bilston showroom",
       link: (
         <a href={HQ.directions} target="_blank" rel="noopener noreferrer">
           Get directions <ArrowRight />
@@ -229,12 +235,12 @@ export function WhyBuy() {
       ),
     },
     {
-      k: "Support",
-      t: "With you throughout",
-      d: "We call you after you order and guide you through the documents and transfer.",
+      k: "support",
+      icon: ico("M4 13v-1a8 8 0 0 1 16 0v1M4 13h3v6H5a1 1 0 0 1-1-1zM20 13h-3v6h2a1 1 0 0 0 1-1zM17 19c0 1.1-1.8 2-4 2"),
+      t: "Support throughout",
       link: (
         <a href="/contact" onClick={(e) => (e.preventDefault(), go("info-contact"))}>
-          Contact the team <ArrowRight />
+          Contact us <ArrowRight />
         </a>
       ),
     },
@@ -246,7 +252,6 @@ export function WhyBuy() {
         <div className="tr-why__head">
           <h2 id="whybuy-title">Why buy with REG KING?</h2>
           <p>Your registration. Our priority.</p>
-          <GoogleScore />
         </div>
         <ul className="tr-why__pillars" ref={box} data-running={running || undefined} style={{ ["--why-ms" as string]: `${WHY_MS}ms` }}>
           {points.map((p, i) => (
@@ -260,9 +265,8 @@ export function WhyBuy() {
               onBlur={() => setHold(false)}
             >
               <i className="tr-pill__bar" aria-hidden key={`${lit}-${running}`} />
-              <span className="tr-pill__k">{p.k}</span>
+              <span className="tr-pill__icon">{p.icon}</span>
               <h3>{p.t}</h3>
-              <p>{p.d}</p>
               {p.link}
             </li>
           ))}

@@ -38514,7 +38514,7 @@ body:has(.rk-studio) {
    A quiet stone band between the white guide and the black strip; the four points light up in
    turn, the lit one in black with a yellow bar running across its top. */
 .tr-why {
-  background: #ecebe6;
+  background: var(--rk-yellow);
   color: var(--rk-ink);
 }
 .tr-why__in {
@@ -38537,8 +38537,8 @@ body:has(.rk-studio) {
 }
 .tr-why__head p {
   margin: 0;
-  font-size: 14px;
-  color: var(--rk-text-2);
+  font-size: 15px;
+  color: #3a3220;
 }
 .tr-why__head .tr-score {
   margin-top: 6px;
@@ -38561,7 +38561,7 @@ body:has(.rk-studio) {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  padding: 16px 16px 14px;
+  padding: 16px 16px 20px;
   background: #fff;
   border-radius: 6px;
   overflow: hidden;
@@ -38569,42 +38569,45 @@ body:has(.rk-studio) {
 }
 .tr-pill__bar {
   position: absolute;
-  left: 0;
-  top: 0;
-  height: 3px;
+  left: 16px;
+  bottom: 8px;
+  height: 2px;
   width: 0;
+  max-width: calc(100% - 32px);
+  border-radius: 2px;
   background: var(--rk-yellow);
 }
 .tr-why__pillars[data-running] .tr-pill[data-lit] .tr-pill__bar {
   animation: tr-why-bar var(--why-ms) linear forwards;
 }
 .tr-why__pillars:not([data-running]) .tr-pill[data-lit] .tr-pill__bar {
-  width: 100%;
+  width: calc(100% - 32px);
 }
 @keyframes tr-why-bar {
   to {
-    width: 100%;
+    width: calc(100% - 32px);
   }
 }
-.tr-pill__k {
-  font: 700 11.5px / 1.2 var(--rk-body);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--rk-text-3);
-  transition: color 0.45s var(--rk-ease);
+.tr-pill__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--rk-ink);
+  color: var(--rk-yellow);
+  transition: background-color 0.45s var(--rk-ease), color 0.45s var(--rk-ease);
+}
+.tr-pill__icon svg {
+  width: 24px;
+  height: 24px;
 }
 .tr-pill h3 {
-  margin: 0;
+  margin: 8px 0 0;
   font: 700 19px / 1.1 var(--rk-display);
   letter-spacing: 0.02em;
   text-transform: uppercase;
-}
-.tr-pill p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--rk-text-2);
-  transition: color 0.45s var(--rk-ease);
 }
 .tr-pill > a {
   margin-top: auto;
@@ -38631,11 +38634,9 @@ body:has(.rk-studio) {
   transform: translateY(-3px);
   box-shadow: 0 12px 28px -14px rgba(0, 0, 0, 0.45);
 }
-.tr-pill[data-lit] .tr-pill__k {
-  color: var(--rk-yellow);
-}
-.tr-pill[data-lit] p {
-  color: rgba(244, 242, 236, 0.7);
+.tr-pill[data-lit] .tr-pill__icon {
+  background: var(--rk-yellow);
+  color: var(--rk-ink);
 }
 .tr-pill[data-lit] > a {
   color: var(--rk-yellow);
@@ -38685,9 +38686,6 @@ body:has(.rk-studio) {
   }
   .tr-pill h3 {
     font-size: 17px;
-  }
-  .tr-pill p {
-    font-size: 13px;
   }
 }
 
