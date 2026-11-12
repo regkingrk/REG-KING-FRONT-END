@@ -235,7 +235,7 @@ export const sellSteps = [
   { title: "Set your price", line: "Enter the price you want, or ask us to value it first. Valuations are free." },
   { title: "Choose how you sell", line: "An increased price sale or a commission sale. Pick what suits you." },
   { title: "Create your account", line: "Your account is where you manage your listings, add more plates and keep a wishlist." },
-  { title: "We list it", line: "We check the details, then advertise your plate on REG KING." },
+  { title: "We list it", line: "We check the details, then advertise your plate on REG KING. Listing is free." },
   { title: "It sells, you get paid", line: "When a buyer is found, we take you through the transfer and you get paid." },
 ] as const;
 

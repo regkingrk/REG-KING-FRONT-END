@@ -680,6 +680,7 @@ function SellTrust() {
   const commission = sellOptions.find((o) => o.key === "commission");
   const items = [
     { t: "Who handles the buyers?", d: "We do. We advertise your plate, answer buyers' questions and pass every offer to you to accept, decline or counter." },
+    { t: "Does it cost anything to list?", d: "No. Listing your plate with REG KING is free. We only charge when it sells." },
     { t: "When does a fee apply?", d: `Only when your plate sells. With an increased price sale you receive the amount you agreed and we keep the difference. With a commission sale we take ${commission ? "10%" : "our commission"} of the selling price.` },
     { t: "When do I get paid?", d: "We hold the buyer's payment while the sale goes through. Once the buyer has assigned the registration to their vehicle and we've checked it, we release your payment." },
     { t: "What happens when it sells?", d: "We contact you to confirm it's still available and arrange the documents. If the plate is on your vehicle, you take it off through DVLA first, and we guide you through it." },

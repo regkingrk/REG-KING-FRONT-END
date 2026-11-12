@@ -334,6 +334,7 @@ export const FAQS: Record<FaqTab, { label: string; line: string; items: Faq[] }>
         q: "How does selling with REG KING work?",
         a: "Enter your reg on the Sell tab, set a price (or ask for a valuation), and choose how you'd like to sell. We advertise the plate, handle the enquiries and take you through the transfer when it sells. We don't buy your plate; we sell it for you.",
       },
+      { q: "Is it free to list my plate?", a: "Yes. Listing with REG KING is free. We only charge when your plate sells." },
       {
         q: "What are the ways to sell?",
         a: "Increased price sale: you agree the amount you want to receive and we handle the sale. Commission sale: we take 10% when it sells.",
