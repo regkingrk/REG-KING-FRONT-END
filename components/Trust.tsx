@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { COMPANY, reviewScores, supportEmail } from "@/lib/brand";
 import { HQ, phone, whatsapp } from "@/lib/infoContent";
 import type { ReviewFeed, ReviewTopic, ShownReview } from "@/lib/reviewTopics";
@@ -172,54 +172,102 @@ export const DVLA_MEANS = `Any business that makes or sells number plates has to
 /* Buy: Why buy with REG KING?                                         */
 /* ------------------------------------------------------------------ */
 
+/** How long each point stays highlighted before the next. */
+const WHY_MS = 3600;
+
 export function WhyBuy() {
   const { go } = useMode();
+  // The four points light up in turn while the section is on screen, like the steps elsewhere on
+  // the site. Hovering or focusing one holds it; reduced motion keeps them all still and equal.
+  const [lit, setLit] = useState(0);
+  const [hold, setHold] = useState(false);
+  const [seen, setSeen] = useState(false);
+  const [still, setStill] = useState(false);
+  const box = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    setStill(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.4 });
+    if (box.current) io.observe(box.current);
+    return () => io.disconnect();
+  }, []);
+  const running = seen && !hold && !still;
+  useEffect(() => {
+    if (!running) return;
+    const t = window.setInterval(() => setLit((i) => (i + 1) % 4), WHY_MS);
+    return () => clearInterval(t);
+  }, [running, lit]);
+
+  const points = [
+    {
+      k: "Since 2017",
+      t: "Established",
+      d: "From two private registrations in 2017 to our own showroom in Bilston.",
+      link: (
+        <a href="/about" onClick={(e) => (e.preventDefault(), go("info-about"))}>
+          Our story <ArrowRight />
+        </a>
+      ),
+    },
+    {
+      k: "Genuine reviews",
+      t: "Rated by customers",
+      d: "Read what our customers say, in their own words, on Google and Trustpilot.",
+      link: (
+        <a href={reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
+          {reviewScores.trustpilot.score} on Trustpilot <ArrowRight />
+        </a>
+      ),
+    },
+    {
+      k: "Visit us",
+      t: "A real showroom",
+      d: `${HQ.lines.join(", ")}.`,
+      link: (
+        <a href={HQ.directions} target="_blank" rel="noopener noreferrer">
+          Get directions <ArrowRight />
+        </a>
+      ),
+    },
+    {
+      k: "Support",
+      t: "With you throughout",
+      d: "We call you after you order and guide you through the documents and transfer.",
+      link: (
+        <a href="/contact" onClick={(e) => (e.preventDefault(), go("info-contact"))}>
+          Contact the team <ArrowRight />
+        </a>
+      ),
+    },
+  ];
+
   return (
     <section className="tr-why" id="rk-whybuy" aria-labelledby="whybuy-title">
-      <div className="rk-wrap tr-why__head">
-        <h2 id="whybuy-title">Why buy with REG KING?</h2>
-        <p>Your registration. Our priority.</p>
-        <GoogleScore tone="dark" />
-      </div>
-
-      <ul className="rk-wrap tr-why__pillars">
-        <li className="tr-pill">
-          <h3>Established since 2017</h3>
-          <p>From two private registrations in 2017 to our own showroom in Bilston, open since August 2025.</p>
-          <a href="/about" onClick={(e) => (e.preventDefault(), go("info-about"))}>
-            Our story <ArrowRight />
-          </a>
-        </li>
-        <li className="tr-pill">
-          <h3>Genuine customer reviews</h3>
-          <p>Read what our customers say, in their own words, on Google and Trustpilot.</p>
-          <a href={reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
-            {reviewScores.trustpilot.score} out of 5 on Trustpilot <ArrowRight />
-          </a>
-        </li>
-        <li className="tr-pill">
-          <h3>A real business you can visit</h3>
-          <p>
-            <span>REG KING, {HQ.lines[0]},</span> <span>{HQ.lines[1]} {HQ.lines[2]}</span>
-          </p>
-          <a href={HQ.directions} target="_blank" rel="noopener noreferrer">
-            Get directions <ArrowRight />
-          </a>
-        </li>
-        <li className="tr-pill">
-          <h3>Support throughout your purchase</h3>
-          <p>After you order, we call you and guide you through your documents and the transfer. Timings depend on the plate and on DVLA, so we tell you what to expect.</p>
-          <a href="/contact" onClick={(e) => (e.preventDefault(), go("info-contact"))}>
-            Contact the team <ArrowRight />
-          </a>
-        </li>
-      </ul>
-
-      <div className="rk-wrap tr-why__foot">
-        <ReviewQuote topic="buy" tone="dark" />
-        <p className="tr-why__promise">
-          We understand that buying a private registration is an important investment. That&apos;s why we focus on clear communication, transparent processes and professional support throughout your purchase.
-        </p>
+      <div className="rk-wrap tr-why__in">
+        <div className="tr-why__head">
+          <h2 id="whybuy-title">Why buy with REG KING?</h2>
+          <p>Your registration. Our priority.</p>
+          <GoogleScore />
+        </div>
+        <ul className="tr-why__pillars" ref={box} data-running={running || undefined} style={{ ["--why-ms" as string]: `${WHY_MS}ms` }}>
+          {points.map((p, i) => (
+            <li
+              key={p.k}
+              className="tr-pill"
+              data-lit={!still && i === lit ? "" : undefined}
+              onMouseEnter={() => (setLit(i), setHold(true))}
+              onMouseLeave={() => setHold(false)}
+              onFocus={() => (setLit(i), setHold(true))}
+              onBlur={() => setHold(false)}
+            >
+              <i className="tr-pill__bar" aria-hidden key={`${lit}-${running}`} />
+              <span className="tr-pill__k">{p.k}</span>
+              <h3>{p.t}</h3>
+              <p>{p.d}</p>
+              {p.link}
+            </li>
+          ))}
+        </ul>
+        <ReviewQuote topic="buy" />
       </div>
     </section>
   );
