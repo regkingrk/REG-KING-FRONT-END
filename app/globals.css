@@ -40036,3 +40036,18 @@ body:has(.rk-studio) {
     transition: none;
   }
 }
+
+/* List your plate: the form sits in a white card on a soft stone page, easier on the eye than bright white */
+.lw-page {
+  background: #f1efe9;
+}
+.lw-page__in > .lw {
+  padding: clamp(20px, 3.2vw, 36px);
+  border: 1px solid #e3dfd5;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 14px 34px -22px rgba(30, 26, 15, 0.28);
+}
+.lw-page__lede {
+  color: #5a5549;
+}

@@ -268,6 +268,8 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
       if (p.section === "sell" && p.item && SELL_OPTION[p.item]) setSellOption(SELL_OPTION[p.item]);
       // "Value my plate" links open Sell with the plate box set to value
       if (p.section === "sell") setSellTask(p.item === "valuation" ? "value" : "list");
+      // "Value my plate" links open the valuation pop-up straight away
+      if (p.section === "sell" && p.item === "valuation") setValueAsk({ reg: "", at: Date.now() });
     }
     if (scroll) {
       const id = targetFor(p.section, p.item);
