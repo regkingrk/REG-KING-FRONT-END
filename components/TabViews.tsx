@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { formatGBP, modeUrl, normaliseReg, routes, sellOptions, sellSmallPrint, sellSteps, spaceReg, type SellOption } from "@/lib/brand";
 import { navigate } from "@/lib/nav";
 import { QuickLinks } from "./HomeSections";
-import { ArrowRight } from "./Icons";
+import { ArrowRight, CrownIcon } from "./Icons";
 import { useMode } from "./ModeProvider";
 import { SearchResults } from "./SearchResults";
 import { BasketPanel } from "./MakeTools";
@@ -12,7 +12,7 @@ import { BuySources, InfoView, Reviews } from "./SectionViews";
 import { NewThisWeek } from "./NewThisWeek";
 import { BuyingGuide } from "./BuyingGuide";
 import { AsSeenWith } from "./AsSeenWith";
-import { WhyBuy, WhyUs } from "./Trust";
+import { GoogleScore, WhyBuy, WhyUs } from "./Trust";
 import { PlateView } from "./PlateView";
 import { DVLA_FEED } from "@/lib/features";
 import { AccountPortal } from "./AccountPortal";
@@ -118,85 +118,112 @@ function ValueCard() {
     go("account");
   };
 
+  const first = name.trim().split(" ")[0];
   return (
-    <div className="rk-vpop" onMouseDown={(e) => e.target === e.currentTarget && close()} data-vpop>
-    <section className="rk-valuer rk-vpop__box" id="sell-valuation" role="dialog" aria-modal="true" aria-labelledby="value-title" ref={box}>
-      <button type="button" className="rk-vpop__x" onClick={close} aria-label="Close">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-          <path d="M6 6l12 12M18 6 6 18" />
-        </svg>
-      </button>
-      <div className="rk-valuer__in">
+    <div className="vp-scrim" onMouseDown={(e) => e.target === e.currentTarget && close()} data-vpop>
+      <section className="vp" id="sell-valuation" role="dialog" aria-modal="true" aria-labelledby="value-title" ref={box}>
+        <button type="button" className="vp__x" onClick={close} aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+
         {state === "sent" ? (
-          <div className="rk-valuer__result" role="status">
-            <h2 id="value-title">Request received</h2>
-            <span className="rk-valuer__plate rk-valuer__plate--shown">{reg}</span>
-            <p className="rk-valuer__basis">
-              Thanks, {name.trim().split(" ")[0]}. Our team will value {reg} and contact you on {tel} or at {email.trim()}.{ref && (
-                <>
-                  {" "}Your reference is <span className="rk-nw">{ref}</span>.
-                </>
-              )}
-            </p>
-            {!customer && (
-              <div className="rk-valuer__acct">
-                <b>Create your free account</b>
-                <span>List {reg} in a few taps when you&apos;re ready, keep a wishlist and keep track of your plates.</span>
-                <button type="button" className="rk-valuer__go" onClick={toAccount} data-vr-account>
-                  Create my account <ArrowRight />
-                </button>
-              </div>
-            )}
-            <button type="button" className="rk-valuer__again" onClick={again}>
-              Value another plate
-            </button>
-          </div>
-        ) : (
-          <form className="rk-valuer__form rk-vreq" onSubmit={submit} noValidate>
-            <h2 id="value-title">Value my plate</h2>
-            <p className="rk-valuer__lede">Tell us where to send it and our team will value your plate for you, free.</p>
-            <label className="rk-vreq__f rk-vreq__f--reg">
-              <span>Registration</span>
-              <input className="rk-valuer__plate" value={reg} onChange={(e) => setReg(spaceReg(e.target.value))} maxLength={8} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-invalid={tried && !ok.reg} data-vr="reg" />
-              {tried && !ok.reg && <small className="rk-vreq__err">Enter your registration.</small>}
-            </label>
-            <label className="rk-vreq__f">
-              <span>Your name</span>
-              <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={80} aria-invalid={tried && !ok.name} data-vr="name" />
-              {tried && !ok.name && <small className="rk-vreq__err">Enter your name.</small>}
-            </label>
-            <label className="rk-vreq__f">
-              <span>Email</span>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={120} aria-invalid={tried && !ok.email} data-vr="email" />
-              {tried && !ok.email && <small className="rk-vreq__err">Enter a valid email address.</small>}
-            </label>
-            <label className="rk-vreq__f">
-              <span>Phone number</span>
-              <input type="tel" value={tel} onChange={(e) => setTel(e.target.value)} autoComplete="tel" maxLength={20} aria-invalid={tried && !ok.tel} data-vr="tel" />
-              {tried && !ok.tel && <small className="rk-vreq__err">Enter a phone number we can call.</small>}
-            </label>
-            {/* hidden from people; only bots fill it in */}
-            <input className="rk-vreq__trap" tabIndex={-1} autoComplete="off" aria-hidden value={trap} onChange={(e) => setTrap(e.target.value)} name="website" />
-            {error && (
-              <p className="rk-vreq__fail" role="alert">
-                {error}
+          <>
+            <header className="vp__top">
+              <span className="vp__tick" aria-hidden>
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12.5l4.5 4.5L19 7.5" />
+                </svg>
+              </span>
+              <h2 id="value-title">Request received</h2>
+              <span className="vp__plate vp__plate--shown">{reg}</span>
+            </header>
+            <div className="vp__body" role="status">
+              <p className="vp__msg">
+                Thanks{first ? `, ${first}` : ""}. Our team will value {reg} and contact you on <b>{tel}</b> or at <b>{email.trim()}</b>.
               </p>
-            )}
-            <button type="submit" className="rk-valuer__go" disabled={state === "sending"} data-vr-send>
-              {state === "sending" ? "Sending…" : "Get my free valuation"}
-            </button>
-            <p className="rk-vreq__fine">
-              We&apos;ll only use your details to value your plate and contact you about it. See our{" "}
-              <a href="/privacy-policy">privacy policy</a>.
-            </p>
+              {ref && (
+                <p className="vp__ref">
+                  Reference <b>{ref}</b>
+                </p>
+              )}
+              {!customer && (
+                <div className="vp__acct">
+                  <div>
+                    <b>Create your free account</b>
+                    <span>List {reg} in a few taps when you&apos;re ready, keep a wishlist and keep track of your plates.</span>
+                  </div>
+                  <button type="button" className="vp__go" onClick={toAccount} data-vr-account>
+                    Create my account <ArrowRight />
+                  </button>
+                </div>
+              )}
+              <button type="button" className="vp__again" onClick={again}>
+                Value another plate
+              </button>
+            </div>
+          </>
+        ) : (
+          <form onSubmit={submit} noValidate>
+            <header className="vp__top">
+              <p className="vp__kicker">
+                <CrownIcon /> Free from the REG KING team
+              </p>
+              <h2 id="value-title">Value my plate</h2>
+              <label className="vp__regf">
+                <span className="rk-visually-hidden">Registration</span>
+                <input className="vp__plate" value={reg} onChange={(e) => setReg(spaceReg(e.target.value))} maxLength={8} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-invalid={tried && !ok.reg} data-vr="reg" />
+                {tried && !ok.reg && <small className="vp__err vp__err--top">Enter your registration.</small>}
+              </label>
+            </header>
+            <div className="vp__body">
+              <p className="vp__lede">Where should we send your valuation?</p>
+              <div className="vp__fields">
+                <label className="vp__f vp__f--wide">
+                  <span>Your name</span>
+                  <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={80} aria-invalid={tried && !ok.name} data-vr="name" />
+                  {tried && !ok.name && <small className="vp__err">Enter your name.</small>}
+                </label>
+                <label className="vp__f">
+                  <span>Email</span>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={120} aria-invalid={tried && !ok.email} data-vr="email" />
+                  {tried && !ok.email && <small className="vp__err">Enter a valid email address.</small>}
+                </label>
+                <label className="vp__f">
+                  <span>Phone number</span>
+                  <input type="tel" value={tel} onChange={(e) => setTel(e.target.value)} autoComplete="tel" maxLength={20} aria-invalid={tried && !ok.tel} data-vr="tel" />
+                  {tried && !ok.tel && <small className="vp__err">Enter a phone number we can call.</small>}
+                </label>
+              </div>
+              {/* hidden from people; only bots fill it in */}
+              <input className="rk-vreq__trap" tabIndex={-1} autoComplete="off" aria-hidden value={trap} onChange={(e) => setTrap(e.target.value)} name="website" />
+              {error && (
+                <p className="vp__fail" role="alert">
+                  {error}
+                </p>
+              )}
+              <button type="submit" className="vp__go" disabled={state === "sending"} data-vr-send>
+                {state === "sending" ? "Sending…" : "Get my free valuation"}
+              </button>
+              <ol className="vp__next" aria-label="What happens next">
+                <li>Our team looks at your reg</li>
+                <li>We contact you with a valuation</li>
+                <li>You decide whether to sell</li>
+              </ol>
+              <div className="vp__foot">
+                <GoogleScore tone="dark" compact />
+                <p>
+                  We only use your details for your valuation. <a href="/privacy-policy">Privacy policy</a>
+                </p>
+              </div>
+            </div>
           </form>
         )}
-      </div>
-    </section>
+      </section>
     </div>
   );
 }
-
 
 /**
  * Sell page: once a reg is entered, the same List a Plate form as the account area, with that reg filled in.
