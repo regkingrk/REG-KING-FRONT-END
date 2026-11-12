@@ -173,8 +173,8 @@ export type ReviewSource = "Trustpilot" | "Google";
 export type Review = { name: string; rating: 1 | 2 | 3 | 4 | 5; date: string; source: ReviewSource; url: string; text?: string };
 
 export const TRUSTPILOT_URL = "https://www.trustpilot.com/review/regking.co.uk";
-/** REG KING's Google Business Profile link: add it once confirmed. */
-export const GOOGLE_REVIEWS_URL: string | null = null;
+/** REG KING's Google Business Profile (from the owner's Maps share link, 12 Nov 2026; place 0xd35dbcc60d361ce1). */
+export const GOOGLE_REVIEWS_URL: string | null = "https://maps.google.com/?cid=15230537073648082145";
 
 /** Profile scores, checked 22 Oct 2026. Google's loads from the Places API at launch. */
 export const reviewScores = {

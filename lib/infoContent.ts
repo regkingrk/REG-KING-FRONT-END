@@ -226,7 +226,10 @@ export const HQ = {
   lines: ["48A Willenhall Road", "Bilston", "WV14 6NW"],
   hours: null as { days: string; time: string }[] | null,
   does: ["Plates made while you wait", "Collect and fit", "Office and admin", "Wholesale and trade"],
-  maps: "https://www.google.com/maps/search/?api=1&query=REG+KING+48A+Willenhall+Road+Bilston+WV14+6NW",
+  /** REG KING's own Google Maps listing (the owner's share link, 12 Nov 2026). */
+  maps: "https://maps.google.com/?cid=15230537073648082145",
+  /** The map pin on that listing. */
+  geo: { lat: 52.5715308, lon: -2.0650303 },
   directions: "https://www.google.com/maps/dir/?api=1&destination=48A+Willenhall+Road+Bilston+WV14+6NW",
   /** Google Maps embed, no key needed. */
   embed: "https://www.google.com/maps?q=48A+Willenhall+Road,+Bilston,+WV14+6NW&output=embed",
