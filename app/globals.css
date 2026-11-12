@@ -39573,3 +39573,13 @@ body:has(.rk-studio) {
   border-width: 2.5px;
   border-radius: 0.8% / 3.8%;
 }
+/* with a badge, the border goes round the registration only, starting just right of the badge */
+.rk-p3d__face:has(.rk-badge) .rk-pborder {
+  left: calc(var(--rk-bw, 9.6cqi) + 0.8cqi);
+}
+.rk-plate:has(.rk-badge) .rk-pborder {
+  left: calc(clamp(34px, 5.4vw, 56px) + 10px);
+}
+.rk-pp:has(.rk-badge) .rk-pborder {
+  left: 32px;
+}

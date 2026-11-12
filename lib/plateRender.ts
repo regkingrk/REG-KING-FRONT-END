@@ -162,9 +162,7 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
       ctx.fillStyle = badge === "ev" || badge === "ev-uk" ? EV_GREEN : "#0a47c2";
       ctx.fillRect(0, 0, bw, H);
     }
-    // inside a printed border the badge's flag and letters sit a little smaller, clear of the line
-    const bordered = s.extras.includes("border");
-    if (badge === "uk" || badge === "ev-uk") bordered ? drawUnionFlag(ctx, bw * 0.24, H * 0.2, bw * 0.66, bw * 0.33) : drawUnionFlag(ctx, bw * 0.1, H * 0.15, bw * 0.8, bw * 0.4);
+    if (badge === "uk" || badge === "ev-uk") drawUnionFlag(ctx, bw * 0.1, H * 0.15, bw * 0.8, bw * 0.4);
     if (badge === "badge") {
       ctx.fillStyle = "#ffc200";
       ctx.font = `700 ${18 * k}px ${FONT}`;
@@ -176,10 +174,10 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     const word = badge === "ev" || badge === "badge" ? "" : "UK";
     if (word) {
       ctx.fillStyle = badge === "uk" ? UK_BLUE : "#ffffff";
-      ctx.font = `800 ${(badge === "uk" || badge === "ev-uk" ? (bordered ? 24 : 30) : 22) * k}px ${FONT}`;
+      ctx.font = `800 ${(badge === "uk" || badge === "ev-uk" ? 30 : 22) * k}px ${FONT}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.fillText(word, bordered ? bw * 0.57 : bw / 2, H - (bordered ? 16 : 12) * k);
+      ctx.fillText(word, bw / 2, H - 12 * k);
     }
   }
 
@@ -211,11 +209,13 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   if (s.extras.includes("border")) {
     ctx.save();
     ctx.strokeStyle = metal ? "#e8e8e8" : "#111";
-    // a fine line close to the edge, following the plate's rounded corners
+    // a fine line close to the edge, following the plate's rounded corners. With a badge, the border
+    // goes round the registration only: it starts just right of the badge, not round the badge too.
     ctx.lineWidth = 3 * k;
     const inset = 7 * k;
+    const from = left ? left + 4 * k : inset;
     ctx.beginPath();
-    ctx.roundRect(inset, inset, W - inset * 2, H - inset * 2, Math.max(3, PLATE_CORNER_MM - 6) * k);
+    ctx.roundRect(from, inset, W - inset - from, H - inset * 2, Math.max(3, PLATE_CORNER_MM - 6) * k);
     ctx.stroke();
     ctx.restore();
   }
