@@ -39565,3 +39565,11 @@ body:has(.rk-studio) {
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
 }
+
+/* Printed border: a fine line close to the edge (7mm in on a 520 x 111mm plate), following the rounded corners */
+.rk-pborder,
+.rk-pp .rk-pborder {
+  inset: 6.3% 1.35%;
+  border-width: 2.5px;
+  border-radius: 0.8% / 3.8%;
+}
