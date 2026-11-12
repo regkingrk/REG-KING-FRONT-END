@@ -581,8 +581,8 @@ export function TabViews() {
       {mode === "buy" && !results && !buyItem && (
         <>
           <NewThisWeek />
-          <WhyBuy />
           <BuyingGuide />
+          <WhyBuy />
           <AsSeenWith />
         </>
       )}

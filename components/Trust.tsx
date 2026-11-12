@@ -176,72 +176,50 @@ export function WhyBuy() {
   const { go } = useMode();
   return (
     <section className="tr-why" id="rk-whybuy" aria-labelledby="whybuy-title">
-      <div className="rk-wrap tr-why__in">
-        <header className="tr-why__head">
-          <h2 id="whybuy-title">Why buy with REG KING?</h2>
-          <GoogleScore tone="dark" />
-        </header>
+      <div className="rk-wrap tr-why__head">
+        <h2 id="whybuy-title">Why buy with REG KING?</h2>
+        <p>Your registration. Our priority.</p>
+        <GoogleScore tone="dark" />
+      </div>
 
-        <ul className="tr-why__pillars">
-          <li className="tr-pill">
-            <span className="tr-pill__mark" aria-hidden>
-              2017
-            </span>
-            <h3>Established since 2017</h3>
-            <p>REG KING began in 2017 with two private registrations. Today we buy, sell and make number plates from our own showroom in Bilston, open since August 2025.</p>
-            <a href="/about" onClick={(e) => (e.preventDefault(), go("info-about"))}>
-              Our story <ArrowRight />
-            </a>
-          </li>
-
-          <li className="tr-pill">
-            <span className="tr-pill__mark" aria-hidden>
-              <GoogleG className="tr-pill__g" />
-            </span>
-            <h3>Genuine customer reviews</h3>
-            <p>Read what our customers say on Google and Trustpilot, in their own words, and check our reputation for yourself.</p>
-            <GoogleScore tone="dark" compact />
-            <a href={reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
-              {reviewScores.trustpilot.score} out of 5 on Trustpilot <ArrowRight />
-            </a>
-          </li>
-
-          <li className="tr-pill tr-pill--visit">
-            <img className="tr-pill__photo" src="/media/accessories-wall.jpg" alt="The plate wall inside the REG KING showroom in Bilston" loading="lazy" decoding="async" width={1381} height={1400} />
-            <h3>A real business you can visit</h3>
-            <address>
-              REG KING
-              {HQ.lines.map((l) => (
-                <span key={l}>{l}</span>
-              ))}
-            </address>
-            <a href={HQ.directions} target="_blank" rel="noopener noreferrer">
-              Get directions <ArrowRight />
-            </a>
-          </li>
-
-          <li className="tr-pill">
-            <span className="tr-pill__mark" aria-hidden>
-              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 5h16v11H8l-4 4zM8 9h8M8 12h5" />
-              </svg>
-            </span>
-            <h3>Support throughout your purchase</h3>
-            <p>After you order, one of the team calls you to go through your documents and the transfer. How long it takes depends on the plate and on DVLA, so we tell you what to expect for yours.</p>
-            <a href="/contact" onClick={(e) => (e.preventDefault(), go("info-contact"))}>
-              Contact the team <ArrowRight />
-            </a>
-          </li>
-        </ul>
-
-        <ReviewQuote topic="buy" tone="dark" />
-
-        <div className="tr-why__promise">
-          <h3>Your registration. Our priority.</h3>
+      <ul className="rk-wrap tr-why__pillars">
+        <li className="tr-pill">
+          <h3>Established since 2017</h3>
+          <p>From two private registrations in 2017 to our own showroom in Bilston, open since August 2025.</p>
+          <a href="/about" onClick={(e) => (e.preventDefault(), go("info-about"))}>
+            Our story <ArrowRight />
+          </a>
+        </li>
+        <li className="tr-pill">
+          <h3>Genuine customer reviews</h3>
+          <p>Read what our customers say, in their own words, on Google and Trustpilot.</p>
+          <a href={reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
+            {reviewScores.trustpilot.score} out of 5 on Trustpilot <ArrowRight />
+          </a>
+        </li>
+        <li className="tr-pill">
+          <h3>A real business you can visit</h3>
           <p>
-            At REG KING, we understand that purchasing a private registration is an important investment. That&apos;s why we focus on clear communication, transparent processes and professional support throughout your purchase.
+            <span>REG KING, {HQ.lines[0]},</span> <span>{HQ.lines[1]} {HQ.lines[2]}</span>
           </p>
-        </div>
+          <a href={HQ.directions} target="_blank" rel="noopener noreferrer">
+            Get directions <ArrowRight />
+          </a>
+        </li>
+        <li className="tr-pill">
+          <h3>Support throughout your purchase</h3>
+          <p>After you order, we call you and guide you through your documents and the transfer. Timings depend on the plate and on DVLA, so we tell you what to expect.</p>
+          <a href="/contact" onClick={(e) => (e.preventDefault(), go("info-contact"))}>
+            Contact the team <ArrowRight />
+          </a>
+        </li>
+      </ul>
+
+      <div className="rk-wrap tr-why__foot">
+        <ReviewQuote topic="buy" tone="dark" />
+        <p className="tr-why__promise">
+          We understand that buying a private registration is an important investment. That&apos;s why we focus on clear communication, transparent processes and professional support throughout your purchase.
+        </p>
       </div>
     </section>
   );
