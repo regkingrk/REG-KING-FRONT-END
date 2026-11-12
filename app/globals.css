@@ -1881,15 +1881,15 @@ body::before {
     linear-gradient(180deg, #9b8613, #7a6809) !important;
 }
 
-/* Faded Tint: only the reflective fades, from black at the bottom up into white (front) or yellow (rear) */
+/* Faded Tint: a smoked tint across the top that fades away down the plate, so white (front) or yellow (rear) comes through from the bottom up */
 [data-extras~="fade"] {
   background:
-    linear-gradient(0deg, #141412 0%, rgba(20, 20, 18, 0.92) 12%, rgba(20, 20, 18, 0) 72%),
+    linear-gradient(180deg, rgba(24, 23, 20, 0.58) 0%, rgba(24, 23, 20, 0.48) 25%, rgba(24, 23, 20, 0) 78%),
     linear-gradient(180deg, #ffffff, #ececea) !important;
 }
 [data-extras~="fade"][data-side="rear"] {
   background:
-    linear-gradient(0deg, #141412 0%, rgba(20, 20, 18, 0.92) 12%, rgba(20, 20, 18, 0) 72%),
+    linear-gradient(180deg, rgba(24, 23, 20, 0.82) 0%, rgba(24, 23, 20, 0.67) 25%, rgba(24, 23, 20, 0) 78%),
     linear-gradient(180deg, #ffdc1a, #f6c800) !important;
 }
 

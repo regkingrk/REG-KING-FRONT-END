@@ -71,8 +71,12 @@ export const EV_GREEN = "#1f9a48";
 export const UK_BLUE = "#1f3c96";
 /** Tinted acrylic (show plates): smoked grey at the front, a deep olive-gold at the back, from REG KING's tinted plates. */
 export const TINT = { front: { top: "#8f8e8a", bottom: "#71706c", edge: 0x6c6b67 }, rear: { top: "#9b8613", bottom: "#7a6809", edge: 0x756407 } };
-/** Faded Tint: the reflective fades from black at the bottom up into the plate's own colour. The letters stay black. */
-export const FADE_FROM = "#141412";
+/**
+ * Faded Tint: a smoked tint across the top of the reflective that fades away down the plate, so the
+ * plate's own colour comes through from the bottom up (grey into white at the front, dark into yellow
+ * at the back). The letters stay black.
+ */
+export const FADE_TOP = { front: 0.58, rear: 0.82 };
 
 function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number, hex: boolean, flip = false) {
   ctx.beginPath();
@@ -127,10 +131,11 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   if (!metal && s.extras.includes("fade")) {
-    const f = ctx.createLinearGradient(0, H, 0, 0);
-    f.addColorStop(0, FADE_FROM);
-    f.addColorStop(0.12, "rgba(20,20,18,0.92)");
-    f.addColorStop(0.72, "rgba(20,20,18,0)");
+    const a = FADE_TOP[s.side];
+    const f = ctx.createLinearGradient(0, 0, 0, H);
+    f.addColorStop(0, `rgba(24,23,20,${a})`);
+    f.addColorStop(0.25, `rgba(24,23,20,${(a * 0.82).toFixed(3)})`);
+    f.addColorStop(0.78, "rgba(24,23,20,0)");
     ctx.fillStyle = f;
     ctx.fillRect(0, 0, W, H);
   }
