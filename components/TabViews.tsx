@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { formatGBP, modeUrl, normaliseReg, routes, sellOptions, sellSmallPrint, sellSteps, spaceReg, type SellOption } from "@/lib/brand";
 import { navigate } from "@/lib/nav";
 import { QuickLinks } from "./HomeSections";
@@ -39,11 +39,18 @@ function ValueCard() {
   const [email, setEmail] = useState("");
   const [tel, setTel] = useState("");
   const [trap, setTrap] = useState("");
+  const [held, setHeld] = useState<"" | "vehicle" | "retention" | "unsure">("");
+  const [note, setNote] = useState("");
+  const [makeAccount, setMakeAccount] = useState(true);
   const [tried, setTried] = useState(false);
   const [state, setState] = useState<"form" | "sending" | "sent">("form");
   const [error, setError] = useState("");
   const [ref, setRef] = useState("");
 
+  // A question that has just appeared is brought into view (the pop-up scrolls on small screens).
+  const reveal = useCallback((el: HTMLElement | null) => {
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+  }, []);
   // A reg from the plate box opens the form here, filled in with what we already know.
   useEffect(() => {
     if (!valueAsk) return;
@@ -51,13 +58,15 @@ function ValueCard() {
     setState("form");
     setError("");
     setTried(false);
+    setHeld("");
+    setNote("");
     if (customer) {
       setName((n) => n || customer.name);
       setEmail((e) => e || customer.email);
       setTel((t) => t || customer.phone);
     }
     // first empty field gets the cursor
-    requestAnimationFrame(() => [...(box.current?.querySelectorAll<HTMLInputElement>("[data-vr]") ?? [])].find((el) => !el.value)?.focus());
+    window.setTimeout(() => [...(box.current?.querySelectorAll<HTMLInputElement>("[data-vr]") ?? [])].find((el) => !el.value)?.focus({ preventScroll: true }), 80);
   }, [valueAsk]); // eslint-disable-line react-hooks/exhaustive-deps
   // While the pop-up is open: Escape closes it and the page behind doesn't scroll.
   useEffect(() => {
@@ -95,12 +104,17 @@ function ValueCard() {
       const res = await fetch("/api/valuation-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reg, name, email, phone: tel, website: trap, source: "sell-page" }),
+        body: JSON.stringify({ reg, name, email, phone: tel, held: held || undefined, note: note.trim() || undefined, website: trap, source: "sell-page" }),
       });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string };
       if (!res.ok || !j.ok) throw new Error(j.error || "");
       setRef(j.ref ?? "");
       setState("sent");
+      if (makeAccount && !customer) {
+        try {
+          sessionStorage.setItem("rk-signup", JSON.stringify({ email: email.trim(), name: name.trim() }));
+        } catch {}
+      }
     } catch (err) {
       setError((err as Error).message || "We couldn't send your request. Call 01922 333451 or WhatsApp 07838 371339 and we'll value it for you.");
       setState("form");
@@ -119,6 +133,10 @@ function ValueCard() {
   };
 
   const first = name.trim().split(" ")[0];
+  // One question at a time: each appears once the one before is filled in.
+  const show = { email: ok.name && name.trim().length >= 2, tel: ok.email, more: ok.tel };
+  show.email ||= tried;
+  show.tel ||= tried && show.email;
   return (
     <div className="vp-scrim" onMouseDown={(e) => e.target === e.currentTarget && close()} data-vpop>
       <section className="vp" id="sell-valuation" role="dialog" aria-modal="true" aria-labelledby="value-title" ref={box}>
@@ -151,11 +169,15 @@ function ValueCard() {
               {!customer && (
                 <div className="vp__acct">
                   <div>
-                    <b>Create your free account</b>
-                    <span>List {reg} in a few taps when you&apos;re ready, keep a wishlist and keep track of your plates.</span>
+                    <b>{makeAccount ? "Finish your free account" : "Create your free account"}</b>
+                    <span>
+                      {makeAccount
+                        ? `One quick step: confirm your email address and your account is ready.`
+                        : `List ${reg} in a few taps when you're ready, keep a wishlist and keep track of your plates.`}
+                    </span>
                   </div>
                   <button type="button" className="vp__go" onClick={toAccount} data-vr-account>
-                    Create my account <ArrowRight />
+                    {makeAccount ? "Confirm my email" : "Create my account"} <ArrowRight />
                   </button>
                 </div>
               )}
@@ -180,22 +202,59 @@ function ValueCard() {
             <div className="vp__body">
               <p className="vp__lede">Where should we send your valuation?</p>
               <div className="vp__fields">
-                <label className="vp__f vp__f--wide">
+                <label className="vp__f">
                   <span>Your name</span>
                   <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={80} aria-invalid={tried && !ok.name} data-vr="name" />
                   {tried && !ok.name && <small className="vp__err">Enter your name.</small>}
                 </label>
-                <label className="vp__f">
-                  <span>Email</span>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={120} aria-invalid={tried && !ok.email} data-vr="email" />
-                  {tried && !ok.email && <small className="vp__err">Enter a valid email address.</small>}
-                </label>
-                <label className="vp__f">
-                  <span>Phone number</span>
-                  <input type="tel" value={tel} onChange={(e) => setTel(e.target.value)} autoComplete="tel" maxLength={20} aria-invalid={tried && !ok.tel} data-vr="tel" />
-                  {tried && !ok.tel && <small className="vp__err">Enter a phone number we can call.</small>}
-                </label>
+                {show.email && (
+                  <label className="vp__f vp__rise" ref={reveal}>
+                    <span>Email</span>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={120} aria-invalid={tried && !ok.email} data-vr="email" />
+                    {tried && !ok.email && <small className="vp__err">Enter a valid email address.</small>}
+                  </label>
+                )}
+                {show.tel && (
+                  <label className="vp__f vp__rise" ref={reveal}>
+                    <span>Phone number</span>
+                    <input type="tel" value={tel} onChange={(e) => setTel(e.target.value)} autoComplete="tel" maxLength={20} aria-invalid={tried && !ok.tel} data-vr="tel" />
+                    {tried && !ok.tel && <small className="vp__err">Enter a phone number we can call.</small>}
+                  </label>
+                )}
               </div>
+              {show.more && (
+                <div className="vp__more vp__rise" ref={reveal}>
+                  <p className="vp__more-h">
+                    A bit more about your plate <i>(optional)</i>
+                  </p>
+                  <div className="vp__chips" role="radiogroup" aria-label="Where is the registration now?">
+                    {(
+                      [
+                        ["vehicle", "On a vehicle"],
+                        ["retention", "On a certificate"],
+                        ["unsure", "Not sure"],
+                      ] as const
+                    ).map(([k, t]) => (
+                      <button key={k} type="button" role="radio" aria-checked={held === k} onClick={() => setHeld(held === k ? "" : k)} data-vr-held={k}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="vp__f">
+                    <span className="rk-visually-hidden">Anything we should know?</span>
+                    <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Anything we should know? For example, what it means or a price you've been offered." data-vr-note />
+                  </label>
+                  {!customer && (
+                    <label className="vp__acctopt">
+                      <input type="checkbox" checked={makeAccount} onChange={(e) => setMakeAccount(e.target.checked)} data-vr-makeacct />
+                      <span>
+                        <b>Create my free REG KING account</b>
+                        <small>List your plate in a few taps when you&apos;re ready, and keep a wishlist.</small>
+                      </span>
+                    </label>
+                  )}
+                </div>
+              )}
               {/* hidden from people; only bots fill it in */}
               <input className="rk-vreq__trap" tabIndex={-1} autoComplete="off" aria-hidden value={trap} onChange={(e) => setTrap(e.target.value)} name="website" />
               {error && (
@@ -203,16 +262,18 @@ function ValueCard() {
                   {error}
                 </p>
               )}
-              <button type="submit" className="vp__go" disabled={state === "sending"} data-vr-send>
-                {state === "sending" ? "Sending…" : "Get my free valuation"}
-              </button>
+              {(show.more || tried) && (
+                <button type="submit" className="vp__go vp__rise" disabled={state === "sending"} data-vr-send>
+                  {state === "sending" ? "Sending…" : "Get my free valuation"}
+                </button>
+              )}
               <ol className="vp__next" aria-label="What happens next">
                 <li>Our team looks at your reg</li>
                 <li>We contact you with a valuation</li>
                 <li>You decide whether to sell</li>
               </ol>
               <div className="vp__foot">
-                <GoogleScore tone="dark" compact />
+                <GoogleScore compact />
                 <p>
                   We only use your details for your valuation. <a href="/privacy-policy">Privacy policy</a>
                 </p>
