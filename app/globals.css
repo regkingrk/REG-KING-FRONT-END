@@ -1884,22 +1884,22 @@ body::before {
 /* Faded Tint: a soft smoked tint darkest along one edge (top by default, or bottom), fading away into white (front) or yellow (rear) */
 [data-extras~="fade"] {
   background:
-    linear-gradient(180deg, rgba(40, 36, 24, 0.72) 0%, rgba(40, 36, 24, 0.43) 35%, rgba(40, 36, 24, 0) 90%),
+    linear-gradient(180deg, rgba(40, 36, 24, 0.82) 0%, rgba(40, 36, 24, 0.54) 35%, rgba(40, 36, 24, 0) 92%),
     linear-gradient(180deg, #ffffff, #ececea) !important;
 }
 [data-extras~="fade"][data-side="rear"] {
   background:
-    linear-gradient(180deg, rgba(40, 36, 24, 0.8) 0%, rgba(40, 36, 24, 0.48) 35%, rgba(40, 36, 24, 0) 90%),
+    linear-gradient(180deg, rgba(40, 36, 24, 0.9) 0%, rgba(40, 36, 24, 0.59) 35%, rgba(40, 36, 24, 0) 92%),
     linear-gradient(180deg, #ffdc1a, #f6c800) !important;
 }
 [data-extras~="fade"][data-fade="bottom"] {
   background:
-    linear-gradient(0deg, rgba(40, 36, 24, 0.72) 0%, rgba(40, 36, 24, 0.43) 35%, rgba(40, 36, 24, 0) 90%),
+    linear-gradient(0deg, rgba(40, 36, 24, 0.82) 0%, rgba(40, 36, 24, 0.54) 35%, rgba(40, 36, 24, 0) 92%),
     linear-gradient(180deg, #ffffff, #ececea) !important;
 }
 [data-extras~="fade"][data-fade="bottom"][data-side="rear"] {
   background:
-    linear-gradient(0deg, rgba(40, 36, 24, 0.8) 0%, rgba(40, 36, 24, 0.48) 35%, rgba(40, 36, 24, 0) 90%),
+    linear-gradient(0deg, rgba(40, 36, 24, 0.9) 0%, rgba(40, 36, 24, 0.59) 35%, rgba(40, 36, 24, 0) 92%),
     linear-gradient(180deg, #ffdc1a, #f6c800) !important;
 }
 
