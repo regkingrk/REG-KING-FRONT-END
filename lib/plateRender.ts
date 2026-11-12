@@ -79,7 +79,7 @@ export const TINT = { front: { top: "#8f8e8a", bottom: "#71706c", edge: 0x6c6b67
  * chooses) and fading away across the plate into clean white or yellow, as on REG KING's faded plates.
  * The letters stay black.
  */
-export const FADE_TOP = { front: 0.46, rear: 0.66 };
+export const FADE_TOP = { front: 0.72, rear: 0.8 };
 
 function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number, hex: boolean, flip = false) {
   ctx.beginPath();
