@@ -1,5 +1,6 @@
 "use client";
 
+import { linkFor } from "@/lib/routes";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { formatGBP, routes } from "@/lib/brand";
@@ -143,7 +144,7 @@ export function PlateReel({
         <div className="rk-wrap rk-new__acts">
           <a
             className="rk-new__all"
-            href={`#${browse.hash}`}
+            href={linkFor(browse.hash)}
             onClick={(e) => {
               e.preventDefault();
               go(browse.hash);

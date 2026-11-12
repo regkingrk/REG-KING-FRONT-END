@@ -318,8 +318,10 @@ export const depositFor = (price: number) => Math.round(price * DEPOSIT_RATE * 1
 /** Account holders get this much off physical plates made by REG KING (plates, surrounds, logo plates). */
 export const MEMBER_DISCOUNT = 0.05;
 export const instagram = { handle: "@regking_", href: "https://www.instagram.com/regking_/" };
-/** REG KING's TikTok: add the handle and link once confirmed (the icon shows without a link until then). */
-export const tiktok: { handle: string | null; href: string | null } = { handle: null, href: null };
+/** REG KING's TikTok (confirmed by REG KING, 12 Nov 2026). */
+export const tiktok: { handle: string | null; href: string | null } = { handle: "@regking_", href: "https://www.tiktok.com/@regking_" };
+/** The company behind REG KING, and its DVLA number plate supplier registration (both from REG KING, 12 Nov 2026). */
+export const COMPANY = { legal: "SHOW PLATES LTD", number: "12756249", dvlaRef: "62709" };
 
 export const payl8rDisclaimer =
   "Show Plates LTD is an Introducer Appointed Representative of Social Money Limited trading as Payl8r (Lender) and Dopple (Broker) who is authorised by the FCA under Ref. Number 675283. Credit is subject to creditworthiness and affordability assessments. Missed payments may affect your credit file, future borrowing and incur fees. Representative Example: £460.00 over 12 months at 2.50% fixed per month. Rep APR: 65.5%.";

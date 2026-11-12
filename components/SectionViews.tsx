@@ -1,5 +1,6 @@
 "use client";
 
+import { linkFor } from "@/lib/routes";
 import { useEffect, useState, type FormEvent } from "react";
 import { DEPOSIT_RATE, depositFor, exclusivePlates, faqs, formatGBP, instagram, normaliseReg, payl8rDisclaimer, platesForSale, plateStyles, reviewScores, reviews, routes, supportEmail, trust } from "@/lib/brand";
 import { STOCK, STYLE_INFO, earliest, styleOf } from "@/lib/search";
@@ -419,7 +420,7 @@ export function InfoView() {
             {section.items.map((i) => (
               <li key={i.key}>
                 <a
-                  href={`#${i.hash}`}
+                  href={linkFor(i.hash)}
                   aria-current={i.key === page.key ? "page" : undefined}
                   data-info={i.key}
                   onClick={(e) => {

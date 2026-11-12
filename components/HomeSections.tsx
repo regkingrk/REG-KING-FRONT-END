@@ -1,9 +1,11 @@
+import { linkFor } from "@/lib/routes";
 import { SITEMAP } from "@/lib/sitemap";
 import {
   auctionLots,
   faqs,
   formatGBP,
   instagram,
+  COMPANY,
   payl8rDisclaimer,
   plateStyles,
   platesForSale,
@@ -288,12 +290,12 @@ export function SiteFooter() {
           {SITEMAP.map((sec) => (
             <div key={sec.key}>
               <h4>
-                <a href={`#${sec.key === "info" ? "info-about" : sec.hash}`}>{sec.label}</a>
+                <a href={linkFor(sec.key === "info" ? "info-about" : sec.hash)}>{sec.label}</a>
               </h4>
               <ul>
                 {sec.items.map((it) => (
                   <li key={it.key}>
-                    <a href={`#${it.hash}`}>{it.label}</a>
+                    <a href={linkFor(it.hash)}>{it.label}</a>
                   </li>
                 ))}
               </ul>
@@ -302,7 +304,9 @@ export function SiteFooter() {
         </div>
         <p className="rk-footer__small rk-footer__legal">{payl8rDisclaimer}</p>
         <div className="rk-footer__base">
-          <span>© 2026, REG KING</span>
+          <span>
+            © 2026 REG KING, a trading name of {COMPANY.legal} (company number {COMPANY.number}). DVLA registered number plate supplier, ref {COMPANY.dvlaRef}.
+          </span>
           <span className="rk-pay" aria-label="Payment methods">
             {["Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay", "PayPal", "Shop Pay", "Maestro"].map((m) => (
               <span key={m}>{m}</span>

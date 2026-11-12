@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono, Oswald } from "next/font/google";
 import "./globals.css";
+import { JsonLd, siteSchema } from "@/lib/schema";
 
 /** UK-plate style characters (matches the REG KING workshop tool). */
 const plateFont = Barlow_Condensed({
@@ -29,6 +30,8 @@ export const metadata: Metadata = {
   // Hidden from Google until launch (LAUNCH=1 in Vercel), so the test address never competes with regking.co.uk.
   robots: process.env.LAUNCH === "1" ? { index: true, follow: true } : { index: false, follow: false },
   openGraph: {
+    type: "website",
+    locale: "en_GB",
     siteName: "REG KING",
     images: ["/brand/regking-logo.png"],
   },
@@ -56,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-GB" className={`${oswald.variable} ${plateFont.variable} ${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: introGate }} />
+        <JsonLd data={siteSchema()} />
       </head>
       <body>{children}</body>
     </html>

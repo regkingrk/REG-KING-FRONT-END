@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { formatGBP, instagram, payl8rDisclaimer, reviewScores, routes, spaceReg, supportEmail } from "@/lib/brand";
+import { COMPANY, formatGBP, instagram, payl8rDisclaimer, reviewScores, routes, spaceReg, supportEmail } from "@/lib/brand";
 import { BrandLogo } from "./BrandLogo";
 import { CONTACT_TOPICS, FAQS, HQ, PROVIDERS, STORY, STORY_NEXT, TEAM, phone, whatsapp, type ContactTopic, type FaqTab, type ProviderKey } from "@/lib/infoContent";
 import { GALLERY, type GalleryTab } from "@/lib/gallery";
@@ -229,9 +229,11 @@ export function AboutPage() {
         </div>
         <div>
           <h2 id="ab-reg-t">Fully DVLA registered</h2>
-          {/* CONFIRM with REG KING: the exact DVLA registration (e.g. Registered Number Plate Supplier) to name here. */}
           <p>
-            REG KING is fully registered with the DVLA. Every transfer is handled properly, every document is checked, and every road legal plate we make is made to the legal standard. You&apos;re dealing with a business that does it by the book.
+            REG KING is a DVLA registered number plate supplier, reference {COMPANY.dvlaRef}. Every transfer is handled properly, every document is checked, and every road legal plate we make is made to the legal standard. You&apos;re dealing with a business that does it by the book.
+          </p>
+          <p className="ab-reg__co">
+            REG KING is a trading name of {COMPANY.legal}, company number {COMPANY.number}.
           </p>
         </div>
       </section>
@@ -721,7 +723,7 @@ export function ContactPage() {
       <section className="rk-c3__visit" aria-labelledby="c3-visit">
         <div className="rk-c3__map">
           {preview ? (
-            <div className="rk-ct__mapstub" role="img" aria-label="Map of 48A Willenhall Road, Bilston">
+            <div className="rk-ct__mapstub" role="img" aria-label="Map of 48a Willenhall Rd, Bilston">
               <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden fill="currentColor">
                 <path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" />
               </svg>
@@ -730,7 +732,7 @@ export function ContactPage() {
               <small>The live site shows a Google map here.</small>
             </div>
           ) : (
-            <iframe title="Map: REG KING, 48A Willenhall Road, Bilston" src={HQ.embed} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+            <iframe title="Map: REG KING, 48a Willenhall Rd, Bilston" src={HQ.embed} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
           )}
         </div>
         <div className="rk-c3__where">

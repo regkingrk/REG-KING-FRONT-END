@@ -222,8 +222,8 @@ export const STORY_NEXT = {
 /** The HQ. Address from REG KING (28 Oct 2026); hours from its Google Business Profile (12 Nov 2026). */
 export const HQ = {
   area: "Bilston, Wolverhampton",
-  address: "48A Willenhall Road, Bilston, WV14 6NW" as string | null,
-  lines: ["48A Willenhall Road", "Bilston", "WV14 6NW"],
+  address: "48a Willenhall Rd, Willenhall, Bilston WV14 6NW" as string | null,
+  lines: ["48a Willenhall Rd", "Willenhall, Bilston", "WV14 6NW"],
   /** Shop opening hours (from REG KING's Google Business Profile, 12 Nov 2026). */
   hours: [
     { days: "Monday to Friday", time: "10am to 8pm" },
@@ -537,7 +537,7 @@ export const FAQS: Record<FaqTab, { label: string; line: string; items: Faq[] }>
     items: [
       {
         q: "How can I contact you?",
-        a: "Call 01922 333451, email support@regking.co.uk, message us on WhatsApp, or use the contact form. You can also visit us at 48A Willenhall Road, Bilston, WV14 6NW.",
+        a: "Call 01922 333451, email support@regking.co.uk, message us on WhatsApp, or use the contact form. You can also visit us at 48a Willenhall Rd, Willenhall, Bilston WV14 6NW.",
       },
       {
         q: "Where can I see my orders and listings?",

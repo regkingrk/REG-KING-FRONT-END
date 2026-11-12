@@ -11,7 +11,7 @@
  * analytics cookies; locations are town level from the visitor's connection, never a home address.
  */
 import { useMemo, useState } from "react";
-import { formatGBP } from "@/lib/brand";
+import { COMPANY, formatGBP } from "@/lib/brand";
 import { customerPlates, regkingStock } from "@/lib/stock";
 import { FAQS, TEAM, type FaqTab } from "@/lib/infoContent";
 import { CUSTOMERS, JOBS, customerById, can, type AdminOrder, type AdminTab, type Role } from "@/lib/admin";
@@ -1236,13 +1236,13 @@ export function ReturnsPage({ orders, record }: { orders: AdminOrder[]; record: 
 /* Road legal plate records (registered number plate supplier)          */
 /* ------------------------------------------------------------------ */
 export function RecordsPage() {
-  const [rnps, setRnps] = useState("");
+  const [rnps, setRnps] = useState(COMPANY.dvlaRef);
   const legal = JOBS.filter((j) => j.legal);
   return (
     <div className="as-stack">
       <p className="as-lede">The record book for road legal plates. Registered number plate suppliers must keep a record of each road legal plate they sell, with the customer&apos;s documents, and keep it for three years.</p>
       <Card title="Your supplier registration">
-        <Field label="DVLA registered number plate supplier number" hint="To confirm with REG KING">
+        <Field label="DVLA registered number plate supplier number" hint="From REG KING">
           <input className="as-input" value={rnps} onChange={(e) => setRnps(e.target.value)} />
         </Field>
       </Card>

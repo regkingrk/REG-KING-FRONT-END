@@ -1,5 +1,6 @@
 "use client";
 
+import { linkFor } from "@/lib/routes";
 import { useEffect, useRef, useState } from "react";
 import { depositFor, formatGBP, supportEmail, payl8rDisclaimer, platesForSale, reviewScores, routes } from "@/lib/brand";
 import { PROVIDERS, phone, whatsapp, type ProviderKey } from "@/lib/infoContent";
@@ -198,7 +199,7 @@ export function PlateView({ handle }: { handle: string }) {
             <span aria-hidden>/</span>
             {crumb && (
               <>
-                <a href={`#${crumb.h}`} onClick={link(crumb.h)}>
+                <a href={linkFor(crumb.h)} onClick={link(crumb.h)}>
                   {crumb.t}
                 </a>
                 <span aria-hidden>/</span>

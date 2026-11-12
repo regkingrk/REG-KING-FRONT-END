@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { SearchMode, SellOption } from "@/lib/brand";
 import { parseHash, type SectionKey } from "@/lib/sitemap";
+import { hashForPath, pathForHash } from "@/lib/routes";
 import { emptyFilters, type Filters } from "@/lib/filters";
 
 /**
@@ -97,13 +98,19 @@ const targetFor = (section: SectionKey, item: string | null) => {
  * # link. The single-file preview has no real addresses, so it keeps to # links.
  */
 const pathRoutes = () => typeof window !== "undefined" && !(window as { __RK_PREVIEW?: boolean }).__RK_PREVIEW;
-/** The address to show for a # link: a plate's own page, or the homepage with the link. */
+/**
+ * The address to show for a # link: a plate's own page, a section's own address
+ * (/number-plates, see lib/routes.ts), or the homepage with the link (checkout, the account area).
+ */
 function urlFor(hash: string) {
   const h = hash.startsWith("#") ? hash : `#${hash}`;
-  if (!pathRoutes()) return location.pathname + location.search.replace(/([?&])q=[^&]*&?/, "$1").replace(/\?$/, "") + h;
+  const search = location.search.replace(/([?&])q=[^&]*&?/, "$1").replace(/\?$/, "");
+  if (!pathRoutes()) return location.pathname + search + h;
   const plate = h.match(/^#plate-([a-z0-9-]+)$/i);
   if (plate && !plate[1].startsWith("dvla-")) return `/products/${plate[1].toLowerCase()}`;
-  return "/" + location.search.replace(/([?&])q=[^&]*&?/, "$1").replace(/\?$/, "") + h;
+  const path = pathForHash(h);
+  if (path) return path + search;
+  return "/" + search + h;
 }
 
 /** The view a page opens on before the browser takes over, so its first HTML is the right page. */
@@ -168,7 +175,11 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
       const url = new URL(location.href);
       if (q) url.searchParams.set("q", q);
       else url.searchParams.delete("q");
-      history.replaceState(null, "", (pathRoutes() && url.pathname.startsWith("/products/") ? "/" : url.pathname) + url.search + (q ? "#buy" : url.hash));
+      if (pathRoutes()) {
+        // a search shows on the Buy page: /private-number-plates?q=ARMAN
+        const base = q ? pathForHash("buy") ?? "/" : url.pathname.startsWith("/products/") ? "/" : url.pathname;
+        history.replaceState(null, "", base + url.search);
+      } else history.replaceState(null, "", url.pathname + url.search + (q ? "#buy" : url.hash));
     } catch {}
   }, []);
 
@@ -248,7 +259,7 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
       const h = hash.startsWith("#") ? hash : `#${hash}`;
       // pages outside the main app open the homepage at that link
       if (standalone) {
-        location.assign(`/${h}`);
+        location.assign(pathRoutes() ? pathForHash(h) ?? `/${h}` : `/${h}`);
         return;
       }
       try {
@@ -262,7 +273,15 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
   // Open the tab or page named in the link, and follow links like #sell-commission.
   useEffect(() => {
     if (standalone) return;
-    apply(location.hash || (initial ? `#${initial}` : ""), false);
+    // an old # link (regking.co.uk/#make-plates) opens that part and shows its real address
+    const start = location.hash || (pathRoutes() && hashForPath(location.pathname) ? `#${hashForPath(location.pathname)}` : "") || (initial ? `#${initial}` : "");
+    apply(start, false);
+    if (location.hash && pathRoutes()) {
+      try {
+        const to = urlFor(location.hash);
+        if (!to.includes("#")) history.replaceState(null, "", to);
+      } catch {}
+    }
     try {
       const q = new URLSearchParams(location.search).get("q");
       if (q) {
@@ -271,9 +290,40 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
         setInfo(null);
       }
     } catch {}
-    const onHash = () => apply(location.hash, true);
+    const onHash = () => {
+      const h = location.hash;
+      apply(h, true);
+      if (pathRoutes()) {
+        try {
+          const to = urlFor(h);
+          if (!to.includes("#")) history.replaceState(null, "", to);
+        } catch {}
+      }
+    };
+    // links to a section's own address open it here, without loading the page again
+    const onClick = (e: MouseEvent) => {
+      if (!pathRoutes() || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+      let url: URL;
+      try {
+        url = new URL(a.href);
+      } catch {
+        return;
+      }
+      if (url.origin !== location.origin) return;
+      const h = hashForPath(url.pathname);
+      if (!h) return;
+      e.preventDefault();
+      history.replaceState(null, "", url.pathname + url.search);
+      apply(`#${h}`, true);
+    };
     window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    document.addEventListener("click", onClick);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      document.removeEventListener("click", onClick);
+    };
   }, [apply, initial, standalone]);
 
   // Make keeps the full hero (so the Buy / Sell / Make tabs never move). A search, a sell enquiry

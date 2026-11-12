@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { SiteApp } from "@/components/SiteApp";
 import { formatGBP } from "@/lib/brand";
 import { plateByHandle } from "@/lib/plateLookup";
+import { JsonLd, breadcrumbSchema, plateSchema } from "@/lib/schema";
 
 /**
  * A plate's own page at the same address it had on the old Shopify site (/products/am12-aah),
@@ -29,5 +30,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PlatePage({ params }: Props) {
   const { handle } = await params;
   if (!valid(handle)) notFound();
-  return <SiteApp initial={`plate-${handle}`} />;
+  const plate = await plateByHandle(handle);
+  return (
+    <>
+      {plate && <JsonLd data={plateSchema(plate.reg, handle, plate.price)} />}
+      {plate && <JsonLd data={breadcrumbSchema([["Private number plates", "/private-number-plates"], [plate.reg, `/products/${handle}`]])} />}
+      <SiteApp initial={`plate-${handle}`} />
+    </>
+  );
 }

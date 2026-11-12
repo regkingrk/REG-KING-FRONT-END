@@ -1,5 +1,6 @@
 "use client";
 
+import { linkFor } from "@/lib/routes";
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { instagram, routes, supportEmail, tiktok } from "@/lib/brand";
 import { phone, whatsapp } from "@/lib/infoContent";
@@ -121,7 +122,7 @@ export function SiteHeader() {
             {SITEMAP.map((s) => (
               <li key={s.key}>
                 {DIRECT.has(s.key) ? (
-                  <a className="rk-nav__btn" href={`#${s.hash}`} aria-current={current === s.key ? "true" : undefined} data-nav={s.key} onClick={(e) => follow(e, s.hash)}>
+                  <a className="rk-nav__btn" href={linkFor(s.hash)} aria-current={current === s.key ? "true" : undefined} data-nav={s.key} onClick={(e) => follow(e, s.hash)}>
                     {s.label}
                   </a>
                 ) : (
@@ -165,14 +166,14 @@ export function SiteHeader() {
             <ul className="rk-mega__links" style={{ paddingLeft: megaX }} aria-label={section.label}>
               {LEAD[section.key] && (
                 <li>
-                  <a className="rk-mega__lead" href={`#${section.hash}`} data-link={section.hash} onClick={(e) => follow(e, section.hash)}>
+                  <a className="rk-mega__lead" href={linkFor(section.hash)} data-link={section.hash} onClick={(e) => follow(e, section.hash)}>
                     {LEAD[section.key]}
                   </a>
                 </li>
               )}
               {section.items.map((it) => (
                 <li key={it.key}>
-                  <a href={`#${it.hash}`} data-link={it.hash} onClick={(e) => follow(e, it.hash)}>
+                  <a href={linkFor(it.hash)} data-link={it.hash} onClick={(e) => follow(e, it.hash)}>
                     {it.label}
                   </a>
                 </li>
@@ -193,7 +194,7 @@ export function SiteHeader() {
                 return (
                   <section key={s.key} className="rk-mnav__sec" data-here={current === s.key || undefined}>
                     <h2>
-                      <a href={`#${s.hash}`} className="rk-mnav__direct" data-link={s.hash} onClick={(e) => follow(e, s.hash)}>
+                      <a href={linkFor(s.hash)} className="rk-mnav__direct" data-link={s.hash} onClick={(e) => follow(e, s.hash)}>
                         <span>{s.label}</span>
                         <Chevron />
                       </a>
@@ -211,14 +212,14 @@ export function SiteHeader() {
                   <ul id={`rk-mnav-${s.key}`} hidden={!isOpen}>
                     {lead && (
                       <li>
-                        <a href={`#${s.hash}`} data-link={s.hash} onClick={(e) => follow(e, s.hash)}>
+                        <a href={linkFor(s.hash)} data-link={s.hash} onClick={(e) => follow(e, s.hash)}>
                           {lead}
                         </a>
                       </li>
                     )}
                     {s.items.map((it) => (
                       <li key={it.key}>
-                        <a href={`#${it.hash}`} data-link={it.hash} onClick={(e) => follow(e, it.hash)}>
+                        <a href={linkFor(it.hash)} data-link={it.hash} onClick={(e) => follow(e, it.hash)}>
                           {it.label}
                         </a>
                       </li>

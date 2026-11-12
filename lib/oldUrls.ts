@@ -1,3 +1,4 @@
+import { pathForHash } from "./routes";
 /**
  * Addresses from the old Shopify site (regking.co.uk), so links people saved and Google results
  * keep working after the switch. Plates keep their exact address (/products/<handle>); everything
@@ -92,6 +93,9 @@ export const OTHER_REDIRECTS: { source: string; destination: string }[] = [
   { source: "/blogs/:path*", destination: "/" },
 ];
 
+/** A destination written as a # link goes to that part's real address (lib/routes.ts) where it has one. */
+const real = (to: string) => (to.startsWith("/#") ? pathForHash(to.slice(2)) ?? to : to);
+
 /** Every fixed redirect, in the shape next.config's redirects() wants (all permanent). */
 export function oldSiteRedirects() {
   const out: { source: string; destination: string; permanent: true }[] = [];
@@ -103,7 +107,7 @@ export function oldSiteRedirects() {
   out.push({ source: "/collections/:c", destination: "/#buy", permanent: true });
   for (const [h, to] of Object.entries(PAGE_REDIRECTS)) out.push({ source: `/pages/${h}`, destination: to, permanent: true });
   for (const r of OTHER_REDIRECTS) out.push({ ...r, permanent: true });
-  return out;
+  return out.map((r) => ({ ...r, destination: real(r.destination) }));
 }
 
 export const isContentPage = (handle: string) => (CONTENT_PAGES as readonly string[]).includes(handle);
