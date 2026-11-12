@@ -1866,13 +1866,19 @@ body::before {
 }
 
 /* extras */
-[data-extras~="tint"]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: rgba(20, 16, 0, 0.32);
-  pointer-events: none;
+/* Tinted (show plates): the acrylic itself is tinted, smoked grey at the front and olive-gold at the back;
+   the letters stay black on top. A glossy sheen runs across it, as on the real plates. */
+[data-extras~="tint"] {
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.5) 25%, rgba(255, 255, 255, 0) 30%),
+    linear-gradient(112deg, rgba(255, 255, 255, 0) 58%, rgba(255, 255, 255, 0.32) 61%, rgba(255, 255, 255, 0) 65%),
+    linear-gradient(180deg, #b0afab, #93928e) !important;
+}
+[data-extras~="tint"][data-side="rear"] {
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.45) 25%, rgba(255, 255, 255, 0) 30%),
+    linear-gradient(112deg, rgba(255, 255, 255, 0) 58%, rgba(255, 255, 255, 0.28) 61%, rgba(255, 255, 255, 0) 65%),
+    linear-gradient(180deg, #b9a21c, #9a8510) !important;
 }
 
 [data-extras~="fade"] .rk-ptext {

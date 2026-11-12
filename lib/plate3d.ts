@@ -13,7 +13,7 @@
 import * as THREE from "three";
 import { GLYPHS, GLYPH_CAP, GLYPH_SPACE, METRO_BEARING, METRO_GLYPHS, METRO_SPACE } from "./plateGlyphs";
 import { hexPoints, type PlateLook } from "./builder";
-import { PLATE_CORNER_MM, PLATE_YELLOW, renderPlate, type PlateSpec } from "./plateRender";
+import { PLATE_CORNER_MM, PLATE_YELLOW, TINT, renderPlate, type PlateSpec } from "./plateRender";
 import { chiselArrays, domeArrays, glyphShapes, smoothNormals, type GeoArrays } from "./plateGeoCore";
 
 const PLATE_T = 3; // plate thickness, mm
@@ -474,7 +474,7 @@ export function buildPlate(s: PlateSpec, softEnv?: THREE.Texture, acrylicEnv?: T
   const uv = geo.attributes.uv as THREE.BufferAttribute;
   for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + s.w / 2) / s.w, (pos.getY(i) + s.h / 2) / s.h);
   uv.needsUpdate = true;
-  const edgeColour = metal ? 0x1a1a1a : s.side === "rear" ? PLATE_YELLOW.edge : 0xe6e6e2;
+  const edgeColour = metal ? 0x1a1a1a : s.extras.includes("tint") ? TINT[s.side].edge : s.side === "rear" ? PLATE_YELLOW.edge : 0xe6e6e2;
   const faceMat = pressed
     ? new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.22, envMapIntensity: 0.6 })
     : new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.6, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 0.55 });

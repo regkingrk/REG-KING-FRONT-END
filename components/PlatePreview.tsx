@@ -36,7 +36,8 @@ export function PlateBadge({ c }: { c: BuildConfig }) {
       )}
       {kind === "flag" && <span className="rk-badge__blank" />}
       {kind === "badge" && <span className="rk-badge__crest">RK</span>}
-      <b>{kind === "ev" || kind === "ev-uk" ? "EV" : kind === "badge" ? "" : "UK"}</b>
+      {/* EV: just the green panel. UK and UK EV: the flag with UK under it. */}
+      {kind !== "ev" && kind !== "badge" && <b>UK</b>}
     </span>
   );
 }

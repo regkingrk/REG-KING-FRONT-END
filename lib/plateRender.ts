@@ -69,6 +69,8 @@ export const PLATE_YELLOW = { top: "#ffd919", bottom: "#f6c800", edge: 0xf3c400,
 export const EV_GREEN = "#1f9a48";
 /** The blue of the UK letters, printed straight onto the reflective. */
 export const UK_BLUE = "#1f3c96";
+/** Tinted acrylic (show plates): smoked grey at the front, a deep olive-gold at the back, from REG KING's tinted plates. */
+export const TINT = { front: { top: "#b0afab", bottom: "#93928e", edge: 0x8f8e8a }, rear: { top: "#b9a21c", bottom: "#9a8510", edge: 0x95800f } };
 
 function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number, hex: boolean, flip = false) {
   ctx.beginPath();
@@ -106,7 +108,11 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   outline(ctx, W, H, k, s.hex, s.hexFlip);
   ctx.clip();
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  if (metal) {
+  const tint = !metal && s.extras.includes("tint") ? TINT[s.side] : null;
+  if (tint) {
+    bg.addColorStop(0, tint.top);
+    bg.addColorStop(1, tint.bottom);
+  } else if (metal) {
     bg.addColorStop(0, "#2b2b2b");
     bg.addColorStop(1, "#0e0e0e");
   } else if (s.side === "rear") {
@@ -146,7 +152,8 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
       ctx.textBaseline = "middle";
       ctx.fillText("RK", bw / 2, H * 0.32);
     }
-    const word = badge === "ev" || badge === "ev-uk" ? "EV" : badge === "badge" ? "" : "UK";
+    // EV: just the green panel, no letters. UK and UK EV: UK under the flag.
+    const word = badge === "ev" || badge === "badge" ? "" : "UK";
     if (word) {
       ctx.fillStyle = badge === "uk" ? UK_BLUE : "#ffffff";
       ctx.font = `800 ${(badge === "uk" || badge === "ev-uk" ? 30 : 22) * k}px ${FONT}`;
@@ -203,11 +210,7 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     ctx.restore();
   }
 
-  // 5. Tint (show plates)
-  if (s.extras.includes("tint")) {
-    ctx.fillStyle = "rgba(20,16,0,0.32)";
-    ctx.fillRect(0, 0, W, H);
-  }
+  // 5. Tint (show plates) is the colour of the acrylic itself (step 1): the letters stay black on top of it.
   ctx.restore();
 
   // 6. The acrylic edge: a thin darker rim
