@@ -1872,18 +1872,25 @@ body::before {
   background:
     linear-gradient(112deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.5) 25%, rgba(255, 255, 255, 0) 30%),
     linear-gradient(112deg, rgba(255, 255, 255, 0) 58%, rgba(255, 255, 255, 0.32) 61%, rgba(255, 255, 255, 0) 65%),
-    linear-gradient(180deg, #b0afab, #93928e) !important;
+    linear-gradient(180deg, #8f8e8a, #71706c) !important;
 }
 [data-extras~="tint"][data-side="rear"] {
   background:
     linear-gradient(112deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.45) 25%, rgba(255, 255, 255, 0) 30%),
     linear-gradient(112deg, rgba(255, 255, 255, 0) 58%, rgba(255, 255, 255, 0.28) 61%, rgba(255, 255, 255, 0) 65%),
-    linear-gradient(180deg, #b9a21c, #9a8510) !important;
+    linear-gradient(180deg, #9b8613, #7a6809) !important;
 }
 
-[data-extras~="fade"] .rk-ptext {
-  -webkit-mask-image: linear-gradient(180deg, #000 30%, rgba(0, 0, 0, 0.35) 100%);
-  mask-image: linear-gradient(180deg, #000 30%, rgba(0, 0, 0, 0.35) 100%);
+/* Faded Tint: only the reflective fades, from black on the left into white (front) or yellow (rear) */
+[data-extras~="fade"] {
+  background:
+    linear-gradient(90deg, #141412 0%, rgba(20, 20, 18, 0.92) 12%, rgba(20, 20, 18, 0) 72%),
+    linear-gradient(180deg, #ffffff, #ececea) !important;
+}
+[data-extras~="fade"][data-side="rear"] {
+  background:
+    linear-gradient(90deg, #141412 0%, rgba(20, 20, 18, 0.92) 12%, rgba(20, 20, 18, 0) 72%),
+    linear-gradient(180deg, #ffdc1a, #f6c800) !important;
 }
 
 .rk-pborder {

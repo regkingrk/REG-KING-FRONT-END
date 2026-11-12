@@ -70,7 +70,9 @@ export const EV_GREEN = "#1f9a48";
 /** The blue of the UK letters, printed straight onto the reflective. */
 export const UK_BLUE = "#1f3c96";
 /** Tinted acrylic (show plates): smoked grey at the front, a deep olive-gold at the back, from REG KING's tinted plates. */
-export const TINT = { front: { top: "#b0afab", bottom: "#93928e", edge: 0x8f8e8a }, rear: { top: "#b9a21c", bottom: "#9a8510", edge: 0x95800f } };
+export const TINT = { front: { top: "#8f8e8a", bottom: "#71706c", edge: 0x6c6b67 }, rear: { top: "#9b8613", bottom: "#7a6809", edge: 0x756407 } };
+/** Faded Tint: the reflective fades from black on the left into the plate's own colour. The letters stay black. */
+export const FADE_FROM = "#141412";
 
 function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number, hex: boolean, flip = false) {
   ctx.beginPath();
@@ -124,6 +126,14 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   }
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
+  if (!metal && s.extras.includes("fade")) {
+    const f = ctx.createLinearGradient(0, 0, W, 0);
+    f.addColorStop(0, FADE_FROM);
+    f.addColorStop(0.12, "rgba(20,20,18,0.92)");
+    f.addColorStop(0.72, "rgba(20,20,18,0)");
+    ctx.fillStyle = f;
+    ctx.fillRect(0, 0, W, H);
+  }
   // a faint diagonal sheen, as on the acrylic face
   const sheen = ctx.createLinearGradient(0, 0, W, H);
   sheen.addColorStop(0.15, "rgba(255,255,255,0)");
@@ -180,7 +190,7 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     font: metro ? METRO : FONT,
     gaps: s.bike ? undefined : s.gaps,
   });
-  if (chars) composeCharacters(ctx, text, flatChars ? (s.look === "printed-bike" ? "printed-bike" : "printed") : s.look, ink, k, s.extras.includes("fade"));
+  if (chars) composeCharacters(ctx, text, flatChars ? (s.look === "printed-bike" ? "printed-bike" : "printed") : s.look, ink, k, false);
   else if (castShadow > 0) {
     // the shadow under raised letters, falling down and to the right, away from the light
     softShadow(ctx, text, castShadow * 0.8 * k, castShadow * 1.6 * k, castShadow * 1.4 * k, "rgba(0,0,0,0.5)");
