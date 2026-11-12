@@ -53,7 +53,7 @@ export const STYLES: Record<string, StyleOption> = Object.fromEntries(
     st("4D 6MM", "raised-deep", 55, 30),
     st("4D Gel 3MM", "gel-4d", 60, 35),
     st("Retro", "bevel", 70, 40),
-    // CONFIRM with REG KING: RK's prices (shown as price on request until set)
+    // RK: off sale for now (not in the lists below), kept so it can come back. See docs/saved/rk-style.
     st("RK", "bevel"),
     st("Vintage", "bevel-matt", 70, 40),
     st("Retro X", "bevel-x", 80, 45),
@@ -77,7 +77,7 @@ export function fromSetPrice(): number | null {
 }
 
 /** Cars, vans and SUVs. */
-export const CAR_LEGAL = ["Printed", "Metal Press", "3D Gel", "4D 3MM", "4D 6MM", "4D Gel 3MM", "Retro", "Vintage", "Retro X", "Vintage X", "RK"];
+export const CAR_LEGAL = ["Printed", "Metal Press", "3D Gel", "4D 3MM", "4D 6MM", "4D Gel 3MM", "Retro", "Vintage", "Retro X", "Vintage X"];
 export const CAR_SHOW = [
   "Printed",
   "Metal Press",
@@ -96,7 +96,6 @@ export const CAR_SHOW = [
   "Vintage",
   "Retro X",
   "Vintage X",
-  "RK",
   "Metal Press Black & White",
   "Metal Press Black & Silver",
 ];
