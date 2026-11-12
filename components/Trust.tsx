@@ -171,16 +171,9 @@ export const DVLA_MEANS = `Any business that makes or sells number plates has to
 /* ------------------------------------------------------------------ */
 /* Buy: Why buy with REG KING?                                         */
 /* ------------------------------------------------------------------ */
-const BUY_STEPS = [
-  { t: "Find your registration", d: "Search our private registrations, or browse our own stock and our customers' plates." },
-  { t: "Purchase with confidence", d: "Check the price, what's included and how you'd like to pay before you complete your order." },
-  { t: "We process your order", d: "Our team follows the right process for your plate, whether REG KING owns it or one of our customers does." },
-  { t: "Complete your transfer", d: "You get the right documents, or our help assigning the registration to your vehicle." },
-];
 
 export function WhyBuy() {
   const { go } = useMode();
-  const toGuide = () => document.getElementById("rk-howbuy")?.scrollIntoView({ behavior: "smooth", block: "start" });
   return (
     <section className="tr-why" id="rk-whybuy" aria-labelledby="whybuy-title">
       <div className="rk-wrap tr-why__in">
@@ -242,24 +235,6 @@ export function WhyBuy() {
         </ul>
 
         <ReviewQuote topic="buy" tone="dark" />
-
-        <div className="tr-why__how">
-          <h3>How buying works</h3>
-          <ol className="tr-why__steps">
-            {BUY_STEPS.map((s, i) => (
-              <li key={s.t}>
-                <span className="tr-why__n" aria-hidden>
-                  {i + 1}
-                </span>
-                <b>{s.t}</b>
-                <span>{s.d}</span>
-              </li>
-            ))}
-          </ol>
-          <button type="button" className="tr-why__more" onClick={toGuide}>
-            See every step for REG KING plates and customer plates <ArrowRight />
-          </button>
-        </div>
 
         <div className="tr-why__promise">
           <h3>Your registration. Our priority.</h3>

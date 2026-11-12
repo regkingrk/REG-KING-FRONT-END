@@ -16,7 +16,7 @@ import { BuySources, InfoView, Reviews } from "./SectionViews";
 import { NewThisWeek } from "./NewThisWeek";
 import { BuyingGuide } from "./BuyingGuide";
 import { AsSeenWith } from "./AsSeenWith";
-import { ReviewQuote, SupportStrip, WhyBuy } from "./Trust";
+import { WhyBuy } from "./Trust";
 import { PlateView } from "./PlateView";
 import { DVLA_FEED } from "@/lib/features";
 import { AccountPortal } from "./AccountPortal";
@@ -495,7 +495,7 @@ function MadeInHouse() {
 
 function MakeInfo() {
   const ways = [
-    { title: "Delivered to your door", line: "Made to order and posted by Royal Mail Special Delivery, with tracking. We send you a photo of your plates first.", icon: "M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
+    { title: "Delivered to your door", line: "Made to order and posted to you.", icon: "M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
     { title: "Collect in Bilston", line: "Pick them up from our Wolverhampton shop.", icon: "M4 10v10h16V10M3 10l2-6h14l2 6zM10 20v-6h4v6" },
     { title: "Collect & fit", line: "We'll fit them for you when you collect.", icon: "M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8 7.2 20l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z" },
   ];
@@ -523,22 +523,6 @@ function MakeInfo() {
               </div>
             ))}
           </div>
-          <div className="tr-legal">
-            <h3>Ordering road legal plates?</h3>
-            <p>
-              By law we have to see proof of your name and address and proof you&apos;re entitled to the registration before we make road legal plates. Upload them in the builder or send them after you order. Show plates don&apos;t need documents.
-            </p>
-            <ul>
-              <li>
-                <b>Name and address</b> Driving licence, a recent utility or council tax bill, or a bank statement
-              </li>
-              <li>
-                <b>Entitlement</b> V5C logbook, the green new keeper slip, V750, V778 or a V11 reminder
-              </li>
-            </ul>
-          </div>
-          <ReviewQuote topic="plates" />
-          <SupportStrip title="Questions about your plates?" line="Ask about styles, sizes, documents or fitting. The team makes every plate here in Bilston." />
         </div>
       </section>
     </>
@@ -607,7 +591,6 @@ export function TabViews() {
         <>
           <SellFlow />
           <SellSteps />
-          <SellTrust />
           <OtherTab label="Looking to buy a plate instead?" to="buy" />
         </>
       )}
@@ -615,7 +598,6 @@ export function TabViews() {
         <>
           <ValueCard />
           <SellSteps />
-          <SellTrust />
           <OtherTab label="Looking to buy a plate instead?" to="buy" />
         </>
       )}
@@ -672,36 +654,3 @@ function WayDetails({ o, onToggle }: { o: (typeof sellOptions)[number]; onToggle
   );
 }
 
-/**
- * Sell: the questions sellers ask before they list, answered from how REG KING already works
- * (the selling FAQs and the two ways to sell), then a genuine review and how to reach the team.
- */
-function SellTrust() {
-  const commission = sellOptions.find((o) => o.key === "commission");
-  const items = [
-    { t: "Who handles the buyers?", d: "We do. We advertise your plate, answer buyers' questions and pass every offer to you to accept, decline or counter." },
-    { t: "Does it cost anything to list?", d: "No. Listing your plate with REG KING is free. We only charge when it sells." },
-    { t: "When does a fee apply?", d: `Only when your plate sells. With an increased price sale you receive the amount you agreed and we keep the difference. With a commission sale we take ${commission ? "10%" : "our commission"} of the selling price.` },
-    { t: "When do I get paid?", d: "We hold the buyer's payment while the sale goes through. Once the buyer has assigned the registration to their vehicle and we've checked it, we release your payment." },
-    { t: "What happens when it sells?", d: "We contact you to confirm it's still available and arrange the documents. If the plate is on your vehicle, you take it off through DVLA first, and we guide you through it." },
-  ];
-  return (
-    <section className="rk-section rk-section--tight tr-sell" aria-labelledby="sell-clear-title">
-      <div className="rk-wrap tr-sell__in">
-        <h2 id="sell-clear-title" className="rk-shead__t">
-          Selling, clearly explained
-        </h2>
-        <dl className="tr-sell__qs">
-          {items.map((q) => (
-            <div key={q.t}>
-              <dt>{q.t}</dt>
-              <dd>{q.d}</dd>
-            </div>
-          ))}
-        </dl>
-        <ReviewQuote topic="sell" />
-        <SupportStrip title="Talk to us before you list" line="Not sure on a price or which way to sell? The team can talk it through with you, with no obligation to list." />
-      </div>
-    </section>
-  );
-}
