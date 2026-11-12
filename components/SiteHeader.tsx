@@ -95,8 +95,7 @@ export function SiteHeader() {
 
   // The bar fades into the dark top of Buy, Make and Accessories, and turns solid once you scroll.
   const heroShown = !info && !acc && !plate && !account && !(focused && mode !== "build");
-  // The account has a white side menu, so the bar stays solid there.
-  const darkTop = (heroShown && (mode === "buy" || mode === "build")) || !!acc || vault;
+  const darkTop = (heroShown && (mode === "buy" || mode === "build")) || !!acc || !!account || vault;
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 24);

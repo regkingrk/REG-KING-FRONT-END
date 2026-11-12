@@ -231,11 +231,11 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
       return;
     }
     setPage(null);
-    const acct = h.match(/^account(?:-(home|dashboard|buy|sell|make|value|orders|listings|list|wishlist|settings|overview|plates|selling|transfers|documents|market|made|saved|offers|details|demo))?$/);
+    const acct = h.match(/^account(?:-(buy|sell|make|value|orders|listings|list|wishlist|settings|overview|plates|selling|transfers|documents|market|made|saved|offers|details|demo))?$/);
     if (acct) {
       setPlatePage(null);
       setInfo(null);
-      setAccount(acct[1] ?? "home");
+      setAccount(acct[1] ?? "buy");
       if (scroll) setTimeout(() => window.scrollTo({ top: 0 }), 30);
       return;
     }
