@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono, Oswald } from "next/font/google";
 import "./globals.css";
+import { HOME_TITLE } from "@/lib/routes";
 import { JsonLd, siteSchema } from "@/lib/schema";
 
 /** UK-plate style characters (matches the REG KING workshop tool). */
@@ -23,7 +24,7 @@ const geist = Geist({ subsets: ["latin"], weight: ["400", "500", "600"], variabl
 const geistMono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-geist-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Number Plates Near Me | 3D, 4D & Legal Plates | REG KING",
+  title: HOME_TITLE,
   description:
     "Looking for number plates near you? REG KING makes legal, 3D, 4D, bevel and replacement number plates while you wait in Bilston, Wolverhampton.",
   metadataBase: new URL("https://regking.co.uk"),

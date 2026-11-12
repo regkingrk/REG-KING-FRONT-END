@@ -6,6 +6,9 @@
  * Inside the site the parts are still named by their # link (#make-plates); these helpers convert
  * between the two. Old # links keep working and are swapped for the real address in the browser.
  */
+/** The homepage title (also used in app/layout.tsx). */
+export const HOME_TITLE = "Number Plates Near Me | 3D, 4D & Legal Plates | REG KING";
+
 export type RouteMeta = { path: string; hash: string; title: string; description: string; /** in the sitemap and open to search engines */ index: boolean };
 
 export const ROUTES: RouteMeta[] = [

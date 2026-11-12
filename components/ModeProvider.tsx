@@ -3,8 +3,17 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { SearchMode, SellOption } from "@/lib/brand";
 import { parseHash, type SectionKey } from "@/lib/sitemap";
-import { hashForPath, pathForHash } from "@/lib/routes";
+import { HOME_TITLE, hashForPath, pathForHash, routeForPath } from "@/lib/routes";
 import { emptyFilters, type Filters } from "@/lib/filters";
+
+/** Changes the address bar without a reload, and keeps the tab title in step with the page's address. */
+function setUrl(url: string) {
+  history.replaceState(null, "", url);
+  const path = new URL(url, location.href).pathname;
+  const r = routeForPath(path);
+  if (r) document.title = r.title;
+  else if (path === "/") document.title = HOME_TITLE;
+}
 
 /**
  * Where the customer is on the site.
@@ -178,8 +187,8 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
       if (pathRoutes()) {
         // a search shows on the Buy page: /private-number-plates?q=ARMAN
         const base = q ? pathForHash("buy") ?? "/" : url.pathname.startsWith("/products/") ? "/" : url.pathname;
-        history.replaceState(null, "", base + url.search);
-      } else history.replaceState(null, "", url.pathname + url.search + (q ? "#buy" : url.hash));
+        setUrl(base + url.search);
+      } else setUrl(url.pathname + url.search + (q ? "#buy" : url.hash));
     } catch {}
   }, []);
 
@@ -191,7 +200,7 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
     setItem(null);
     setBrowseState(false);
     try {
-      history.replaceState(null, "", urlFor(HASH[m]));
+      setUrl(urlFor(HASH[m]));
     } catch {}
   }, []);
 
@@ -263,7 +272,7 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
         return;
       }
       try {
-        history.replaceState(null, "", urlFor(h));
+        setUrl(urlFor(h));
       } catch {}
       apply(h, true);
     },
@@ -279,7 +288,7 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
     if (location.hash && pathRoutes()) {
       try {
         const to = urlFor(location.hash);
-        if (!to.includes("#")) history.replaceState(null, "", to);
+        if (!to.includes("#")) setUrl(to);
       } catch {}
     }
     try {
@@ -296,7 +305,7 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
       if (pathRoutes()) {
         try {
           const to = urlFor(h);
-          if (!to.includes("#")) history.replaceState(null, "", to);
+          if (!to.includes("#")) setUrl(to);
         } catch {}
       }
     };
@@ -315,7 +324,7 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
       const h = hashForPath(url.pathname);
       if (!h) return;
       e.preventDefault();
-      history.replaceState(null, "", url.pathname + url.search);
+      setUrl(url.pathname + url.search);
       apply(`#${h}`, true);
     };
     window.addEventListener("hashchange", onHash);
