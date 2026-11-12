@@ -27,6 +27,8 @@ export type PlateSpec = {
   styleName?: string;
   /** Show plates: custom gaps between the characters, in spaces (see plateGaps). */
   gaps?: number[];
+  /** Faded Tint: the edge the tint is darkest at. */
+  fadeFrom?: "top" | "bottom";
 };
 
 export function specFrom(c: BuildConfig, reg: string, side: "front" | "rear", style?: string | null): PlateSpec {
@@ -46,6 +48,7 @@ export function specFrom(c: BuildConfig, reg: string, side: "front" | "rear", st
     bike,
     gaps: plateGaps(c, reg) ?? undefined,
     bottomText: c.legal === "Show" && c.extras.some((x) => EXTRAS.find((e) => e.name === x)?.look === "text") ? (c.bottomText ?? "").trim().toUpperCase() : "",
+    fadeFrom: c.fadeFrom === "bottom" ? "bottom" : "top",
   };
 }
 
@@ -72,11 +75,11 @@ export const UK_BLUE = "#1f3c96";
 /** Tinted acrylic (show plates): smoked grey at the front, a deep olive-gold at the back, from REG KING's tinted plates. */
 export const TINT = { front: { top: "#8f8e8a", bottom: "#71706c", edge: 0x6c6b67 }, rear: { top: "#9b8613", bottom: "#7a6809", edge: 0x756407 } };
 /**
- * Faded Tint: a smoked tint across the top of the reflective that fades away down the plate, so the
- * plate's own colour comes through from the bottom up (grey into white at the front, dark into yellow
- * at the back), and in from both ends. The letters stay black.
+ * Faded Tint: a soft smoked tint, darkest along one edge (the top, or the bottom if the customer
+ * chooses) and fading away across the plate into clean white or yellow, as on REG KING's faded plates.
+ * The letters stay black.
  */
-export const FADE_TOP = { front: 0.58, rear: 0.82 };
+export const FADE_TOP = { front: 0.34, rear: 0.5 };
 
 function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number, hex: boolean, flip = false) {
   ctx.beginPath();
@@ -132,20 +135,11 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   ctx.fillRect(0, 0, W, H);
   if (!metal && s.extras.includes("fade")) {
     const a = FADE_TOP[s.side];
-    const f = ctx.createLinearGradient(0, 0, 0, H);
-    f.addColorStop(0, `rgba(24,23,20,${a})`);
-    f.addColorStop(0.25, `rgba(24,23,20,${(a * 0.82).toFixed(3)})`);
-    f.addColorStop(0.78, "rgba(24,23,20,0)");
+    const f = s.fadeFrom === "bottom" ? ctx.createLinearGradient(0, H, 0, 0) : ctx.createLinearGradient(0, 0, 0, H);
+    f.addColorStop(0, `rgba(40,36,24,${a})`);
+    f.addColorStop(0.35, `rgba(40,36,24,${(a * 0.6).toFixed(3)})`);
+    f.addColorStop(0.9, "rgba(40,36,24,0)");
     ctx.fillStyle = f;
-    ctx.fillRect(0, 0, W, H);
-    // and in from both ends
-    const sides = ctx.createLinearGradient(0, 0, W, 0);
-    const e = (a * 0.85).toFixed(3);
-    sides.addColorStop(0, `rgba(24,23,20,${e})`);
-    sides.addColorStop(0.16, "rgba(24,23,20,0)");
-    sides.addColorStop(0.84, "rgba(24,23,20,0)");
-    sides.addColorStop(1, `rgba(24,23,20,${e})`);
-    ctx.fillStyle = sides;
     ctx.fillRect(0, 0, W, H);
   }
   // a faint diagonal sheen, as on the acrylic face

@@ -538,6 +538,24 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
               );
             })()}
             <p className="rk-bfine">One badge and one tint per plate. Choosing another swaps it.</p>
+            {c.extras.includes("Faded Tint") && c.legal === "Show" && (
+              <div className="rk-fadedir" role="radiogroup" aria-label="Which way the tint fades" data-fadedir>
+                <span>Which way should it fade?</span>
+                <div>
+                  {(
+                    [
+                      ["top", "Darker at the top", "180deg"],
+                      ["bottom", "Darker at the bottom", "0deg"],
+                    ] as const
+                  ).map(([k, t, deg]) => (
+                    <button key={k} type="button" role="radio" aria-checked={(c.fadeFrom ?? "top") === k} onClick={() => set({ fadeFrom: k })} data-b={`fade:${k}`}>
+                      <i aria-hidden style={{ background: `linear-gradient(${deg}, rgba(40,36,24,0.55), rgba(40,36,24,0) 90%), #ffd400` }} />
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {c.extras.includes("Custom Text") && c.legal === "Show" && (
               <label className="rk-btext" data-btext>
                 <span>Text along the bottom of the plate</span>

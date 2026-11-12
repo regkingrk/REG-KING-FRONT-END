@@ -406,6 +406,12 @@ export const EXTRAS: ExtraOption[] = [
   { name: "Faded Tint", set: 15, single: 8, look: "fade" },
   { name: "Custom Text", set: 10, single: 5, look: "text" },
 ];
+/** An extra as it reads on the order: custom text with its words, a faded tint with its direction. */
+export function extraLabel(e: ExtraOption, c: Pick<BuildConfig, "bottomText" | "fadeFrom">): string {
+  if (e.look === "text" && c.bottomText?.trim()) return `Custom Text: "${c.bottomText.trim()}"`;
+  if (e.look === "fade") return `${e.name} (darker at the ${c.fadeFrom === "bottom" ? "bottom" : "top"})`;
+  return e.name;
+}
 /** Only one from each group can go on a plate: one badge, one tint. */
 export const EXTRA_GROUPS: ExtraLook[][] = [
   ["uk", "ev", "ev-uk"],
@@ -470,6 +476,8 @@ export interface BuildConfig {
   withPlate?: boolean;
   /** Custom Text extra (show plates): the words along the bottom of the plate. */
   bottomText?: string;
+  /** Faded Tint extra: which edge the tint is darkest at, fading away across the plate. Default "top". */
+  fadeFrom?: "top" | "bottom";
   /**
    * Show plates only: custom gaps between the characters, one per pair (the reg's spaces don't count),
    * in spaces: 0 = together, 1 = a normal space. Road-legal plates always keep the standard spacing.
@@ -850,7 +858,7 @@ export function priceLines(c: BuildConfig, pricing: Pricing = RETAIL): Line[] {
   }
   for (const x of c.extras) {
     const e = EXTRAS.find((e) => e.name === x);
-    if (e) lines.push({ label: e.look === "text" && c.bottomText?.trim() ? `Custom Text: "${c.bottomText.trim()}"` : e.name, amount: priceOf(extraPrice(e, pricing), c) });
+    if (e) lines.push({ label: extraLabel(e, c), amount: priceOf(extraPrice(e, pricing), c) });
   }
   const pair = !rearOnly(c.vehicle) && c.qty === "Set" ? 2 : 1;
   if (c.surround?.kind === "standard") {
@@ -929,7 +937,7 @@ export function summary(c: BuildConfig) {
       : c.size && c.size !== "Normal"
         ? sizeText(c, c.size)
         : null,
-    c.extras.length ? "+ " + c.extras.join(", ") : null,
+    c.extras.length ? "+ " + c.extras.map((x) => { const e = EXTRAS.find((y) => y.name === x); return e ? extraLabel(e, c) : x; }).join(", ") : null,
     c.surround?.kind === "standard" ? "+ standard surrounds" : c.surround?.kind === "custom" ? `+ ${surroundSummary(c.surround.cfg).replace(/^./, (x) => x.toLowerCase())}` : null,
     c.delivery === "Deliver" ? "delivery" : c.delivery === "Collect" ? "collect" : c.delivery === "CollectFit" ? "collect & fit" : null,
     c.kit === "Pads" ? "sticky pad kit" : c.kit === "Screws" ? "screw kit" : null,

@@ -1881,17 +1881,25 @@ body::before {
     linear-gradient(180deg, #9b8613, #7a6809) !important;
 }
 
-/* Faded Tint: a smoked tint across the top and in from both ends that fades away, so white (front) or yellow (rear) comes through from the bottom up */
+/* Faded Tint: a soft smoked tint darkest along one edge (top by default, or bottom), fading away into white (front) or yellow (rear) */
 [data-extras~="fade"] {
   background:
-    linear-gradient(180deg, rgba(24, 23, 20, 0.58) 0%, rgba(24, 23, 20, 0.48) 25%, rgba(24, 23, 20, 0) 78%),
-    linear-gradient(90deg, rgba(24, 23, 20, 0.49) 0%, rgba(24, 23, 20, 0) 16%, rgba(24, 23, 20, 0) 84%, rgba(24, 23, 20, 0.49) 100%),
+    linear-gradient(180deg, rgba(40, 36, 24, 0.34) 0%, rgba(40, 36, 24, 0.2) 35%, rgba(40, 36, 24, 0) 90%),
     linear-gradient(180deg, #ffffff, #ececea) !important;
 }
 [data-extras~="fade"][data-side="rear"] {
   background:
-    linear-gradient(180deg, rgba(24, 23, 20, 0.82) 0%, rgba(24, 23, 20, 0.67) 25%, rgba(24, 23, 20, 0) 78%),
-    linear-gradient(90deg, rgba(24, 23, 20, 0.7) 0%, rgba(24, 23, 20, 0) 16%, rgba(24, 23, 20, 0) 84%, rgba(24, 23, 20, 0.7) 100%),
+    linear-gradient(180deg, rgba(40, 36, 24, 0.5) 0%, rgba(40, 36, 24, 0.3) 35%, rgba(40, 36, 24, 0) 90%),
+    linear-gradient(180deg, #ffdc1a, #f6c800) !important;
+}
+[data-extras~="fade"][data-fade="bottom"] {
+  background:
+    linear-gradient(0deg, rgba(40, 36, 24, 0.34) 0%, rgba(40, 36, 24, 0.2) 35%, rgba(40, 36, 24, 0) 90%),
+    linear-gradient(180deg, #ffffff, #ececea) !important;
+}
+[data-extras~="fade"][data-fade="bottom"][data-side="rear"] {
+  background:
+    linear-gradient(0deg, rgba(40, 36, 24, 0.5) 0%, rgba(40, 36, 24, 0.3) 35%, rgba(40, 36, 24, 0) 90%),
     linear-gradient(180deg, #ffdc1a, #f6c800) !important;
 }
 
@@ -40076,4 +40084,45 @@ body:has(.rk-studio) {
 }
 .lw-page__lede {
   color: #5a5549;
+}
+
+/* Faded Tint: choose which edge is darker */
+.rk-fadedir {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+.rk-fadedir > span {
+  font-size: 14px;
+  font-weight: 600;
+}
+.rk-fadedir > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.rk-fadedir button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1.5px solid rgba(22, 21, 20, 0.16);
+  border-radius: 10px;
+  background: #fff;
+  color: #161514;
+  font: 600 14px var(--rk-body);
+  text-align: left;
+  cursor: pointer;
+}
+.rk-fadedir button[aria-checked="true"] {
+  border-color: #111;
+  box-shadow: 0 0 0 1px #111 inset;
+}
+.rk-fadedir i {
+  flex: none;
+  width: 44px;
+  height: 22px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
 }

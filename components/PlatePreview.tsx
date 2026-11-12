@@ -10,6 +10,7 @@ export function plateAttrs(c: BuildConfig, side: "front" | "rear", size: string 
     "data-hex": isHex(size) ? "true" : undefined,
     "data-hexflip": isHex(size) && c.hexFlip ? "true" : undefined,
     "data-extras": looks.join(" ") || undefined,
+    "data-fade": looks.includes("fade") ? (c.fadeFrom === "bottom" ? "bottom" : "top") : undefined,
     style: {
       ["--rk-plate-scale" as string]: String(sizeScale(size)),
       // hex outline: height over width, so the cut corners keep the real proportions at any size
