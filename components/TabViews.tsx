@@ -56,10 +56,24 @@ function ValueCard() {
       setEmail((e) => e || customer.email);
       setTel((t) => t || customer.phone);
     }
-    requestAnimationFrame(() => box.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    // first empty field gets the cursor
+    requestAnimationFrame(() => [...(box.current?.querySelectorAll<HTMLInputElement>("[data-vr]") ?? [])].find((el) => !el.value)?.focus());
   }, [valueAsk]); // eslint-disable-line react-hooks/exhaustive-deps
+  // While the pop-up is open: Escape closes it and the page behind doesn't scroll.
+  useEffect(() => {
+    if (!valueAsk) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setValueAsk(null);
+    window.addEventListener("keydown", onKey);
+    const was = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = was;
+    };
+  }, [valueAsk, setValueAsk]);
 
   if (!valueAsk) return null;
+  const close = () => setValueAsk(null);
 
   const ok = {
     reg: reg.replace(/\s/g, "").length >= 2,
@@ -94,25 +108,35 @@ function ValueCard() {
   };
   const again = () => {
     setValueAsk(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    window.setTimeout(() => document.getElementById("rk-reg")?.focus({ preventScroll: true }), 400);
+    window.setTimeout(() => document.getElementById("rk-reg")?.focus(), 50);
   };
   const toAccount = () => {
     try {
       sessionStorage.setItem("rk-signup", JSON.stringify({ email: email.trim(), name: name.trim() }));
     } catch {}
+    setValueAsk(null);
     go("account");
   };
 
   return (
-    <section className="rk-valuer" id="sell-valuation" aria-labelledby="value-title" ref={box}>
-      <div className="rk-wrap rk-valuer__in">
+    <div className="rk-vpop" onMouseDown={(e) => e.target === e.currentTarget && close()} data-vpop>
+    <section className="rk-valuer rk-vpop__box" id="sell-valuation" role="dialog" aria-modal="true" aria-labelledby="value-title" ref={box}>
+      <button type="button" className="rk-vpop__x" onClick={close} aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </button>
+      <div className="rk-valuer__in">
         {state === "sent" ? (
           <div className="rk-valuer__result" role="status">
             <h2 id="value-title">Request received</h2>
             <span className="rk-valuer__plate rk-valuer__plate--shown">{reg}</span>
             <p className="rk-valuer__basis">
-              Thanks, {name.trim().split(" ")[0]}. Our team will value {reg} and contact you on {tel} or at {email.trim()}.{ref ? ` Your reference is ${ref}.` : ""}
+              Thanks, {name.trim().split(" ")[0]}. Our team will value {reg} and contact you on {tel} or at {email.trim()}.{ref && (
+                <>
+                  {" "}Your reference is <span className="rk-nw">{ref}</span>.
+                </>
+              )}
             </p>
             {!customer && (
               <div className="rk-valuer__acct">
@@ -169,6 +193,7 @@ function ValueCard() {
         )}
       </div>
     </section>
+    </div>
   );
 }
 
