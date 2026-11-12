@@ -2,6 +2,7 @@
 
 import { linkFor } from "@/lib/routes";
 import { useEffect, useRef, useState } from "react";
+import { GoogleScore, ReviewQuote, SupportStrip } from "./Trust";
 import { depositFor, formatGBP, supportEmail, payl8rDisclaimer, platesForSale, reviewScores, routes } from "@/lib/brand";
 import { PROVIDERS, phone, whatsapp, type ProviderKey } from "@/lib/infoContent";
 import { earliest, styleOf } from "@/lib/search";
@@ -430,6 +431,8 @@ export function PlateView({ handle }: { handle: string }) {
                   </p>
                 )}
               </div>
+              <div className="rk-pview__proof">
+              <GoogleScore tone="dark" compact />
               <a className="rk-pview__trust" href={reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
                 <span className="rk-pview__stars" aria-hidden>
                   {[0, 1, 2, 3, 4].map((i) => (
@@ -442,6 +445,7 @@ export function PlateView({ handle }: { handle: string }) {
                   <b>{reviewScores.trustpilot.score} out of 5</b> from {reviewScores.trustpilot.count} reviews on Trustpilot
                 </span>
               </a>
+              </div>
             </div>
           </div>
         </div>
@@ -486,6 +490,11 @@ export function PlateView({ handle }: { handle: string }) {
             : { t: assigned ? "We put it on your vehicle" : "Follow it in your account", d: `${assigned ? `With ${ASSIGN.name}, we assign ${plate.reg} onto your vehicle for you. ` : ""}You can see where the transfer is up to in your REG KING account${opt ? ", and we send a photo of your plates before they're posted" : ""}.` },
         ]}
       />
+
+      <div className="rk-wrap pv-help">
+        <ReviewQuote topic="buy" />
+        <SupportStrip title={`Questions about ${plate.reg}?`} line="Ask us anything before you buy, from whether it fits your vehicle to how the transfer works. We're here after you buy too." />
+      </div>
 
       {others.length > 0 && (
         <section className="rk-featured rk-pview__more" aria-labelledby="more-title">

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { GOOGLE_REVIEWS_URL, instagram, reviewScores, tiktok } from "@/lib/brand";
+import { HQ } from "@/lib/infoContent";
 import { StarIcon } from "./Icons";
 
 /**
@@ -35,6 +36,14 @@ export function HeroProof() {
         </span>
         <span className="rk-proof__text" aria-hidden>
           <b>{tp.score}</b> <span className="rk-proof__wide">Trustpilot · {tp.count} reviews</span>
+        </span>
+      </ProofLink>
+      <ProofLink className="rk-proof__item rk-proof__where" href={HQ.directions} label={`Our showroom: ${HQ.address}. Get directions.`}>
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden fill="currentColor">
+          <path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" />
+        </svg>
+        <span className="rk-proof__text">
+          <b>Bilston</b> <span className="rk-proof__wide">showroom</span>
         </span>
       </ProofLink>
       <span className="rk-proof__rule" aria-hidden />
@@ -71,9 +80,9 @@ function ProofLink({ href, className, label, children }: { href: string | null |
   );
 }
 
-function GoogleG() {
+export function GoogleG({ className = "rk-proof__g" }: { className?: string } = {}) {
   return (
-    <svg className="rk-proof__g" viewBox="0 0 48 48" width="20" height="20" aria-hidden>
+    <svg className={className} viewBox="0 0 48 48" width="20" height="20" aria-hidden>
       <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.7 17.7 9.5 24 9.5z" />
       <path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.5 5.8c4.4-4 6.8-10 6.8-17.1z" />
       <path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z" />

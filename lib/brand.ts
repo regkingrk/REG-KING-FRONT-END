@@ -136,7 +136,6 @@ export const modeUrl = (mode: SearchMode, reg: string, opts: { spec?: string } =
 
 /** Trust points shown under the hero search (supplied by REG KING). */
 export const trust = {
-  reviews: "1000+",
   established: "2017",
 };
 
@@ -176,10 +175,14 @@ export const TRUSTPILOT_URL = "https://www.trustpilot.com/review/regking.co.uk";
 /** REG KING's Google Business Profile (from the owner's Maps share link, 12 Nov 2026; place 0xd35dbcc60d361ce1). */
 export const GOOGLE_REVIEWS_URL: string | null = "https://maps.google.com/?cid=15230537073648082145";
 
-/** Profile scores, checked 22 Oct 2026. Google's loads from the Places API at launch. */
+/**
+ * Profile scores. Trustpilot checked 22 Oct 2026; Google read from REG KING's Google Maps listing
+ * on 12 Nov 2026. With GOOGLE_PLACES_API_KEY set in Vercel, Google's score and count update live
+ * (app/api/reviews). Update these by hand only from the profiles themselves.
+ */
 export const reviewScores = {
   trustpilot: { score: 4.9, count: 71, label: "Excellent", url: TRUSTPILOT_URL },
-  google: null as null | { score: number; count: number; url: string },
+  google: { score: 5.0, count: 968, url: GOOGLE_REVIEWS_URL ?? "https://maps.google.com/?cid=15230537073648082145" } as null | { score: number; count: number; url: string },
 };
 
 export const reviews: Review[] = [

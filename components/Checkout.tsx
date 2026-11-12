@@ -18,7 +18,8 @@
  */
 import { useMemo, useState } from "react";
 import { DEPOSIT_RATE, MEMBER_DISCOUNT, formatGBP, payl8rDisclaimer, supportEmail } from "@/lib/brand";
-import { HQ, phone } from "@/lib/infoContent";
+import { HQ, phone, whatsapp } from "@/lib/infoContent";
+import { GoogleScore } from "./Trust";
 import { docsReady, LEGAL_DOCS_LIST } from "@/lib/builder";
 import { DELIVERY, FREE_STANDARD_OVER } from "@/lib/checkoutRules";
 import { lineTotal, useMake, type BasketItem, type RegistrationData } from "./MakeProvider";
@@ -662,6 +663,9 @@ export function Checkout() {
 
 
         <ul className="co-trust">
+          <li className="co-trust__score">
+            <GoogleScore compact />
+          </li>
           <li>
             <LockIcon />
             Card details go straight to our payment provider
@@ -678,7 +682,7 @@ export function Checkout() {
           )}
         </ul>
         <p className="co-one__help">
-          Questions? Call {phone.display} or email {supportEmail}.{" "}
+          Questions before or after you order? Call {phone.display}, WhatsApp {whatsapp.display} or email {supportEmail}.{" "}
           <a className="co-link" href="#make" onClick={(e) => (e.preventDefault(), go("make"))}>
             Back to your basket
           </a>

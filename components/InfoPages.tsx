@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { COMPANY, formatGBP, instagram, payl8rDisclaimer, reviewScores, routes, spaceReg, supportEmail } from "@/lib/brand";
 import { BrandLogo } from "./BrandLogo";
+import { DVLA_MEANS, GoogleScore } from "./Trust";
 import { CONTACT_TOPICS, FAQS, HQ, PROVIDERS, STORY, STORY_NEXT, TEAM, phone, whatsapp, type ContactTopic, type FaqTab, type ProviderKey } from "@/lib/infoContent";
 import { GALLERY, type GalleryTab } from "@/lib/gallery";
 import { ArrowRight } from "./Icons";
@@ -228,10 +229,8 @@ export function AboutPage() {
           <b>Registered</b>
         </div>
         <div>
-          <h2 id="ab-reg-t">Fully DVLA registered</h2>
-          <p>
-            REG KING is a DVLA registered number plate supplier, reference {COMPANY.dvlaRef}. Every transfer is handled properly, every document is checked, and every road legal plate we make is made to the legal standard. You&apos;re dealing with a business that does it by the book.
-          </p>
+          <h2 id="ab-reg-t">DVLA registered number plate supplier</h2>
+          <p>{DVLA_MEANS}</p>
           <p className="ab-reg__co">
             REG KING is a trading name of {COMPANY.legal}, company number {COMPANY.number}.
           </p>
@@ -774,6 +773,10 @@ export function ContactPage() {
           <a className="rk-c3__dir" href={HQ.directions} target="_blank" rel="noopener noreferrer">
             Get directions <ArrowRight />
           </a>
+          <p className="rk-c3__co">
+            REG KING is a trading name of {COMPANY.legal}, company number {COMPANY.number}. DVLA registered number plate supplier, ref {COMPANY.dvlaRef}.
+          </p>
+          <GoogleScore />
         </div>
       </section>
     </div>

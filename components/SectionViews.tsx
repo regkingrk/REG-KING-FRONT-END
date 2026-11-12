@@ -2,7 +2,7 @@
 
 import { linkFor } from "@/lib/routes";
 import { useEffect, useState, type FormEvent } from "react";
-import { DEPOSIT_RATE, depositFor, exclusivePlates, faqs, formatGBP, instagram, normaliseReg, payl8rDisclaimer, platesForSale, plateStyles, reviewScores, reviews, routes, supportEmail, trust } from "@/lib/brand";
+import { DEPOSIT_RATE, depositFor, exclusivePlates, faqs, formatGBP, instagram, normaliseReg, payl8rDisclaimer, platesForSale, plateStyles, reviewScores, reviews, routes, supportEmail } from "@/lib/brand";
 import { STOCK, STYLE_INFO, earliest, styleOf } from "@/lib/search";
 import { SITEMAP, sectionOf } from "@/lib/sitemap";
 import { DVLA_NO_DEPOSIT } from "@/lib/dvlaPricing";
@@ -200,7 +200,7 @@ export function Reviews() {
             ))}
           </Carousel>
         )}
-        <p className="rk-bfine">Prototype: these are real reviews. At launch their full text loads from Trustpilot and Google.</p>
+        <p className="rk-bfine">A selection of our reviews. Read every review on Trustpilot and Google.</p>
       </div>
     </section>
   );
