@@ -1881,15 +1881,17 @@ body::before {
     linear-gradient(180deg, #9b8613, #7a6809) !important;
 }
 
-/* Faded Tint: a smoked tint across the top that fades away down the plate, so white (front) or yellow (rear) comes through from the bottom up */
+/* Faded Tint: a smoked tint across the top and in from both ends that fades away, so white (front) or yellow (rear) comes through from the bottom up */
 [data-extras~="fade"] {
   background:
     linear-gradient(180deg, rgba(24, 23, 20, 0.58) 0%, rgba(24, 23, 20, 0.48) 25%, rgba(24, 23, 20, 0) 78%),
+    linear-gradient(90deg, rgba(24, 23, 20, 0.49) 0%, rgba(24, 23, 20, 0) 16%, rgba(24, 23, 20, 0) 84%, rgba(24, 23, 20, 0.49) 100%),
     linear-gradient(180deg, #ffffff, #ececea) !important;
 }
 [data-extras~="fade"][data-side="rear"] {
   background:
     linear-gradient(180deg, rgba(24, 23, 20, 0.82) 0%, rgba(24, 23, 20, 0.67) 25%, rgba(24, 23, 20, 0) 78%),
+    linear-gradient(90deg, rgba(24, 23, 20, 0.7) 0%, rgba(24, 23, 20, 0) 16%, rgba(24, 23, 20, 0) 84%, rgba(24, 23, 20, 0.7) 100%),
     linear-gradient(180deg, #ffdc1a, #f6c800) !important;
 }
 

@@ -74,7 +74,7 @@ export const TINT = { front: { top: "#8f8e8a", bottom: "#71706c", edge: 0x6c6b67
 /**
  * Faded Tint: a smoked tint across the top of the reflective that fades away down the plate, so the
  * plate's own colour comes through from the bottom up (grey into white at the front, dark into yellow
- * at the back). The letters stay black.
+ * at the back), and in from both ends. The letters stay black.
  */
 export const FADE_TOP = { front: 0.58, rear: 0.82 };
 
@@ -137,6 +137,15 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     f.addColorStop(0.25, `rgba(24,23,20,${(a * 0.82).toFixed(3)})`);
     f.addColorStop(0.78, "rgba(24,23,20,0)");
     ctx.fillStyle = f;
+    ctx.fillRect(0, 0, W, H);
+    // and in from both ends
+    const sides = ctx.createLinearGradient(0, 0, W, 0);
+    const e = (a * 0.85).toFixed(3);
+    sides.addColorStop(0, `rgba(24,23,20,${e})`);
+    sides.addColorStop(0.16, "rgba(24,23,20,0)");
+    sides.addColorStop(0.84, "rgba(24,23,20,0)");
+    sides.addColorStop(1, `rgba(24,23,20,${e})`);
+    ctx.fillStyle = sides;
     ctx.fillRect(0, 0, W, H);
   }
   // a faint diagonal sheen, as on the acrylic face
