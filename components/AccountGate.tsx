@@ -55,6 +55,15 @@ export function AccountGate() {
   useEffect(() => {
     if (step === "code") codeRef.current?.focus();
   }, [step]);
+  // Coming from "Create my account" after a valuation request: start with the details they gave.
+  useEffect(() => {
+    try {
+      const s = JSON.parse(sessionStorage.getItem("rk-signup") ?? "null") as { email?: string; name?: string } | null;
+      if (s?.email) setEmail(s.email);
+      if (s?.name) setName(s.name);
+      sessionStorage.removeItem("rk-signup");
+    } catch {}
+  }, []);
 
   const sendCode = (e: FormEvent) => {
     e.preventDefault();

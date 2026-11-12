@@ -32,7 +32,7 @@ export const SITEMAP: SiteSection[] = [
     line: "We advertise your plate for you",
     hash: "sell",
     items: [
-      { key: "valuation", label: "Value my plate", line: "A guide price for your reg", hash: "sell-valuation" },
+      { key: "valuation", label: "Value my plate", line: "A free valuation from our team", hash: "sell-valuation" },
       { key: "uplift", label: "Increased price sale", line: "You get your asking price", hash: "sell-increased" },
       { key: "commission", label: "Commission based, 10%", line: "10% when it sells", hash: "sell-commission" },
       { key: "brokerage", label: "Brokerage", line: "Sale agreed? We finalise it for you", hash: "sell-brokerage" },

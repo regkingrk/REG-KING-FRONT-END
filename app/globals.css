@@ -38744,3 +38744,112 @@ body:has(.rk-studio) {
   outline: 2px solid var(--rk-yellow);
   outline-offset: 2px;
 }
+
+/* Value my plate: the request form (a lead for the team, no automatic price) */
+.rk-vreq {
+  text-align: left;
+  justify-items: stretch;
+  max-width: 520px;
+  margin-inline: auto;
+}
+.rk-vreq h2 {
+  text-align: center;
+}
+.rk-valuer__lede {
+  margin: -4px 0 6px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(244, 242, 236, 0.72);
+}
+.rk-vreq__f {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.rk-vreq__f > span {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(244, 242, 236, 0.85);
+}
+.rk-vreq__f input:not(.rk-valuer__plate) {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1px solid rgba(244, 242, 236, 0.22);
+  border-radius: 10px;
+  background: #161514;
+  color: #f4f2ec;
+  font: 500 16px var(--rk-body);
+}
+.rk-vreq__f input:not(.rk-valuer__plate):focus {
+  outline: none;
+  border-color: var(--rk-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 194, 0, 0.25);
+}
+.rk-vreq__f input[aria-invalid="true"] {
+  border-color: #ff7a6b;
+}
+.rk-vreq__f--reg .rk-valuer__plate {
+  font-size: clamp(40px, 10vw, 76px);
+}
+.rk-vreq__err {
+  color: #ff9b8f;
+  font-size: 13.5px;
+}
+.rk-vreq__fail {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 122, 107, 0.12);
+  color: #ffd2cc;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.rk-vreq__trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.rk-vreq .rk-valuer__go {
+  margin-top: 6px;
+}
+.rk-vreq__fine {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(244, 242, 236, 0.5);
+}
+.rk-vreq__fine a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+.rk-valuer__acct {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+  padding: clamp(20px, 3vw, 28px);
+  border-radius: 14px;
+  background: #f4f2ec;
+  color: #161514;
+}
+.rk-valuer__acct b {
+  font: 800 clamp(22px, 2.4vw, 28px) / 1.1 var(--rk-display);
+  text-transform: uppercase;
+}
+.rk-valuer__acct span {
+  max-width: 42ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #57534c;
+}
+.rk-valuer__acct .rk-valuer__go {
+  margin-top: 6px;
+  background: #111;
+  color: var(--rk-yellow);
+}

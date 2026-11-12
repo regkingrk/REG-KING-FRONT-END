@@ -84,7 +84,7 @@ export const nav: NavItem[] = [
  */
 export const features = [
   { key: "auctions", label: "Auctions", line: "REG KING plate auctions", href: routes.auctions, icon: "gavel" },
-  { key: "value", label: "Value a plate", line: "Free guide price for your reg", href: "#sell", icon: "tag" },
+  { key: "value", label: "Value a plate", line: "A free valuation from our team", href: "#sell-valuation", icon: "tag" },
   { key: "history", label: "Reg history check", line: "When it was issued and past prices", href: routes.regHistory, icon: "history" },
   { key: "viewer", label: "Plate viewer", line: "See a plate on your own car", href: routes.plateViewer, icon: "camera" },
   { key: "finance", label: "Finance", line: "Spread the cost with Payl8r", href: routes.finance, icon: "pound" },

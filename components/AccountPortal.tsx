@@ -1181,7 +1181,7 @@ function Choice<T extends string>({ value, options, onPick, label, name }: { val
 /* ---------- Value a registration: reg, a few details, submit ---------- */
 
 type Valuation = { id: string; reg: string; held: string; note: string; created: string };
-/** Valuation requests. PROTOTYPE: kept in this browser; at launch they go to REG KING like the contact form. */
+/** Valuation requests the customer has sent (sent to REG KING by /api/valuation-request; this list is kept in this browser). */
 function useValuations() {
   const [list, setList] = useState<Valuation[]>([]);
   useEffect(() => {
@@ -1210,19 +1210,38 @@ function ValueFlow({ back, add }: { back: () => void; add: (v: Omit<Valuation, "
   const [note, setNote] = useState("");
   const [tried, setTried] = useState(-1);
   const [done, setDone] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState("");
+  const [sending, setSending] = useState(false);
+  const [tel, setTel] = useState(customer?.phone ?? "");
   const regOk = cleanReg(reg).replace(/\s/g, "").length >= 2;
+  const telOk = tel.replace(/\D/g, "").length >= 10;
 
-  const next = (ev: FormEvent) => {
+  // The request goes to the REG KING team (/api/valuation-request), who value it and get in touch.
+  const next = async (ev: FormEvent) => {
     ev.preventDefault();
     setTried(Math.max(tried, step));
     if (step === 0) {
       if (regOk) setStep(1);
       return;
     }
-    if (!held) return;
-    if (!add({ reg: cleanReg(reg), held, note: note.trim() })) return setFailed(true);
-    setDone(true);
+    if (!held || !telOk || sending) return;
+    setSending(true);
+    setFailed("");
+    try {
+      const res = await fetch("/api/valuation-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reg: cleanReg(reg), name: customer?.name ?? "", email: customer?.email ?? "", phone: tel, held, note: note.trim(), source: "account" }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !j.ok) throw new Error(j.error || "");
+      add({ reg: cleanReg(reg), held, note: note.trim() });
+      setDone(true);
+    } catch (err) {
+      setFailed((err as Error).message || "Sorry, we couldn't send your request. Please try again, or call 01922 333451.");
+    } finally {
+      setSending(false);
+    }
   };
 
   if (done)
@@ -1237,7 +1256,7 @@ function ValueFlow({ back, add }: { back: () => void; add: (v: Omit<Valuation, "
           <h2>Valuation requested</h2>
           <span className="ca-plate ca-plate--xl">{cleanReg(reg)}</span>
           <p>
-            The REG KING team will look at {cleanReg(reg)} and email your valuation to <b>{customer?.email}</b>.
+            The REG KING team will value {cleanReg(reg)} and contact you on {tel} or at <b>{customer?.email}</b>.
           </p>
           <button type="button" className="ca-btn" onClick={back} data-ca-done>
             Back to Sell
@@ -1283,12 +1302,23 @@ function ValueFlow({ back, add }: { back: () => void; add: (v: Omit<Valuation, "
             </span>
             <textarea rows={3} value={note} onChange={(ev) => setNote(ev.target.value)} placeholder="For example: what it means, or a price you've been offered" data-f="value-note" />
           </label>
-          <p className="ca-note">We&apos;ll email the valuation to {customer?.email}.</p>
+          {!customer?.phone && (
+            <label className="ca-f">
+              <span>Your phone number</span>
+              <input type="tel" value={tel} onChange={(ev) => setTel(ev.target.value)} autoComplete="tel" maxLength={20} aria-invalid={tried >= 1 && !telOk} data-f="value-tel" />
+              {tried >= 1 && !telOk && <small className="ca-err">Enter a phone number we can call.</small>}
+            </label>
+          )}
+          <p className="ca-note">We&apos;ll contact you about your valuation by phone or at {customer?.email}.</p>
         </section>
       )}
-      {failed && <p className="ca-err ca-err--block">Sorry, we couldn&apos;t send your request. Please try again.</p>}
-      <button type="submit" className="ca-btn ca-btn--big" data-ca-next>
-        {step === 1 ? "Request valuation" : "Continue"}
+      {failed && (
+        <p className="ca-err ca-err--block" role="alert">
+          {failed}
+        </p>
+      )}
+      <button type="submit" className="ca-btn ca-btn--big" data-ca-next disabled={sending}>
+        {step === 1 ? (sending ? "Sending…" : "Request valuation") : "Continue"}
       </button>
     </form>
   );

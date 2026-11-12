@@ -341,7 +341,7 @@ export const FAQS: Record<FaqTab, { label: string; line: string; items: Faq[] }>
       },
       {
         q: "How much is my plate worth?",
-        a: "Try the valuation tool on the Sell tab for a free guide price. It's a guide only, and a valuation from our team may differ.",
+        a: "Choose Value my plate on the Sell tab and send us your reg with your name, email and phone number. Our team will value it for you, free, and get in touch.",
       },
       {
         q: "What paperwork do I need to sell?",

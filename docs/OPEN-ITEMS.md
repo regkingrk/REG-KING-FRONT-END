@@ -2,6 +2,7 @@
 
 ## Waiting on REG KING
 - Supabase keys in Vercel (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY).
+  Then run supabase/01_valuation_requests.sql in Supabase (SQL Editor). Value my plate requests save there.
   Unblocks: Sell / Value My Plate rebuild (Task 1), accounts, admin, surround and logo mockup approval, file storage.
 - SHOPIFY_ADMIN_TOKEN in Vercel (checkout, artwork file storage).
 - Confirm: logo, surround and RK prices; acrylic thickness (3mm) and minimum detail (1.5mm); delivery prices;

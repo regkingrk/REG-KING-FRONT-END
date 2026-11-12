@@ -2,10 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { formatGBP, modeUrl, normaliseReg, routes, sellOptions, sellSmallPrint, sellSteps, spaceReg, type SellOption } from "@/lib/brand";
-import { SOURCES, estimate, snapshotComparables, type Valuation } from "@/lib/valuation";
-import { VALUATION_DATA_DATE } from "@/lib/valuationData";
-import { plateNews, type NewsResult } from "@/lib/plateNews";
-import { STYLE_INFO } from "@/lib/search";
 import { navigate } from "@/lib/nav";
 import { QuickLinks } from "./HomeSections";
 import { ArrowRight } from "./Icons";
@@ -29,292 +25,153 @@ import { ExclusiveVault } from "./ExclusiveVault";
 import { useAccount } from "./AccountProvider";
 
 /**
- * Value your plate: enter a reg, get a guide price drawn from several sources of real prices
- * (lib/valuation.ts), then a prompt to list it with REG KING.
- * Live site: /api/valuation gathers the sources on the server. The preview has no server, so it
- * uses the Shopify snapshots in the repo with the same maths.
+ * Value my plate: a request to the REG KING team, not an automatic price. The reg comes from the
+ * plate box at the top of Sell (set to "Value my plate"); the customer adds their name, email and
+ * phone; the request is saved for the team (/api/valuation-request), who value the plate and get in
+ * touch. Then we invite them to create a free account.
  */
-async function valuePlate(reg: string): Promise<Valuation | null> {
-  try {
-    const res = await fetch(`/api/valuation?reg=${encodeURIComponent(reg.replace(/\s/g, ""))}`, { headers: { Accept: "application/json" } });
-    if ((res.headers.get("content-type") ?? "").includes("application/json")) {
-      return res.ok ? ((await res.json()) as Valuation) : null;
-    }
-  } catch {}
-  return estimate(reg, snapshotComparables());
-}
-
-const VALUE_MIN_MS = 900;
-const PROMPT_AFTER_MS = 1100;
-
 function ValueCard() {
-  const { setSellReg, setSellOption, setSellTask, setMode, mode, go, valueAsk, setValueAsk } = useMode();
-  const [state, setState] = useState<"idle" | "working" | "done" | "none">("idle");
-  const [result, setResult] = useState<Valuation | null>(null);
-  const [valued, setValued] = useState("");
-  const [prompt, setPrompt] = useState(false);
-  const [pick, setPick] = useState<SellOption>("uplift");
-  const [news, setNews] = useState<NewsResult | null>(null);
-  const promptRef = useRef<HTMLDivElement>(null);
-
-  // The reg comes from the plate box at the top of Sell, set to "Value my plate".
+  const { valueAsk, setValueAsk, go } = useMode();
+  const { customer } = useAccount();
   const box = useRef<HTMLElement>(null);
+  const [reg, setReg] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [tel, setTel] = useState("");
+  const [trap, setTrap] = useState("");
+  const [tried, setTried] = useState(false);
+  const [state, setState] = useState<"form" | "sending" | "sent">("form");
+  const [error, setError] = useState("");
+  const [ref, setRef] = useState("");
+
+  // A reg from the plate box opens the form here, filled in with what we already know.
   useEffect(() => {
-    if (!valueAsk) {
-      setState("idle");
-      setResult(null);
-      setPrompt(false);
+    if (!valueAsk) return;
+    setReg(spaceReg(valueAsk.reg.toUpperCase()));
+    setState("form");
+    setError("");
+    setTried(false);
+    if (customer) {
+      setName((n) => n || customer.name);
+      setEmail((e) => e || customer.email);
+      setTel((t) => t || customer.phone);
+    }
+    requestAnimationFrame(() => box.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [valueAsk]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!valueAsk) return null;
+
+  const ok = {
+    reg: reg.replace(/\s/g, "").length >= 2,
+    name: name.trim().length > 0,
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()),
+    tel: tel.replace(/\D/g, "").length >= 10,
+  };
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setTried(true);
+    const first = (["reg", "name", "email", "tel"] as const).find((k) => !ok[k]);
+    if (first) {
+      document.querySelector<HTMLElement>(`[data-vr="${first}"]`)?.focus();
       return;
     }
-    const r = spaceReg(valueAsk.reg.toUpperCase());
-    if (r.replace(/\s/g, "").length < 2) return;
-    let live = true;
-    setValued(r);
-    setState("working");
-    setResult(null);
-    setPrompt(false);
-    setNews(null);
-    requestAnimationFrame(() => box.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-    // The news check runs alongside; it fills in when it's back.
-    plateNews(r).then((n) => live && setNews(n));
-    Promise.all([valuePlate(r), new Promise((ok) => window.setTimeout(ok, VALUE_MIN_MS))]).then(([v]) => {
-      if (!live) return;
-      setResult(v);
-      setState(v ? "done" : "none");
-    });
-    return () => {
-      live = false;
-    };
-  }, [valueAsk]);
-  // Once the value has landed, ask whether they'd like to list it.
-  useEffect(() => {
-    if (state !== "done") return;
-    const t = window.setTimeout(() => setPrompt(true), PROMPT_AFTER_MS);
-    return () => window.clearTimeout(t);
-  }, [state]);
-  useEffect(() => {
-    if (!prompt) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPrompt(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [prompt]);
-
-  const reset = () => {
+    setState("sending");
+    setError("");
+    try {
+      const res = await fetch("/api/valuation-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reg, name, email, phone: tel, website: trap, source: "sell-page" }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string };
+      if (!res.ok || !j.ok) throw new Error(j.error || "");
+      setRef(j.ref ?? "");
+      setState("sent");
+    } catch (err) {
+      setError((err as Error).message || "We couldn't send your request. Call 01922 333451 or WhatsApp 07838 371339 and we'll value it for you.");
+      setState("form");
+    }
+  };
+  const again = () => {
     setValueAsk(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
     window.setTimeout(() => document.getElementById("rk-reg")?.focus({ preventScroll: true }), 400);
   };
-  const list = (opt: SellOption | "") => {
+  const toAccount = () => {
     try {
-      if (result) sessionStorage.setItem("rk-valuation", JSON.stringify({ reg: valued, low: result.low, high: result.high }));
+      sessionStorage.setItem("rk-signup", JSON.stringify({ email: email.trim(), name: name.trim() }));
     } catch {}
-    setPrompt(false);
-    setSellOption(opt);
-    setSellTask("list");
-    setValueAsk(null);
-    setSellReg(valued);
-    if (mode !== "sell") setMode("sell");
-    window.scrollTo({ top: 0 });
+    go("account");
   };
-  const range = result ? priceRange(result.low, result.high) : "";
-  // Nothing to show until a reg has been entered in the plate box above.
-  if (state === "idle") return null;
 
   return (
     <section className="rk-valuer" id="sell-valuation" aria-labelledby="value-title" ref={box}>
       <div className="rk-wrap rk-valuer__in">
-        <h2 id="value-title">Your valuation</h2>
-
-        {state === "working" ? (
-          <div className="rk-valuer__result" aria-live="polite">
-            <span className="rk-valuer__plate rk-valuer__plate--shown">{valued}</span>
-            <p className="rk-valuer__basis">Checking prices…</p>
-          </div>
-        ) : state === "none" ? (
-          <div className="rk-valuer__result" aria-live="polite">
-            <span className="rk-valuer__plate rk-valuer__plate--shown">{valued}</span>
-            <p className="rk-valuer__basis">We couldn&apos;t find enough similar plates to value {valued}. Our team can value it for you, free.</p>
-            <button type="button" className="rk-valuer__go" onClick={() => list("")}>
-              Ask us to value it
-            </button>
-            <button type="button" className="rk-valuer__again" onClick={reset}>
+        {state === "sent" ? (
+          <div className="rk-valuer__result" role="status">
+            <h2 id="value-title">Request received</h2>
+            <span className="rk-valuer__plate rk-valuer__plate--shown">{reg}</span>
+            <p className="rk-valuer__basis">
+              Thanks, {name.trim().split(" ")[0]}. Our team will value {reg} and contact you on {tel} or at {email.trim()}.{ref ? ` Your reference is ${ref}.` : ""}
+            </p>
+            {!customer && (
+              <div className="rk-valuer__acct">
+                <b>Create your free account</b>
+                <span>List {reg} in a few taps when you&apos;re ready, keep a wishlist and keep track of your plates.</span>
+                <button type="button" className="rk-valuer__go" onClick={toAccount} data-vr-account>
+                  Create my account <ArrowRight />
+                </button>
+              </div>
+            )}
+            <button type="button" className="rk-valuer__again" onClick={again}>
               Value another plate
             </button>
           </div>
         ) : (
-          result && (
-            <div className="rk-valuer__result" aria-live="polite">
-              <span className="rk-valuer__plate rk-valuer__plate--shown">{valued}</span>
-              <p className="rk-valuer__est">Estimated value</p>
-              <p className="rk-valuer__price" data-value-price>
-                {range}
+          <form className="rk-valuer__form rk-vreq" onSubmit={submit} noValidate>
+            <h2 id="value-title">Value my plate</h2>
+            <p className="rk-valuer__lede">Tell us where to send it and our team will value your plate for you, free.</p>
+            <label className="rk-vreq__f rk-vreq__f--reg">
+              <span>Registration</span>
+              <input className="rk-valuer__plate" value={reg} onChange={(e) => setReg(spaceReg(e.target.value))} maxLength={8} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-invalid={tried && !ok.reg} data-vr="reg" />
+              {tried && !ok.reg && <small className="rk-vreq__err">Enter your registration.</small>}
+            </label>
+            <label className="rk-vreq__f">
+              <span>Your name</span>
+              <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={80} aria-invalid={tried && !ok.name} data-vr="name" />
+              {tried && !ok.name && <small className="rk-vreq__err">Enter your name.</small>}
+            </label>
+            <label className="rk-vreq__f">
+              <span>Email</span>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={120} aria-invalid={tried && !ok.email} data-vr="email" />
+              {tried && !ok.email && <small className="rk-vreq__err">Enter a valid email address.</small>}
+            </label>
+            <label className="rk-vreq__f">
+              <span>Phone number</span>
+              <input type="tel" value={tel} onChange={(e) => setTel(e.target.value)} autoComplete="tel" maxLength={20} aria-invalid={tried && !ok.tel} data-vr="tel" />
+              {tried && !ok.tel && <small className="rk-vreq__err">Enter a phone number we can call.</small>}
+            </label>
+            {/* hidden from people; only bots fill it in */}
+            <input className="rk-vreq__trap" tabIndex={-1} autoComplete="off" aria-hidden value={trap} onChange={(e) => setTrap(e.target.value)} name="website" />
+            {error && (
+              <p className="rk-vreq__fail" role="alert">
+                {error}
               </p>
-              <p className="rk-valuer__basis">
-                {result.strength === "limited"
-                  ? `Only a few similar plates to go on, so treat this as a rough guide.`
-                  : `From the ${result.count} most similar ${STYLE_INFO[result.style].name.toLowerCase()} plates we found.`}
-              </p>
-
-              {(result.exact || result.exactSold.length > 0) && (
-                <div className="rk-valuer__exact">
-                  {result.exactSold.length > 0 && (
-                    <p>
-                      {valued} sold through REG KING for <b>{formatGBP(result.exactSold[0].price, Number.isInteger(result.exactSold[0].price))}</b>
-                      {result.exactSold[0].date ? ` in ${monthYear(result.exactSold[0].date)}` : ""}.
-                    </p>
-                  )}
-                  {result.exact && (
-                    <p>
-                      {valued} is listed with us now at <b>{formatGBP(result.exact.price, Number.isInteger(result.exact.price))}</b>.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div className="rk-vx">
-                <section className="rk-vx__sec" aria-labelledby="vx-why">
-                  <h3 id="vx-why">Why this range</h3>
-                  {result.summary && <p className="rk-vx__ai">{result.summary}</p>}
-                  <ul className="rk-vx__comps">
-                    {result.matches.map((m) => {
-                      const row = (
-                        <>
-                          <span className="rk-valuer__mini">{m.reg}</span>
-                          <span className="rk-vx__kind" data-kind={m.kind}>
-                            {m.kind === "sold" ? `Sold${m.date ? ` ${monthYear(m.date)}` : ""}` : m.source === "market" ? "For sale elsewhere" : "For sale with us"}
-                          </span>
-                          <b>{formatGBP(m.price, Number.isInteger(m.price))}</b>
-                        </>
-                      );
-                      return (
-                        <li key={m.reg + m.kind + (m.date ?? "")}>
-                          {m.handle && m.kind === "asking" ? (
-                            <a href={`#plate-${m.handle}`} onClick={(e) => { e.preventDefault(); go(`plate-${m.handle}`); }}>
-                              {row}
-                            </a>
-                          ) : (
-                            <span className="rk-valuer__mrow">{row}</span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <p className="rk-vx__src">
-                    Based on {result.sources.map((x) => `${x.count} ${x.count === 1 ? "price" : "prices"} from ${SOURCES[x.key].name}`).join(", ")}.
-                  </p>
-                </section>
-
-                {result.forSale.length > 0 && (
-                  <section className="rk-vx__sec" aria-labelledby="vx-sale">
-                    <h3 id="vx-sale">Similar plates for sale now</h3>
-                    <ul className="rk-vx__sale">
-                      {result.forSale.map((m) => (
-                        <li key={m.reg}>
-                          <a href={`#plate-${m.handle}`} onClick={(e) => { e.preventDefault(); go(`plate-${m.handle}`); }} data-vx-sale={m.reg}>
-                            <span className="rk-valuer__mini">{m.reg}</span>
-                            <b>{formatGBP(m.price, Number.isInteger(m.price))}</b>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
-
-                <section className="rk-vx__sec" aria-labelledby="vx-news" aria-live="polite">
-                  <h3 id="vx-news">In the news</h3>
-                  {news === null ? (
-                    <p className="rk-vx__muted">Checking UK news for {valued}.</p>
-                  ) : !news.checked ? (
-                    <p className="rk-vx__muted">
-                      {news.reason === "preview" ? `Preview: on the live site we check UK news for stories about ${valued}.` : "We couldn't check the news just now."}
-                    </p>
-                  ) : news.stories.length === 0 ? (
-                    <p className="rk-vx__muted">We didn&apos;t find any news stories about {valued}.</p>
-                  ) : (
-                    <ul className="rk-vx__news">
-                      {news.stories.map((n) => (
-                        <li key={n.url}>
-                          <a href={n.url} target="_blank" rel="noopener noreferrer">
-                            <b>{n.title}</b>
-                            <span>
-                              {n.source}
-                              {n.date ? `, ${monthYear(n.date)}` : ""}
-                            </span>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              </div>
-
-              <div className="rk-valuer__sell">
-                <b>Want to sell {valued}?</b>
-                <span>We&apos;ll advertise it for you and manage the sale and DVLA transfer.</span>
-                <button type="button" className="rk-valuer__go" onClick={() => setPrompt(true)} data-value-list>
-                  List my plate <ArrowRight />
-                </button>
-                <button type="button" className="rk-valuer__again" onClick={reset}>
-                  Value another plate
-                </button>
-              </div>
-            </div>
-          )
-        )}
-
-        <p className="rk-valuer__note">
-          Please note: this tool is AI based. It compares your reg with similar registrations and their real prices to estimate what your plate is worth. It&apos;s a guide only, and a valuation from our team may differ.
-        </p>
-        <p className="rk-bfine">Prototype: prices come from REG KING&apos;s Shopify store, every plate for sale and what plates sold for ({VALUATION_DATA_DATE}). The live site reads them fresh, and adds DVLA auction results and other dealers&apos; prices once those sources are confirmed.</p>
-      </div>
-
-      {prompt && result && (
-        <div className="rk-lprompt" role="dialog" aria-modal="false" aria-labelledby="lprompt-t" ref={promptRef} data-list-prompt>
-          <div className="rk-lprompt__in">
-            <button type="button" className="rk-lprompt__x" onClick={() => setPrompt(false)} aria-label="Close">
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M6 6l12 12M18 6 6 18" />
-              </svg>
+            )}
+            <button type="submit" className="rk-valuer__go" disabled={state === "sending"} data-vr-send>
+              {state === "sending" ? "Sending…" : "Get my free valuation"}
             </button>
-            <div className="rk-lprompt__head">
-              <span className="rk-lprompt__plate">{valued}</span>
-              <div>
-                <h3 id="lprompt-t">List {valued} with REG KING</h3>
-                <p>
-                  Guide price <b>{range}</b>. Choose how you&apos;d like to sell.
-                </p>
-              </div>
-            </div>
-            <div className="rk-lprompt__opts" role="radiogroup" aria-label="How to sell">
-              {sellOptions.map((o) => (
-                <button key={o.key} type="button" role="radio" aria-checked={pick === o.key} onClick={() => setPick(o.key)} data-lprompt-opt={o.key}>
-                  <b>{o.title}</b>
-                  <span>{o.fee}</span>
-                </button>
-              ))}
-            </div>
-            <div className="rk-lprompt__acts">
-              <button type="button" className="rk-lprompt__go" onClick={() => list(pick)} data-lprompt-go>
-                List my plate
-              </button>
-              <button type="button" className="rk-lprompt__no" onClick={() => setPrompt(false)}>
-                Not now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            <p className="rk-vreq__fine">
+              We&apos;ll only use your details to value your plate and contact you about it. See our{" "}
+              <a href="/privacy-policy">privacy policy</a>.
+            </p>
+          </form>
+        )}
+      </div>
     </section>
   );
 }
 
-/** "2026-03-14" to "Mar 2026". */
-const monthYear = (iso: string) => {
-  const d = new Date(iso + "T12:00:00");
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-};
-
-const priceRange = (low: number, high: number) => (low === high ? formatGBP(low, true) : `${formatGBP(low, true)} to ${formatGBP(high, true)}`);
 
 /**
  * Sell page: once a reg is entered, the same List a Plate form as the account area, with that reg filled in.

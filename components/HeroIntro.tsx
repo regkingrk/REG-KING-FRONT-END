@@ -136,7 +136,7 @@ export function HeroIntro() {
           </h1>
           {/* What to do on this tab, right above the plate */}
           <p className="rk-hero__sub" data-hero-item aria-live="polite">
-            {mode === "sell" && sellTask === "value" ? "Enter your plate below for a free guide price." : (searchModes.find((m) => m.key === mode)?.lead ?? searchModes[0].lead)}
+            {mode === "sell" && sellTask === "value" ? "Enter your plate below for a free valuation from our team." : (searchModes.find((m) => m.key === mode)?.lead ?? searchModes[0].lead)}
           </p>
 
           <PlateSearch ref={plateRef} />

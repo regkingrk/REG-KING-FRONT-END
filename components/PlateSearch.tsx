@@ -101,7 +101,7 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
       inputRef.current?.focus();
       return;
     }
-    // Sell, set to value: the guide price shows just under the hero
+    // Sell, set to value: the request form opens just under the hero
     if (as === "sell" && mode === "sell" && sellTask === "value") {
       setValueAsk({ reg: value.trim(), at: Date.now() });
       inputRef.current?.blur();
@@ -162,7 +162,7 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
     mode === "build" && from !== null
       ? `Road-legal and show plates from ${formatGBP(from, false)} a set, made to order and delivered to your door.`
       : valuing
-        ? "A free guide price, from similar plates and what they sold for."
+        ? "Send us your reg and our team will value it for you, free."
         : m.help;
   const buttonLabel = building
     ? ready
