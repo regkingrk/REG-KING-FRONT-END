@@ -1,0 +1,51 @@
+/* Hand-made day mode tweaks (added to the end of day.css by scripts/make-day-css.py) */
+html[data-theme="day"] body {
+  background: #f7f6f2;
+  color: #161514;
+}
+/* the header stays REG KING black in day mode, solid (never see-through) */
+html[data-theme="day"] .rk-header {
+  background: #0b0b0a !important;
+}
+
+/* The top of the page (hero): light, without the films behind it */
+html[data-theme="day"] .rk-hero {
+  background: #f7f6f2 !important;
+}
+html[data-theme="day"] .rk-hero__film,
+html[data-theme="day"] .rk-hero__make,
+html[data-theme="day"] .rk-hero__sell-bg,
+html[data-theme="day"] .rk-hero__build-bg {
+  display: none !important;
+}
+html[data-theme="day"] .rk-hero::before,
+html[data-theme="day"] .rk-hero::after {
+  display: none !important;
+}
+html[data-theme="day"] .rk-hero__title {
+  color: #161514 !important;
+}
+html[data-theme="day"] .rk-hero__sub,
+html[data-theme="day"] .rk-search__help {
+  color: #4a463c !important;
+}
+html[data-theme="day"] .rk-proof {
+  color: #161514;
+}
+html[data-theme="day"] .rk-proof__rule {
+  background: rgba(22, 21, 20, 0.2);
+}
+html[data-theme="day"] .rk-proof__social {
+  background: #161514;
+  color: #fff;
+}
+html[data-theme="day"] .rk-plate {
+  box-shadow: 0 0 0 4px var(--rk-ink) inset, 0 14px 30px -18px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="day"] .rk-proof__item,
+html[data-theme="day"] .rk-proof__item b,
+html[data-theme="day"] .rk-proof__text,
+html[data-theme="day"] .rk-proof__wide,
+html[data-theme="day"] .rk-proof__label {
+  color: #161514 !important;
+}

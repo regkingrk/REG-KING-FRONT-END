@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono, Oswald } from "next/font/google";
 import "./globals.css";
+import "./day.css";
 import { HOME_TITLE } from "@/lib/routes";
 import { JsonLd, siteSchema } from "@/lib/schema";
 
@@ -55,11 +56,15 @@ const introGate = `(function(){try{
   if((q||!seen)&&!rm&&!deep)document.documentElement.classList.add('rk-intro-pending');
 }catch(e){}})();`;
 
+/** Day mode, if this device chose it: set before first paint so the page never flashes dark first. */
+const themeGate = `(function(){try{if(localStorage.getItem('rk-theme')==='day')document.documentElement.setAttribute('data-theme','day');}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB" className={`${oswald.variable} ${plateFont.variable} ${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: introGate }} />
+        <script dangerouslySetInnerHTML={{ __html: themeGate }} />
         <JsonLd data={siteSchema()} />
       </head>
       <body>{children}</body>
