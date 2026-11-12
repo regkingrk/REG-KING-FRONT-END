@@ -175,7 +175,10 @@ export const DVLA_MEANS = `Any business that makes or sells number plates has to
 /** How long each point stays highlighted before the next. */
 const WHY_MS = 3600;
 
-export function WhyBuy() {
+export const WhyBuy = () => <WhyUs kind="buy" />;
+
+/** The trust band at the bottom of Buy, Sell and Make: four points that light up in turn. */
+export function WhyUs({ kind }: { kind: "buy" | "sell" | "make" }) {
   const { go } = useMode();
   // The four points light up in turn while the section is on screen, like the steps elsewhere on
   // the site. Hovering or focusing one holds it; reduced motion keeps them all still and equal.
@@ -203,55 +206,91 @@ export function WhyBuy() {
       <path d={d} />
     </svg>
   );
-  const points = [
-    {
-      k: "since",
-      icon: <CrownIcon />,
-      t: "Established 2017",
-      link: (
-        <a href="/about" onClick={(e) => (e.preventDefault(), go("info-about"))}>
-          Our story <ArrowRight />
-        </a>
-      ),
-    },
-    {
-      k: "reviews",
-      icon: ico("M12 3.2l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z"),
-      t: g ? `${g.score.toFixed(1)} on Google` : "Genuine reviews",
-      link: (
-        <a href={g?.url ?? reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
-          {g ? `Read ${fmtCount(g.count)} reviews` : "Read our reviews"} <ArrowRight />
-        </a>
-      ),
-    },
-    {
-      k: "visit",
-      icon: ico("M12 21s-7-7.2-7-12a7 7 0 0 1 14 0c0 4.8-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"),
-      t: "Bilston showroom",
-      link: (
-        <a href={HQ.directions} target="_blank" rel="noopener noreferrer">
-          Get directions <ArrowRight />
-        </a>
-      ),
-    },
-    {
-      k: "support",
-      icon: ico("M4 13v-1a8 8 0 0 1 16 0v1M4 13h3v6H5a1 1 0 0 1-1-1zM20 13h-3v6h2a1 1 0 0 0 1-1zM17 19c0 1.1-1.8 2-4 2"),
-      t: "Support throughout",
-      link: (
-        <a href="/contact" onClick={(e) => (e.preventDefault(), go("info-contact"))}>
-          Contact us <ArrowRight />
-        </a>
-      ),
-    },
-  ];
+  const since = {
+    k: "since",
+    icon: <CrownIcon />,
+    t: "Established 2017",
+    link: (
+      <a href="/about" onClick={(e) => (e.preventDefault(), go("info-about"))}>
+        Our story <ArrowRight />
+      </a>
+    ),
+  };
+  const reviews = {
+    k: "reviews",
+    icon: ico("M12 3.2l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z"),
+    t: g ? `${g.score.toFixed(1)} on Google` : "Genuine reviews",
+    link: (
+      <a href={g?.url ?? reviewScores.trustpilot.url} target="_blank" rel="noopener noreferrer">
+        {g ? `Read ${fmtCount(g.count)} reviews` : "Read our reviews"} <ArrowRight />
+      </a>
+    ),
+  };
+  const visit = {
+    k: "visit",
+    icon: ico("M12 21s-7-7.2-7-12a7 7 0 0 1 14 0c0 4.8-7 12-7 12zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"),
+    t: "Bilston showroom",
+    link: (
+      <a href={HQ.directions} target="_blank" rel="noopener noreferrer">
+        Get directions <ArrowRight />
+      </a>
+    ),
+  };
+  const support = {
+    k: "support",
+    icon: ico("M4 13v-1a8 8 0 0 1 16 0v1M4 13h3v6H5a1 1 0 0 1-1-1zM20 13h-3v6h2a1 1 0 0 0 1-1zM17 19c0 1.1-1.8 2-4 2"),
+    t: "Support throughout",
+    link: (
+      <a href="/contact" onClick={(e) => (e.preventDefault(), go("info-contact"))}>
+        Contact us <ArrowRight />
+      </a>
+    ),
+  };
+  // Free to list: confirmed by REG KING (12 Nov 2026), "we just charge when it sells".
+  const free = {
+    k: "free",
+    icon: ico("M3 12.5V4h8.5L21 13.5 13.5 21zM7.5 8.5h.01"),
+    t: "Free to list",
+    link: (
+      <a href="#rk-ways" onClick={(e) => (e.preventDefault(), document.getElementById("rk-ways")?.scrollIntoView({ behavior: "smooth", block: "start" }))}>
+        Ways to sell <ArrowRight />
+      </a>
+    ),
+  };
+  // Made in-house and the 12-month warranty: REG KING's own wording on the Make page (27 Oct 2026).
+  const inhouse = {
+    k: "inhouse",
+    icon: ico("M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8 7.2 20l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"),
+    t: "Made in-house",
+    link: (
+      <a href="/gallery" onClick={(e) => (e.preventDefault(), go("info-gallery"))}>
+        See our work <ArrowRight />
+      </a>
+    ),
+  };
+  const warranty = {
+    k: "warranty",
+    icon: ico("M12 3l7 3v5c0 4.5-3 8.4-7 10-4-1.6-7-5.5-7-10V6zM9 12l2 2 4-4"),
+    t: "12-month warranty",
+    link: (
+      <a href="#mih-title" onClick={(e) => (e.preventDefault(), document.getElementById("mih-title")?.scrollIntoView({ behavior: "smooth", block: "start" }))}>
+        What it covers <ArrowRight />
+      </a>
+    ),
+  };
+  const BAND = {
+    buy: { title: "Why buy with REG KING?", line: "Your registration. Our priority.", points: [since, reviews, visit, support] },
+    sell: { title: "Why sell with REG KING?", line: "Listing is free. We only charge when it sells.", points: [since, reviews, free, support] },
+    make: { title: "Why order with REG KING?", line: "Made with precision. Backed by quality.", points: [inhouse, warranty, reviews, visit] },
+  }[kind];
+  const points = BAND.points;
 
   return (
-    <section className="tr-why" id="rk-whybuy" aria-labelledby="whybuy-title">
+    <section className="tr-why" id={`rk-why${kind}`} aria-labelledby={`why${kind}-title`}>
       <div className="rk-wrap tr-why__in">
         <div className="tr-why__head">
-          <h2 id="whybuy-title">Why buy with REG KING?</h2>
-          <p>Your registration. Our priority.</p>
+          <h2 id={`why${kind}-title`}>{BAND.title}</h2>
+          <p>{BAND.line}</p>
         </div>
         <ul className="tr-why__pillars" ref={box} data-running={running || undefined} style={{ ["--why-ms" as string]: `${WHY_MS}ms` }}>
           {points.map((p, i) => (
@@ -271,7 +310,7 @@ export function WhyBuy() {
             </li>
           ))}
         </ul>
-        <ReviewQuote topic="buy" />
+        <ReviewQuote topic={kind === "make" ? "plates" : kind} />
       </div>
     </section>
   );

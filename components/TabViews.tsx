@@ -16,7 +16,7 @@ import { BuySources, InfoView, Reviews } from "./SectionViews";
 import { NewThisWeek } from "./NewThisWeek";
 import { BuyingGuide } from "./BuyingGuide";
 import { AsSeenWith } from "./AsSeenWith";
-import { WhyBuy } from "./Trust";
+import { WhyBuy, WhyUs } from "./Trust";
 import { PlateView } from "./PlateView";
 import { DVLA_FEED } from "@/lib/features";
 import { AccountPortal } from "./AccountPortal";
@@ -591,6 +591,7 @@ export function TabViews() {
         <>
           <SellFlow />
           <SellSteps />
+          <WhyUs kind="sell" />
           <OtherTab label="Looking to buy a plate instead?" to="buy" />
         </>
       )}
@@ -598,6 +599,7 @@ export function TabViews() {
         <>
           <ValueCard />
           <SellSteps />
+          <WhyUs kind="sell" />
           <OtherTab label="Looking to buy a plate instead?" to="buy" />
         </>
       )}
@@ -606,6 +608,7 @@ export function TabViews() {
           <BasketPanel />
           <MadeInHouse />
           <MakeInfo />
+          <WhyUs kind="make" />
           <OtherTab label="Looking for a private plate instead?" to="buy" />
         </>
       )}

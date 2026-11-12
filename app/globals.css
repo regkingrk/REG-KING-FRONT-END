@@ -38712,3 +38712,7 @@ body:has(.rk-studio) {
   color: var(--rk-text-3);
   max-width: 52ch;
 }
+/* Make: the delivery section above is yellow too, so a fine rule separates the two */
+.rk-section--ways + .tr-why {
+  border-top: 1px solid rgba(22, 21, 20, 0.16);
+}
