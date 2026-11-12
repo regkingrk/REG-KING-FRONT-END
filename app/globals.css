@@ -39616,3 +39616,16 @@ body:has(.rk-studio) {
   color: var(--rk-yellow);
   background: #161514;
 }
+/* the switch stays in the bar on every screen size, next to Menu on phones */
+@media (max-width: 1099px) {
+  .rk-header .rk-header__chrome > .rk-theme {
+    display: inline-grid;
+  }
+}
+@media (max-width: 1020px) {
+  .rk-header .rk-header__chrome > .rk-theme {
+    position: absolute;
+    top: calc((var(--rk-header-h) - 44px) / 2);
+    right: calc(var(--rk-gutter-r) + var(--rk-hmore-w, 89px) + 6px);
+  }
+}
