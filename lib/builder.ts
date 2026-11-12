@@ -314,6 +314,18 @@ export const hasBadge = (extras: string[]) => extras.some((n) => BADGE_LOOKS.inc
 /** Styles drawn with the smaller 64mm motorbike characters (also on car plates). */
 const SMALL_LOOKS: PlateLook[] = ["printed-bike", "gel-bike", "raised-bike", "gel-4d-bike"];
 const BIKE_CHAR_MM = 64;
+/**
+ * Two-line plates: bikes, and the squarer car sizes (Square, 4x4 and the import sizes). The reg goes
+ * four characters on top and three underneath (split at its space). Square and 4x4 take full 79mm
+ * characters; the shallower import plates take smaller characters so both lines fit the height.
+ * Returns null for one-line plates.
+ */
+export function twoLineLayout(w: number, h: number, bike: boolean): { charH: number; gap: number } | null {
+  if (bike) return { charH: BIKE_CHAR_MM, gap: 14 };
+  if (w / h >= 2.6) return null;
+  if (h >= 197) return { charH: 79, gap: 19 };
+  return { charH: Math.min(BIKE_CHAR_MM, Math.floor((h - 28) / 2)), gap: 12 };
+}
 /** A bike plate's two lines: split at the space, or after the first four characters (as drawn). */
 export function bikeSplitLines(reg: string): string[] {
   const r = reg.trim().toUpperCase();
@@ -336,15 +348,17 @@ function fitsFullSize(s: SizeOption, reg: string, o: { v: Vehicle | null; legal:
   const show = o.legal === "Show";
   const metro = o.styles.includes("Metro Print");
   const bike = o.v === "Bike";
-  if (!show && !oneLine(s)) return true;
-  // Bike show plates: two lines of 64mm characters, each line inside 11mm ends, both lines inside the height
-  if (show && bike) {
+  // Two-line plates (bikes, Square, 4x4, imports): four characters on top, three underneath, each
+  // line inside 11mm ends and both lines inside the height
+  const two = !oneLine(s) ? twoLineLayout(s.w, s.h, bike) : null;
+  if (two && (show || !bike)) {
     const lines = bikeSplitLines(reg);
-    const k = BIKE_CHAR_MM / LEGAL_MM.charH;
+    const k = two.charH / LEGAL_MM.charH;
     const fitsAcross = lines.every((l) => 2 * LEGAL_MM.margin + (legalLength(l) - 2 * LEGAL_MM.margin) * k <= s.w);
-    const tall = lines.length * BIKE_CHAR_MM + (lines.length - 1) * 14;
+    const tall = lines.length * two.charH + (lines.length - 1) * two.gap;
     return fitsAcross && tall <= s.h - 8;
   }
+  if (!show && !oneLine(s)) return true;
   const ends = 2 * legalEndInset(s.hex);
   const full = metro ? metroLength(reg, s.hex, o.gaps) : legalLength(reg, s.hex, o.gaps);
   // the smaller 64mm characters take proportionally less room (the ends stay the same)

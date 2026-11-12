@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
-import { BADGE_MM, EXTRAS, plateFontPct, plateGaps, rearOnly, regChars, sizeInfo, sizeOf, sizeScale, type BuildConfig } from "@/lib/builder";
+import { BADGE_MM, EXTRAS, plateFontPct, plateGaps, rearOnly, regChars, sizeInfo, sizeOf, sizeScale, type BuildConfig, twoLineLayout } from "@/lib/builder";
 import { PlateDecor, bikeLines, plateAttrs } from "./PlatePreview";
 import { BS_MARK, SUPPLIER_MARK } from "@/lib/builder";
 import { bevelFilterFor, thinFilterFor, type BevelLook } from "./PlateFilters";
@@ -139,6 +139,9 @@ export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (st
     const attrs = plateAttrs(c, side, bike ? "9x7" : size);
     const ratio = `${info?.w ?? 520} / ${info?.h ?? 111}`;
     const badge = c.extras.some((x) => ["uk", "ev", "ev-uk"].includes(EXTRAS.find((e) => e.name === x)?.look ?? ""));
+    // Square, 4x4 and import sizes: two lines, four characters on top and three underneath
+    const two = !bike && info ? twoLineLayout(info.w, info.h, false) : null;
+    const twoRows = !!two && bikeLines(text).length > 1;
     return (
       <div
         className={`rk-p3d__face${bike ? " is-bike" : ""}${reg ? "" : " is-empty"}`}
@@ -167,8 +170,11 @@ export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (st
             <span className="rk-pbs">{BS_MARK}</span>
           </>
         )}
-        {bike ? (
-          <span className="rk-ptext rk-ptext--2">
+        {bike || twoRows ? (
+          <span
+            className="rk-ptext rk-ptext--2"
+            style={twoRows && two && info ? { display: "grid", justifyItems: "center", fontSize: `${((two.charH / info.w) * 100) / 0.93}cqi`, lineHeight: 1 + two.gap / two.charH } : undefined}
+          >
             {bikeLines(text).map((l, i) => (
               <span key={i}>{l}</span>
             ))}

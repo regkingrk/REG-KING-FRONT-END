@@ -12,7 +12,7 @@
  */
 import * as THREE from "three";
 import { GLYPHS, GLYPH_CAP, GLYPH_SPACE, METRO_BEARING, METRO_GLYPHS, METRO_SPACE } from "./plateGlyphs";
-import { hexPoints, type PlateLook } from "./builder";
+import { hexPoints, twoLineLayout, type PlateLook } from "./builder";
 import { PLATE_CORNER_MM, PLATE_YELLOW, TINT, renderPlate, type PlateSpec } from "./plateRender";
 import { chiselArrays, domeArrays, glyphShapes, smoothNormals, type GeoArrays } from "./plateGeoCore";
 
@@ -173,10 +173,13 @@ function characters(s: PlateSpec, b: Build, mat: THREE.Material | THREE.Material
   const badge = !s.bike && s.extras.some((e) => e === "uk" || e === "ev-uk" || e === "ev" || e === "flag" || e === "badge");
   const left = -s.w / 2 + (badge ? 50 : 0) + 11;
   const right = s.w / 2 - 11;
-  const lines = s.bike ? bikeLines(s.reg) : [s.reg];
-  const charH = s.bike || s.look === "printed-bike" || s.look === "gel-bike" || s.look === "raised-bike" || s.look === "gel-4d-bike" ? 64 : Math.min(79, s.h * 0.71);
+  // Two-line plates (bikes, Square, 4x4, imports): four characters on top, three underneath
+  const two = twoLineLayout(s.w, s.h, s.bike);
+  const lines = two ? bikeLines(s.reg) : [s.reg];
+  const small = s.look === "printed-bike" || s.look === "gel-bike" || s.look === "raised-bike" || s.look === "gel-4d-bike";
+  const charH = two && lines.length > 1 ? Math.min(two.charH, small ? 64 : two.charH) : s.bike || small ? 64 : Math.min(79, s.h * 0.71);
   const k = charH / GLYPH_CAP; // mm per font unit
-  const gap = 14;
+  const gap = two?.gap ?? 14;
   const total = lines.length * charH + (lines.length - 1) * gap;
   let top = total / 2;
   const geoOpts = {
@@ -190,7 +193,7 @@ function characters(s: PlateSpec, b: Build, mat: THREE.Material | THREE.Material
     curveSegments: 18,
   };
   // Show plates with custom spacing: the characters without their spaces, each gap as chosen
-  const gaps = !s.bike && s.gaps ? s.gaps : null;
+  const gaps = lines.length === 1 && s.gaps ? s.gaps : null;
   let letterNo = -1;
   for (const raw of lines) {
     const line = gaps ? raw.replace(/\s/g, "") : raw;

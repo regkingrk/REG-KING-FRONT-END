@@ -7,7 +7,7 @@
  * Measurements follow a standard UK plate (520 × 111mm, 79mm characters).
  */
 
-import { EXTRAS, hexPoints, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
+import { EXTRAS, hexPoints, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
 
 export type PlateSpec = {
   reg: string;
@@ -182,11 +182,16 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   }
 
   // 3. Characters
-  const lines = s.bike ? bikeSplit(s.reg) : [s.reg];
+  // Two-line plates (bikes, Square, 4x4, imports): four characters on top, three underneath
+  const two = twoLineLayout(s.w, s.h, s.bike);
+  const lines = two ? bikeSplit(s.reg) : [s.reg];
   // Bike Print and Bike Gel: the smaller 64mm motorbike characters, also on car plates
   const small = s.look === "printed-bike" || s.look === "gel-bike" || s.look === "raised-bike" || s.look === "gel-4d-bike";
   const metro = s.styleName === "Metro Print";
-  const charH = metro ? Math.min(60 * k, H * 0.71) : s.bike || small ? 64 * k : Math.min(79 * k, H * 0.71);
+  const charH =
+    two && lines.length > 1
+      ? Math.min(two.charH, metro ? 60 : 79, small ? 64 : 79) * k
+      : metro ? Math.min(60 * k, H * 0.71) : s.bike || small ? 64 * k : Math.min(79 * k, H * 0.71);
   const ink = metal ? (s.look === "metal-silver" || silverRetro ? "#c9ccd1" : "#f4f4f4") : "#111111";
   const text = drawText(lines, {
     W,
@@ -196,7 +201,8 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     charH,
     k,
     font: metro ? METRO : FONT,
-    gaps: s.bike ? undefined : s.gaps,
+    gaps: lines.length > 1 ? undefined : s.gaps,
+    lineGap: (two?.gap ?? 14) * k,
   });
   if (chars) composeCharacters(ctx, text, flatChars ? (s.look === "printed-bike" ? "printed-bike" : "printed") : s.look, ink, k, false);
   else if (castShadow > 0) {
@@ -253,7 +259,7 @@ function bikeSplit(reg: string): string[] {
 }
 
 /** The characters on their own layer (black on transparent), sized and placed like a real plate. */
-function drawText(lines: string[], o: { W: number; H: number; left: number; right: number; charH: number; k: number; font: string; gaps?: number[] }): HTMLCanvasElement {
+function drawText(lines: string[], o: { W: number; H: number; left: number; right: number; charH: number; k: number; font: string; gaps?: number[]; lineGap?: number }): HTMLCanvasElement {
   const cv = document.createElement("canvas");
   cv.width = o.W;
   cv.height = o.H;
@@ -268,7 +274,7 @@ function drawText(lines: string[], o: { W: number; H: number; left: number; righ
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
   const avail = o.right - o.left;
-  const gap = o.k * 14;
+  const gap = o.lineGap ?? o.k * 14;
   const total = lines.length * o.charH + (lines.length - 1) * gap;
   let y = (o.H - total) / 2 + o.charH;
   // Show plates with custom spacing: one line, laid out a character at a time with the chosen gaps
