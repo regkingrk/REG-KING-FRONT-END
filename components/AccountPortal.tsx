@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent, type CSSProperties, type FormEvent, type ReactNode } from "react";
-import { formatGBP, spaceReg } from "@/lib/brand";
+import { useEffect, useState, type ChangeEvent, type CSSProperties, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { MEMBER_DISCOUNT, formatGBP, spaceReg } from "@/lib/brand";
 import { phone as shopPhone } from "@/lib/infoContent";
 import {
   LISTING_STATUS,
@@ -29,15 +29,26 @@ const gbp = (n: number) => formatGBP(n, Number.isInteger(n));
 /* Where things live: BUY, SELL and MAKE, plus Account settings.       */
 /* ------------------------------------------------------------------ */
 
-type Tab = "buy" | "sell" | "make" | "settings";
-const TABS: { key: Exclude<Tab, "settings">; label: string }[] = [
-  { key: "buy", label: "Buy" },
-  { key: "sell", label: "Sell" },
-  { key: "make", label: "Make" },
+type Tab = "home" | "buy" | "sell" | "make" | "settings";
+/** The side menu, and the title each page shows. */
+const NAV: { key: Tab; label: string; title: string; icon: string }[] = [
+  { key: "home", label: "Dashboard", title: "Dashboard", icon: "M3 11.5 12 4l9 7.5M5.5 10v10h13V10M10 20v-5.5h4V20" },
+  { key: "buy", label: "My plates", title: "My plates", icon: "M3 7.5h18v9H3zM6.5 12h2M10.5 12h2M14.5 12h3" },
+  { key: "sell", label: "Selling", title: "Selling", icon: "M3 12.5V4h8.5L21 13.5 13.5 21zM7.5 8.5h.01" },
+  { key: "make", label: "Made plates", title: "Made plates", icon: "M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8 7.2 20l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z" },
 ];
+const SETTINGS_ICON = "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z";
+const HELP_ICON = "M4 5h16v11H8l-4 4zM8 9h8M8 12h5";
+const OUT_ICON = "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9";
+const Ico = ({ d }: { d: string }) => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d={d} />
+  </svg>
+);
 /** Older account links still land somewhere sensible. */
 const ALIAS: Record<string, Tab> = {
-  overview: "buy",
+  overview: "home",
+  dashboard: "home",
   orders: "buy",
   transfers: "buy",
   documents: "buy",
@@ -53,7 +64,7 @@ const ALIAS: Record<string, Tab> = {
   market: "sell",
   details: "settings",
 };
-export const portalTab = (t: string): Tab => (t === "buy" || t === "sell" || t === "make" || t === "settings" ? t : ALIAS[t] ?? "buy");
+export const portalTab = (t: string): Tab => (t === "home" || t === "buy" || t === "sell" || t === "make" || t === "settings" ? t : ALIAS[t] ?? "home");
 
 /** Contact REG KING with the form already pointed at this order or listing. */
 function useContact() {
@@ -128,86 +139,120 @@ export function AccountPortal({ tab: raw }: { tab: string }) {
 
   const first = customer?.name && !customer.demo ? customer.name.trim().split(/\s+/)[0] : customer?.demo ? "Demo" : "";
 
+  const here = NAV.find((n) => n.key === tab);
+  const title = here?.title ?? "Account settings";
+  const navTo = (key: string) => (e: ReactMouseEvent) => {
+    e.preventDefault();
+    go(`account-${key}`);
+    window.scrollTo({ top: 0 });
+  };
+
   return (
-    <section className="pt ca" id="rk-info" aria-labelledby="pt-title">
-      <div className="ca-band">
-        <div className="rk-wrap ca-band__in">
-          <header className="ca__top">
-            <div>
-              <p className="ca__hi">My account</p>
-              <h1 id="pt-title">Welcome back{first ? `, ${first}` : ""}</h1>
-            </div>
-            <div className="ca__links">
-              <button type="button" aria-current={tab === "settings" ? "page" : undefined} onClick={() => go("account-settings")} data-ca-settings>
-                Account settings
-              </button>
-              <button type="button" onClick={signOut} data-signout>
-                Sign out
-              </button>
-            </div>
-          </header>
-          <Summary />
-          <nav className="ca-tabs" aria-label="My account">
-            {TABS.map((t) => (
-              <a
-                key={t.key}
-                href={`#account-${t.key}`}
-                aria-current={t.key === tab ? "page" : undefined}
-                data-ca-tab={t.key}
-                onClick={(e) => {
-                  e.preventDefault();
-                  go(`account-${t.key}`);
-                }}
-              >
-                {t.label}
+    <section className="pt ca cd" id="rk-info" aria-labelledby="pt-title">
+      <div className="cd__grid">
+        <aside className="cd-side" aria-label="My account">
+          <p className="cd-side__who">
+            <span className="cd-side__avatar" aria-hidden>
+              {(first || "R").slice(0, 1).toUpperCase()}
+            </span>
+            <span>
+              <b>{customer?.demo ? "Demo account" : customer?.name || "Your account"}</b>
+              <small>{customer?.email}</small>
+            </span>
+          </p>
+          <nav className="cd-nav">
+            {NAV.map((n) => (
+              <a key={n.key} href={`#account-${n.key}`} aria-current={n.key === tab ? "page" : undefined} data-ca-tab={n.key} onClick={navTo(n.key)}>
+                <Ico d={n.icon} />
+                {n.label}
               </a>
             ))}
           </nav>
-        </div>
-      </div>
-
-      <div className="rk-wrap ca__in">
-
-        <div className="ca__main">
-          {!ready ? null : tab === "buy" ? (
-            <BuyTab />
-          ) : tab === "sell" ? (
-            <SellTab start={raw === "list" ? "list" : raw === "value" ? "value" : "home"} />
-          ) : tab === "make" ? (
-            <MakeTab />
-          ) : (
-            <Settings />
-          )}
-        </div>
-
-        <footer className="ca__foot">
-          <span>
-            Questions? Call <b>{shopPhone.display}</b> or{" "}
-            <button type="button" className="ca-link" onClick={() => go("info-contact")}>
-              send us a message
+          <nav className="cd-nav cd-nav--low" aria-label="Account">
+            <a href="#account-settings" aria-current={tab === "settings" ? "page" : undefined} onClick={navTo("settings")} data-ca-settings>
+              <Ico d={SETTINGS_ICON} />
+              Account settings
+            </a>
+            <a
+              href="/contact"
+              onClick={(e) => {
+                e.preventDefault();
+                go("info-contact");
+              }}
+            >
+              <Ico d={HELP_ICON} />
+              Contact us
+            </a>
+            <button type="button" onClick={signOut} data-signout>
+              <Ico d={OUT_ICON} />
+              Sign out
             </button>
-            .
-          </span>
-          <span className="pt-demo">Preview: not connected to Shopify yet, so nothing here is sent to REG KING.{customer?.demo ? " This is the demo account." : ""}</span>
-        </footer>
+          </nav>
+        </aside>
+
+        <div className="cd-main">
+          <div className="cd-hero">
+            <header className="cd-hero__top">
+              <div>
+                <p className="cd-hero__hi">Welcome back{first ? `, ${first}` : ""}</p>
+                <h1 id="pt-title">{title}</h1>
+              </div>
+              <div className="cd-hero__acts">
+                <button type="button" className="cd-btn" onClick={() => go("account-list")} data-cd-list>
+                  List a plate
+                </button>
+                <button type="button" className="cd-btn" onClick={() => go("buy")} data-cd-browse>
+                  Browse plates
+                </button>
+              </div>
+            </header>
+            {tab === "home" && ready && <HomeTop />}
+          </div>
+
+          <div className="cd-body">
+            <div className="ca__main">
+              {!ready ? null : tab === "home" ? (
+                <HomeBody />
+              ) : tab === "buy" ? (
+                <BuyTab />
+              ) : tab === "sell" ? (
+                <SellTab start={raw === "list" ? "list" : raw === "value" ? "value" : "home"} />
+              ) : tab === "make" ? (
+                <MakeTab />
+              ) : (
+                <Settings />
+              )}
+            </div>
+
+            <footer className="ca__foot">
+              <span>
+                Questions? Call <b>{shopPhone.display}</b> or{" "}
+                <button type="button" className="ca-link" onClick={() => go("info-contact")}>
+                  send us a message
+                </button>
+                .
+              </span>
+              <span className="pt-demo">Preview: not connected to Shopify yet, so nothing here is sent to REG KING.{customer?.demo ? " This is the demo account." : ""}</span>
+            </footer>
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Shared bits                                                          */
+/* Dashboard                                                            */
 /* ------------------------------------------------------------------ */
 
 /**
- * The three numbers at the top: plates owned, plates for sale, and what they're worth.
+ * Plates owned, plates for sale, and what they're worth.
  * A plate counts once however it got here (bought from us, listed with us, or added by hand).
  * Its value is, in order: the price it's advertised at or the amount wanted, the value the customer gave it,
  * or what they paid us. Plates with none of those aren't added in, and we say how many.
  */
-function Summary() {
+function usePlateStats() {
   const { orders, submissions, owned } = useAccount();
-  const { go } = useMode();
   const plates = new Map<string, number | null>();
   const put = (reg: string, v: number | null | undefined) => {
     const k = cleanReg(reg).replace(/\s/g, "");
@@ -219,33 +264,254 @@ function Summary() {
   owned.forEach((p) => put(p.reg, p.value));
   orders.filter((o) => o.type === "registration").forEach((o) => put(o.reg, o.items.find((i) => i.title.toUpperCase().includes(o.reg.toUpperCase()))?.price ?? o.total));
   const values = [...plates.values()];
-  const total = values.reduce<number>((a, v) => a + (v ?? 0), 0);
-  const unvalued = values.filter((v) => v == null).length;
-  if (!plates.size) return null;
+  return {
+    count: plates.size,
+    forSale: selling.length,
+    total: values.reduce<number>((a, v) => a + (v ?? 0), 0),
+    unvalued: values.filter((v) => v == null).length,
+  };
+}
+
+/** Open an order or listing on its own page. */
+const openItem = (go: (h: string) => void, tab: Tab, id: string) => {
+  pendingOpen = { tab, id };
+  go(`account-${tab}`);
+  window.setTimeout(() => window.dispatchEvent(new Event("rk-ca-open")), 0);
+  window.scrollTo({ top: 0 });
+};
+const tabOf = (o: Order): Tab => (o.type === "registration" ? "buy" : "make");
+const done = (o: Order) => o.stage >= stagesFor(o).length - 1;
+
+/** The top of the dashboard: the plates gauge, then three numbers worth knowing. */
+function HomeTop() {
+  const { orders, owned, saved } = useAccount();
+  const { go } = useMode();
+  const st = usePlateStats();
+  const share = st.count ? Math.min(1, st.forSale / st.count) : 0;
+  const active = orders.filter((o) => !done(o)).sort((a, b) => b.date.localeCompare(a.date));
+  const renewals = owned
+    .filter((p) => p.held === "certificate" && p.expiry)
+    .sort((a, b) => a.expiry.localeCompare(b.expiry));
+  const next = renewals[0];
+  const forSale = saved.filter((reg) => ALL_PLATES.some((x) => cleanReg(x.reg) === cleanReg(reg))).length;
+  // the arc: a half circle, filled by the share of plates that are for sale
+  const R = 120;
+  const arc = Math.PI * R;
   return (
-    <dl className="ca-sum">
-      <div>
-        <dt>Plates owned</dt>
-        <dd>{plates.size}</dd>
+    <div className="cd-top">
+      <div className="cd-gauge" data-cd-gauge>
+        <svg viewBox="0 0 280 150" aria-hidden>
+          <path d={`M20 140 A${R} ${R} 0 0 1 260 140`} className="cd-gauge__track" />
+          <path d={`M20 140 A${R} ${R} 0 0 1 260 140`} className="cd-gauge__fill" style={{ strokeDasharray: `${arc * share} ${arc}` }} />
+        </svg>
+        <div className="cd-gauge__mid">
+          <span>Total value of your plates</span>
+          <b>{gbp(st.total)}</b>
+        </div>
+        <dl className="cd-gauge__ends">
+          <div>
+            <dt>Plates owned</dt>
+            <dd>{st.count}</dd>
+          </div>
+          <div>
+            <dt>For sale</dt>
+            <dd>{st.forSale}</dd>
+          </div>
+        </dl>
+        {st.unvalued > 0 && <small className="cd-gauge__note">{st.unvalued} plate{st.unvalued === 1 ? "" : "s"} not valued yet</small>}
       </div>
-      <div>
-        <dt>For sale</dt>
-        <dd>
-          <button type="button" onClick={() => go("account-sell")} data-sum-sale>
-            {selling.length}
-          </button>
-        </dd>
+
+      <div className="cd-cards">
+        <a className="cd-card" href="#account-buy" onClick={(e) => (e.preventDefault(), active[0] ? openItem(go, tabOf(active[0]), active[0].id) : go("account-buy"))} data-cd-card="orders">
+          <span className="cd-card__k">
+            Orders in progress <Chevron />
+          </span>
+          <b className="cd-card__v">{active.length}</b>
+          <span className="cd-card__s">{active[0] ? `${active[0].reg || "Accessories"} · ${orderStatus(active[0])}` : "Nothing on the way right now"}</span>
+        </a>
+        <a className="cd-card" href="#account-buy" onClick={(e) => (e.preventDefault(), go("account-buy"))} data-cd-card="renewal">
+          <span className="cd-card__k">
+            Next certificate renewal <Chevron />
+          </span>
+          <b className="cd-card__v cd-card__v--reg">{next ? next.reg : "None due"}</b>
+          <span className="cd-card__s">{next ? `${next.cert || "Certificate"} expires ${niceDate(next.expiry)}` : "We'll remind you before any certificate runs out"}</span>
+        </a>
+        <a className="cd-card" href="#account-buy" onClick={(e) => (e.preventDefault(), go("account-buy"))} data-cd-card="wishlist">
+          <span className="cd-card__k">
+            Wishlist <Chevron />
+          </span>
+          <b className="cd-card__v">{saved.length}</b>
+          <span className="cd-card__s">{saved.length ? `${forSale} still for sale` : "Save plates you like to see them here"}</span>
+        </a>
       </div>
-      <div className="ca-sum__value">
-        <dt>Total value</dt>
-        <dd>{gbp(total)}</dd>
-        <small>
-          From asking prices, your own values and prices paid{unvalued ? `. ${unvalued} plate${unvalued === 1 ? "" : "s"} not valued yet` : ""}.
-        </small>
-      </div>
-    </dl>
+    </div>
   );
 }
+
+/** "Monday, 9 November" */
+const dayHeading = (iso: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const today = new Date();
+  const same = d.toDateString() === today.toDateString();
+  const label = d.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  return same ? `Today, ${label}` : `${d.toLocaleDateString("en-GB", { weekday: "long" })}, ${label}`;
+};
+
+/** The rest of the dashboard: anything we need from the customer, recent activity, and ways to do more. */
+function HomeBody() {
+  const { orders, docs, submissions, owned } = useAccount();
+  const { go } = useMode();
+
+  // Things the customer needs to do, most important first.
+  const alerts: { key: string; title: string; line: string; act: () => void; cta: string }[] = [];
+  orders
+    .filter((o) => needsAction(o, docs))
+    .forEach((o) => {
+      const miss = missingDocs(o, docs).map((k) => DOC_NAMES[k] ?? k);
+      alerts.push({
+        key: o.id,
+        title: miss.length ? `We need your ${miss.join(" and ")} for ${o.reg || `order ${o.ref}`}` : `Action needed on ${o.reg || `order ${o.ref}`}`,
+        line: o.next.text,
+        act: () => openItem(go, tabOf(o), o.id),
+        cta: miss.length ? "Upload now" : "View order",
+      });
+    });
+  owned.forEach((p) => {
+    const e = expiryState(p);
+    if (e.kind === "due" || e.kind === "expired")
+      alerts.push({
+        key: p.id,
+        title: e.kind === "expired" ? `The certificate for ${p.reg} has expired` : `The certificate for ${p.reg} is due for renewal`,
+        line: e.kind === "expired" ? "Contact us straight away and we'll tell you what can be done." : `It expires on ${niceDate(p.expiry)}. You can renew it free on GOV.UK up to 28 days before.`,
+        act: () => go("account-buy"),
+        cta: "See plate",
+      });
+  });
+
+  // Recent activity: orders and listings, newest first.
+  const items = [
+    ...orders.map((o) => ({
+      key: `o-${o.id}`,
+      date: o.date,
+      reg: o.reg,
+      title: o.type === "registration" ? "Registration bought" : o.type === "accessories" ? "Accessories ordered" : "Plates ordered",
+      amount: gbp(o.total),
+      status: orderStatus(o),
+      open: () => openItem(go, tabOf(o), o.id),
+    })),
+    ...submissions.map((x) => ({
+      key: `s-${x.id}`,
+      date: x.submittedAt,
+      reg: x.reg,
+      title: "Listed for sale",
+      amount: x.advertised ? gbp(x.advertised) : x.desired ? gbp(x.desired) : "",
+      status: LISTING_LABEL[x.status],
+      open: () => openItem(go, "sell", x.id),
+    })),
+  ]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 6);
+  const groups: { day: string; rows: typeof items }[] = [];
+  items.forEach((it) => {
+    const day = dayHeading(it.date);
+    const g = groups.find((x) => x.day === day);
+    if (g) g.rows.push(it);
+    else groups.push({ day, rows: [it] });
+  });
+
+  return (
+    <>
+      {alerts.length > 0 && (
+        <div className="cd-alerts">
+          {alerts.slice(0, 3).map((a) => (
+            <button key={a.key} type="button" className="cd-alert" onClick={a.act} data-cd-alert>
+              <span className="cd-alert__i" aria-hidden>
+                !
+              </span>
+              <span className="cd-alert__t">
+                <b>{a.title}</b>
+                <span>{a.line}</span>
+              </span>
+              <span className="cd-alert__go">
+                {a.cta} <Chevron />
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="cd-split">
+        <section className="cd-panel" aria-labelledby="cd-recent">
+          <header className="cd-panel__head">
+            <h2 id="cd-recent">Recent activity</h2>
+            <a href="#account-buy" onClick={(e) => (e.preventDefault(), go("account-buy"))}>
+              View all <Chevron />
+            </a>
+          </header>
+          {groups.length ? (
+            groups.map((g) => (
+              <div key={g.day} className="cd-day">
+                <h3>{g.day}</h3>
+                <ul>
+                  {g.rows.map((r) => (
+                    <li key={r.key}>
+                      <button type="button" className="cd-act" onClick={r.open} data-cd-act={r.key}>
+                        <PlateOr reg={r.reg} />
+                        <span className="cd-act__t">{r.title}</span>
+                        <span className="cd-act__r">
+                          {r.amount && <b>{r.amount}</b>}
+                          <small>{r.status}</small>
+                        </span>
+                        <Chevron />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          ) : (
+            <p className="cd-empty">Nothing yet. Orders and plates you list will show here.</p>
+          )}
+        </section>
+
+        <div className="cd-promos">
+          <article className="cd-promo">
+            <h3>List your plate for free</h3>
+            <p>We advertise it, handle the buyers and only charge when it sells.</p>
+            <a href="#account-list" onClick={(e) => (e.preventDefault(), go("account-list"))}>
+              List a plate <ArrowR />
+            </a>
+          </article>
+          <article className="cd-promo">
+            <h3>{Math.round(MEMBER_DISCOUNT * 100)}% off your plates</h3>
+            <p>As an account holder you get {Math.round(MEMBER_DISCOUNT * 100)}% off number plates, surrounds and logo plates.</p>
+            <a href="/number-plates" onClick={(e) => (e.preventDefault(), go("make"))}>
+              Make my plates <ArrowR />
+            </a>
+          </article>
+          <article className="cd-promo">
+            <h3>Wondering what a plate is worth?</h3>
+            <p>Send us the reg and our team will value it for you, free.</p>
+            <a href="/sell-my-number-plate/valuation" onClick={(e) => (e.preventDefault(), go("sell-valuation"))}>
+              Value my plate <ArrowR />
+            </a>
+          </article>
+        </div>
+      </div>
+    </>
+  );
+}
+
+const ArrowR = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+
+/* ------------------------------------------------------------------ */
+/* Shared bits                                                          */
+/* ------------------------------------------------------------------ */
 
 /** A registration as a plate; an order with no registration (accessories) gets a plain tile. */
 const PlateOr = ({ reg, xl }: { reg: string; xl?: boolean }) =>
@@ -357,7 +623,10 @@ function BuyTab() {
   const regs = orders.filter((o) => o.type === "registration");
   const [openId, setOpenId] = useState<string | null>(() => takePending("buy"));
   useEffect(() => {
-    const on = () => setOpenId(takePending("buy"));
+    const on = () => {
+      const id = takePending("buy");
+      if (id) setOpenId(id);
+    };
     window.addEventListener("rk-ca-open", on);
     return () => window.removeEventListener("rk-ca-open", on);
   }, []);
@@ -784,7 +1053,10 @@ function MakeTab() {
   const made = orders.filter((o) => o.type === "plates" || o.type === "accessories");
   const [openId, setOpenId] = useState<string | null>(() => takePending("make"));
   useEffect(() => {
-    const on = () => setOpenId(takePending("make"));
+    const on = () => {
+      const id = takePending("make");
+      if (id) setOpenId(id);
+    };
     window.addEventListener("rk-ca-open", on);
     return () => window.removeEventListener("rk-ca-open", on);
   }, []);
