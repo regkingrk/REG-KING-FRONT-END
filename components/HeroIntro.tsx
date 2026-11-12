@@ -24,7 +24,7 @@ export function HeroIntro() {
   const plateRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<IntroHandle | null>(null);
   const [skippable, setSkippable] = useState(false);
-  const { focused, mode, info, acc, plate, account, vault } = useMode();
+  const { focused, mode, info, acc, plate, account, vault, sellTask } = useMode();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -136,7 +136,7 @@ export function HeroIntro() {
           </h1>
           {/* What to do on this tab, right above the plate */}
           <p className="rk-hero__sub" data-hero-item aria-live="polite">
-            {searchModes.find((m) => m.key === mode)?.lead ?? searchModes[0].lead}
+            {mode === "sell" && sellTask === "value" ? "Enter your plate below for a free guide price." : (searchModes.find((m) => m.key === mode)?.lead ?? searchModes[0].lead)}
           </p>
 
           <PlateSearch ref={plateRef} />

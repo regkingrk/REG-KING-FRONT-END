@@ -48,8 +48,7 @@ const VALUE_MIN_MS = 900;
 const PROMPT_AFTER_MS = 1100;
 
 function ValueCard() {
-  const { setSellReg, setSellOption, setMode, mode, go } = useMode();
-  const [reg, setReg] = useState("");
+  const { setSellReg, setSellOption, setSellTask, setMode, mode, go, valueAsk, setValueAsk } = useMode();
   const [state, setState] = useState<"idle" | "working" | "done" | "none">("idle");
   const [result, setResult] = useState<Valuation | null>(null);
   const [valued, setValued] = useState("");
@@ -58,19 +57,35 @@ function ValueCard() {
   const [news, setNews] = useState<NewsResult | null>(null);
   const promptRef = useRef<HTMLDivElement>(null);
 
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const r = spaceReg(reg.trim().toUpperCase());
+  // The reg comes from the plate box at the top of Sell, set to "Value my plate".
+  const box = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!valueAsk) {
+      setState("idle");
+      setResult(null);
+      setPrompt(false);
+      return;
+    }
+    const r = spaceReg(valueAsk.reg.toUpperCase());
     if (r.replace(/\s/g, "").length < 2) return;
+    let live = true;
     setValued(r);
     setState("working");
+    setResult(null);
+    setPrompt(false);
     setNews(null);
+    requestAnimationFrame(() => box.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     // The news check runs alongside; it fills in when it's back.
-    plateNews(r).then(setNews);
-    const [v] = await Promise.all([valuePlate(r), new Promise((ok) => window.setTimeout(ok, VALUE_MIN_MS))]);
-    setResult(v);
-    setState(v ? "done" : "none");
-  };
+    plateNews(r).then((n) => live && setNews(n));
+    Promise.all([valuePlate(r), new Promise((ok) => window.setTimeout(ok, VALUE_MIN_MS))]).then(([v]) => {
+      if (!live) return;
+      setResult(v);
+      setState(v ? "done" : "none");
+    });
+    return () => {
+      live = false;
+    };
+  }, [valueAsk]);
   // Once the value has landed, ask whether they'd like to list it.
   useEffect(() => {
     if (state !== "done") return;
@@ -85,11 +100,9 @@ function ValueCard() {
   }, [prompt]);
 
   const reset = () => {
-    setReg("");
-    setResult(null);
-    setPrompt(false);
-    setState("idle");
-    requestAnimationFrame(() => document.getElementById("rk-value-reg")?.focus());
+    setValueAsk(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(() => document.getElementById("rk-reg")?.focus({ preventScroll: true }), 400);
   };
   const list = (opt: SellOption | "") => {
     try {
@@ -97,38 +110,26 @@ function ValueCard() {
     } catch {}
     setPrompt(false);
     setSellOption(opt);
+    setSellTask("list");
+    setValueAsk(null);
     setSellReg(valued);
     if (mode !== "sell") setMode("sell");
     window.scrollTo({ top: 0 });
   };
   const range = result ? priceRange(result.low, result.high) : "";
+  // Nothing to show until a reg has been entered in the plate box above.
+  if (state === "idle") return null;
 
   return (
-    <section className="rk-valuer" id="sell-valuation" aria-labelledby="value-title">
+    <section className="rk-valuer" id="sell-valuation" aria-labelledby="value-title" ref={box}>
       <div className="rk-wrap rk-valuer__in">
-        <h2 id="value-title">Value your plate</h2>
+        <h2 id="value-title">Your valuation</h2>
 
-        {state === "idle" || state === "working" ? (
-          <form className="rk-valuer__form" onSubmit={onSubmit}>
-            <label htmlFor="rk-value-reg" className="rk-valuer__label">
-              Enter your reg
-            </label>
-            <input
-              id="rk-value-reg"
-              className="rk-valuer__plate"
-              placeholder="YOUR REG"
-              value={reg}
-              onChange={(e) => setReg(spaceReg(e.target.value))}
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              maxLength={8}
-              disabled={state === "working"}
-            />
-            <button type="submit" className="rk-valuer__go" disabled={state === "working"}>
-              {state === "working" ? "Checking prices…" : "Value my plate"}
-            </button>
-          </form>
+        {state === "working" ? (
+          <div className="rk-valuer__result" aria-live="polite">
+            <span className="rk-valuer__plate rk-valuer__plate--shown">{valued}</span>
+            <p className="rk-valuer__basis">Checking prices…</p>
+          </div>
         ) : state === "none" ? (
           <div className="rk-valuer__result" aria-live="polite">
             <span className="rk-valuer__plate rk-valuer__plate--shown">{valued}</span>

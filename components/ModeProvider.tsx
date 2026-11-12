@@ -33,6 +33,12 @@ type Ctx = {
   /** How the customer said they'd like to sell, from the Sell menu or a "Sell this way" button. */
   sellOption: SellOption | "";
   setSellOption: (o: SellOption | "") => void;
+  /** Sell tab: what the plate box does, list the plate or value it. */
+  sellTask: SellTask;
+  setSellTask: (t: SellTask) => void;
+  /** A valuation asked for from the Sell plate box (`at` makes asking again for the same reg run again). */
+  valueAsk: { reg: string; at: number } | null;
+  setValueAsk: (v: { reg: string; at: number } | null) => void;
   item: string | null;
   info: string | null;
   /** An Accessories page (#accessories-logo → "logo"). */
@@ -60,6 +66,7 @@ type Ctx = {
   vault: boolean;
 };
 
+export type SellTask = "list" | "value";
 const noop = () => {};
 const ModeContext = createContext<Ctx>({
   mode: "buy",
@@ -70,6 +77,10 @@ const ModeContext = createContext<Ctx>({
   setSellReg: noop,
   sellOption: "",
   setSellOption: noop,
+  sellTask: "list",
+  setSellTask: noop,
+  valueAsk: null,
+  setValueAsk: noop,
   item: null,
   info: null,
   acc: null,
@@ -96,7 +107,7 @@ const targetFor = (section: SectionKey, item: string | null) => {
   if (item === "sourcing" || item === "brokerage") return "rk-broker";
   if (section === "buy" && item === "exclusive") return "rk-info";
   if (section === "buy" && item) return "rk-buyfrom";
-  if (section === "sell" && item === "valuation") return "sell-valuation";
+  if (section === "sell" && item === "valuation") return "rk-hero";
   if (section === "sell" && item) return "rk-ways";
   return "rk-hero";
 };
@@ -145,6 +156,8 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
   const [query, setQueryState] = useState("");
   const [sellReg, setSellReg] = useState("");
   const [sellOption, setSellOption] = useState<SellOption | "">("");
+  const [sellTask, setSellTask] = useState<SellTask>("list");
+  const [valueAsk, setValueAsk] = useState<{ reg: string; at: number } | null>(null);
   const [item, setItem] = useState<string | null>(first.item);
   const [info, setInfoState] = useState<string | null>(first.info);
   const [acc, setAcc] = useState<string | null>(first.acc);
@@ -253,6 +266,8 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
       }
       if (p.section === "sell") setSellReg("");
       if (p.section === "sell" && p.item && SELL_OPTION[p.item]) setSellOption(SELL_OPTION[p.item]);
+      // "Value my plate" links open Sell with the plate box set to value
+      if (p.section === "sell") setSellTask(p.item === "valuation" ? "value" : "list");
     }
     if (scroll) {
       const id = targetFor(p.section, p.item);
@@ -345,7 +360,7 @@ export function ModeProvider({ children, initial, standalone = false }: { childr
   }, [focused]);
 
   return (
-    <ModeContext.Provider value={{ mode, setMode, query, setQuery, sellReg, setSellReg, sellOption, setSellOption, item, info, acc, plate, account, page, filters, setFilters, browse, setBrowse, go, focused, vault }}>
+    <ModeContext.Provider value={{ mode, setMode, query, setQuery, sellReg, setSellReg, sellOption, setSellOption, sellTask, setSellTask, valueAsk, setValueAsk, item, info, acc, plate, account, page, filters, setFilters, browse, setBrowse, go, focused, vault }}>
       {children}
     </ModeContext.Provider>
   );

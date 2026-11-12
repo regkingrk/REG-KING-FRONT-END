@@ -24,7 +24,7 @@ const STAMP = "SEARCH";
  */
 export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, plateRef) {
   const [reg, setReg] = useState("");
-  const { mode, setMode, query, setQuery, setSellReg, filters, setFilters, setBrowse, item } = useMode();
+  const { mode, setMode, query, setQuery, setSellReg, sellTask, setSellTask, setValueAsk, filters, setFilters, setBrowse, item } = useMode();
   const [cfg, setCfg] = useState<BuildConfig>(emptyBuild);
   const building = mode === "build";
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +101,12 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
       inputRef.current?.focus();
       return;
     }
+    // Sell, set to value: the guide price shows just under the hero
+    if (as === "sell" && mode === "sell" && sellTask === "value") {
+      setValueAsk({ reg: value.trim(), at: Date.now() });
+      inputRef.current?.blur();
+      return;
+    }
     if (as === "buy" || as === "sell") {
       // Buy opens the results; Sell opens the sell form. Either way the hero steps aside
       // and Buy / Sell / Make move into the bar at the top.
@@ -151,12 +157,20 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
 
   // Make: the lowest set price up front, worked out from the price list so it's never out of date
   const from = fromSetPrice();
-  const makeHelp = mode === "build" && from !== null ? `Road-legal and show plates from ${formatGBP(from, false)} a set, made to order and delivered to your door.` : m.help;
+  const valuing = mode === "sell" && sellTask === "value";
+  const makeHelp =
+    mode === "build" && from !== null
+      ? `Road-legal and show plates from ${formatGBP(from, false)} a set, made to order and delivered to your door.`
+      : valuing
+        ? "A free guide price, from similar plates and what they sold for."
+        : m.help;
   const buttonLabel = building
     ? ready
       ? `${editingPlates ? "Update basket" : "Add to basket"} · ${t.known === 0 && t.onRequest ? "price on request" : formatGBP(t.known, Number.isInteger(t.known)) + (t.onRequest ? "+" : "")}`
       : "Make my plate"
-    : m.button;
+    : valuing
+      ? "Value my plate"
+      : m.button;
 
   return (
     <form id="plate-search" className="rk-search" role="search" onSubmit={onSubmit} data-mode={mode}>
@@ -180,6 +194,31 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
         ))}
       </div>
 
+      {mode === "sell" && (
+        <div className="rk-selltask" role="radiogroup" aria-label="What would you like to do with your plate?" data-hero-item>
+          {(
+            [
+              ["list", "List my plate"],
+              ["value", "Value my plate"],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={sellTask === k}
+              data-selltask={k}
+              onClick={() => {
+                setSellTask(k);
+                if (k === "list") setValueAsk(null);
+                inputRef.current?.focus();
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="rk-plates" hidden={otherTool}>
       {/* Make: the plates on the left stay in view while you choose on the right (stacked on phones). */}
       {building ? (

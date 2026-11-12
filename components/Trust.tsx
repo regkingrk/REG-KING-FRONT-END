@@ -281,7 +281,7 @@ export function WhyUs({ kind }: { kind: "buy" | "sell" | "make" }) {
   const BAND = {
     buy: { title: "Why buy with REG KING?", line: "Your registration. Our priority.", points: [since, reviews, visit, support] },
     sell: { title: "Why sell with REG KING?", line: "Listing is free. We only charge when it sells.", points: [since, reviews, free, support] },
-    make: { title: "Why order with REG KING?", line: "Made with precision. Backed by quality.", points: [inhouse, warranty, reviews, visit] },
+    make: { title: "Why order with REG KING?", line: "Every plate made here in Bilston.", points: [inhouse, warranty, reviews, visit] },
   }[kind];
   const points = BAND.points;
 

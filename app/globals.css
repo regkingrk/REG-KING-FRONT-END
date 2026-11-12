@@ -37340,9 +37340,9 @@ span.am-pill {
   object-fit: contain;
 }
 
-/* Make: delivery or collection, on REG KING yellow with black boxes */
+/* Make: delivery or collection, black boxes on white (the yellow trust band follows it) */
 .rk-section--ways {
-  background: var(--rk-yellow);
+  background: #fff;
   color: #111;
 }
 .rk-section--ways .rk-shead__t {
@@ -38712,7 +38712,35 @@ body:has(.rk-studio) {
   color: var(--rk-text-3);
   max-width: 52ch;
 }
-/* Make: the delivery section above is yellow too, so a fine rule separates the two */
-.rk-section--ways + .tr-why {
-  border-top: 1px solid rgba(22, 21, 20, 0.16);
+
+/* Sell: list or value, one plate box with a switch above it */
+.rk-selltask {
+  display: inline-flex;
+  justify-self: center;
+  margin: 0;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.rk-selltask button {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: rgba(255, 255, 255, 0.75);
+  font: 700 14px / 1 var(--rk-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.25s var(--rk-ease), color 0.25s var(--rk-ease);
+}
+.rk-selltask button[aria-checked="true"] {
+  background: #fff;
+  color: #111;
+}
+.rk-selltask button:focus-visible {
+  outline: 2px solid var(--rk-yellow);
+  outline-offset: 2px;
 }
