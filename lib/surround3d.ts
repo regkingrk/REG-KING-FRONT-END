@@ -8,7 +8,7 @@
 import { THREE, buildPlate, raisedText, textWidthMm, PLATE_THICKNESS } from "./plate3d";
 import { hexPoints } from "./builder";
 import { FRAME_COLOURS, MATT_COLOURS, TEXT_COLOURS, artCategoryOf, stripSurfaceOf, swatch, type SurroundDesign, type SurroundShape, type SurroundSize, type SurroundStyle, type SurroundSurface } from "./accessories";
-import type { PlateSpec } from "./plateRender";
+import { PLATE_CORNER_MM, type PlateSpec } from "./plateRender";
 import { surroundGeometry, type Pt } from "./surroundShape";
 import { isBikeSize, surroundSize } from "./surroundSizes";
 import { artCanvas, artItem, flagLipLayers, type FlagDef } from "./artLibrary";
@@ -158,11 +158,11 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
     if (G.tab) group.add(slab(poly(G.tab), BACK_T, -back - BACK_T, flagMat ? [flagMat, stripMat] : stripMat, STRIP_BEVEL));
     // the outline round the plate: a 4D acrylic ring standing 3mm proud of the plate's face
     const rimShape = outline(hex, G.frame.w, PLATE_H + 14, G.frame.r, 0, 0) as THREE.Shape;
-    rimShape.holes.push(outline(hex, plateW + 0.6, PLATE_H + 0.6, 6, 0, 0, new THREE.Path()) as THREE.Path);
+    rimShape.holes.push(outline(hex, plateW + 0.6, PLATE_H + 0.6, PLATE_CORNER_MM, 0, 0, new THREE.Path()) as THREE.Path);
     group.add(slab(rimShape, PLATE_THICKNESS + 3, -back, frameMat, 0.06));
   } else {
     // frameless: the backing behind the plate, and the flat strip under it (wing and centre as one surface)
-    group.add(slab(outline(hex, plateW, PLATE_H, 6) as THREE.Shape, BACK_T, -back - BACK_T, stripMat, 0.4));
+    group.add(slab(outline(hex, plateW, PLATE_H, PLATE_CORNER_MM) as THREE.Shape, BACK_T, -back - BACK_T, stripMat, 0.4));
     if (G.wing) group.add(slab(poly(G.wing), BACK_T, -back - BACK_T, stripMat, STRIP_BEVEL));
     group.add(slab(poly(G.panel), BACK_T, -back - BACK_T, flagMat ? [flagMat, stripMat] : stripMat, STRIP_BEVEL));
   }
@@ -247,7 +247,7 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
     };
     if (v.focus === "frame" && G.frame) {
       const ring = outline(hex, G.frame.w, G.frame.h, G.frame.r, 0, G.frame.cy) as THREE.Shape;
-      ring.holes.push(outline(hex, plateW + 0.6, PLATE_H + 0.6, 6, 0, 0, new THREE.Path()) as THREE.Path);
+      ring.holes.push(outline(hex, plateW + 0.6, PLATE_H + 0.6, PLATE_CORNER_MM, 0, 0, new THREE.Path()) as THREE.Path);
       mark(ring, -back + PLATE_THICKNESS + 3.3);
     } else if (v.focus === "strip") {
       mark(poly(strip), faceZ + 0.2);

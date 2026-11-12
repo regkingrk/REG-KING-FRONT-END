@@ -1806,7 +1806,7 @@ body::before {
 
 .rk-plate[data-side="rear"],
 .rk-pp[data-side="rear"] {
-  background: linear-gradient(180deg, #ffd64f 0%, var(--rk-yellow) 55%, #efb400 100%);
+  background: linear-gradient(180deg, #ffdc1a 0%, #ffd400 55%, #f6c800 100%);
 }
 
 .rk-plate[data-side="rear"] .rk-plate__input::placeholder {
@@ -1930,7 +1930,17 @@ body::before {
 
 .rk-badge--ev,
 .rk-badge--ev-uk {
-  background: #0b8a3d;
+  background: #1f9a48;
+}
+/* UK: flag and blue letters printed straight onto the reflective, no panel */
+.rk-badge--uk {
+  background: transparent;
+  color: #1f3c96;
+  font-weight: 800;
+  font-size: clamp(14px, 2vw, 21px);
+}
+.rk-badge--uk .rk-badge__flag {
+  width: 84%;
 }
 
 .rk-badge__flag {
@@ -2753,7 +2763,7 @@ body::before {
   --rk-plate-yellow:
     linear-gradient(112deg, rgba(255, 255, 255, 0) 18%, rgba(255, 245, 160, 0.55) 24%, rgba(255, 255, 255, 0) 31%),
     linear-gradient(112deg, rgba(255, 255, 255, 0) 52%, rgba(255, 240, 130, 0.35) 58%, rgba(255, 255, 255, 0) 64%),
-    linear-gradient(100deg, #efd300 0%, #e2c000 35%, #d6b100 65%, #c9a200 100%);
+    linear-gradient(100deg, #ffdc1a 0%, #ffd400 35%, #f9cb00 65%, #f2c200 100%);
   --rk-plate-ink: #0a0a0a;
   --rk-plate-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
@@ -7617,7 +7627,7 @@ a.rk-feat__item:hover {
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: linear-gradient(180deg, #ffd64f 0%, var(--rk-yellow) 55%, #efb400 100%);
+  background: linear-gradient(180deg, #ffdc1a 0%, #ffd400 55%, #f6c800 100%);
   color: #111;
   font: 700 clamp(40px, 6.4vw, 92px)/1 var(--rk-plate-font);
   letter-spacing: 0.05em;
@@ -7843,7 +7853,7 @@ a.rk-feat__item:hover {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: linear-gradient(180deg, #ffd64f 0%, var(--rk-yellow) 55%, #efb400 100%);
+  background: linear-gradient(180deg, #ffdc1a 0%, #ffd400 55%, #f6c800 100%);
   color: #111;
   font: 700 clamp(48px, 9vw, 118px)/1 var(--rk-plate-font);
   letter-spacing: 0.05em;
@@ -7967,7 +7977,7 @@ a.rk-feat__item:hover {
   place-items: center;
   aspect-ratio: 520 / 111;
   border-radius: 8px;
-  background: linear-gradient(180deg, #ffd64f 0%, var(--rk-yellow) 55%, #efb400 100%);
+  background: linear-gradient(180deg, #ffdc1a 0%, #ffd400 55%, #f6c800 100%);
   color: #111;
   font: 700 clamp(30px, 3.2vw, 46px)/1 var(--rk-plate-font);
   letter-spacing: 0.05em;
@@ -8204,7 +8214,7 @@ a.rk-feat__item:hover {
   place-items: center;
   aspect-ratio: 520 / 111;
   border-radius: 10px;
-  background: linear-gradient(180deg, #ffd64f 0%, var(--rk-yellow) 55%, #efb400 100%);
+  background: linear-gradient(180deg, #ffdc1a 0%, #ffd400 55%, #f6c800 100%);
   color: #111;
   font: 700 clamp(40px, 6.4vw, 92px)/1 var(--rk-plate-font);
   letter-spacing: 0.05em;
@@ -14979,7 +14989,8 @@ a.rk-proof__social:hover {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border-radius: clamp(6px, 1.3vw, 12px);
+  /* 10mm corners on a 520 x 111mm plate, as on REG KING's plates */
+  border-radius: 1.92% / 9%;
   background: var(--rk-plate-white);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
   transform: translateZ(0);

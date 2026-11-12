@@ -61,6 +61,15 @@ export async function plateFontReady(): Promise<void> {
 }
 
 /** The plate's outline (rounded rectangle, or REG KING's hex shape). */
+/** Corner radius of REG KING's plates, in mm (rounder than a sharp-cut plate; matches the workshop's plates). */
+export const PLATE_CORNER_MM = 10;
+/** The reflective yellow, top to bottom: a clean, bright yellow rather than amber. */
+export const PLATE_YELLOW = { top: "#ffd919", bottom: "#f6c800", edge: 0xf3c400, press: 0xf0c000 };
+/** The green of the EV badge (from REG KING's own plates). */
+export const EV_GREEN = "#1f9a48";
+/** The blue of the UK letters, printed straight onto the reflective. */
+export const UK_BLUE = "#1f3c96";
+
 function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number, hex: boolean, flip = false) {
   ctx.beginPath();
   if (hex) {
@@ -68,7 +77,7 @@ function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number,
     ctx.closePath();
     return;
   }
-  const r = 5 * k;
+  const r = PLATE_CORNER_MM * k;
   ctx.roundRect(0, 0, W, H, r);
 }
 
@@ -101,8 +110,8 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     bg.addColorStop(0, "#2b2b2b");
     bg.addColorStop(1, "#0e0e0e");
   } else if (s.side === "rear") {
-    bg.addColorStop(0, "#eab300");
-    bg.addColorStop(1, "#d69c00");
+    bg.addColorStop(0, PLATE_YELLOW.top);
+    bg.addColorStop(1, PLATE_YELLOW.bottom);
   } else {
     bg.addColorStop(0, "#ffffff");
     bg.addColorStop(1, "#ececea");
@@ -123,9 +132,13 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   if (badge && !s.bike) {
     const bw = 50 * k;
     left = bw;
-    ctx.fillStyle = badge === "ev" || badge === "ev-uk" ? "#0b8a3d" : "#0a47c2";
-    ctx.fillRect(0, 0, bw, H);
-    if (badge === "uk" || badge === "ev-uk") drawUnionFlag(ctx, bw * 0.16, H * 0.12, bw * 0.68, bw * 0.34);
+    // UK: the flag and blue letters are printed straight onto the reflective, with no panel behind them.
+    // EV and UK EV: a green panel.
+    if (badge !== "uk") {
+      ctx.fillStyle = badge === "ev" || badge === "ev-uk" ? EV_GREEN : "#0a47c2";
+      ctx.fillRect(0, 0, bw, H);
+    }
+    if (badge === "uk" || badge === "ev-uk") drawUnionFlag(ctx, bw * 0.1, H * 0.15, bw * 0.8, bw * 0.4);
     if (badge === "badge") {
       ctx.fillStyle = "#ffc200";
       ctx.font = `700 ${18 * k}px ${FONT}`;
@@ -135,8 +148,8 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     }
     const word = badge === "ev" || badge === "ev-uk" ? "EV" : badge === "badge" ? "" : "UK";
     if (word) {
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `700 ${20 * k}px ${FONT}`;
+      ctx.fillStyle = badge === "uk" ? UK_BLUE : "#ffffff";
+      ctx.font = `800 ${(badge === "uk" || badge === "ev-uk" ? 30 : 22) * k}px ${FONT}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
       ctx.fillText(word, bw / 2, H - 12 * k);
@@ -174,7 +187,7 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     ctx.lineWidth = 3 * k;
     const inset = 10 * k;
     ctx.beginPath();
-    ctx.roundRect(inset, inset, W - inset * 2, H - inset * 2, 8 * k);
+    ctx.roundRect(inset, inset, W - inset * 2, H - inset * 2, Math.max(2, PLATE_CORNER_MM - 6) * k);
     ctx.stroke();
     ctx.restore();
   }

@@ -13,7 +13,7 @@
 import * as THREE from "three";
 import { GLYPHS, GLYPH_CAP, GLYPH_SPACE, METRO_BEARING, METRO_GLYPHS, METRO_SPACE } from "./plateGlyphs";
 import { hexPoints, type PlateLook } from "./builder";
-import { renderPlate, type PlateSpec } from "./plateRender";
+import { PLATE_CORNER_MM, PLATE_YELLOW, renderPlate, type PlateSpec } from "./plateRender";
 import { chiselArrays, domeArrays, glyphShapes, smoothNormals, type GeoArrays } from "./plateGeoCore";
 
 const PLATE_T = 3; // plate thickness, mm
@@ -123,7 +123,7 @@ const blackPress = (s: PlateSpec) => s.look === "metal-white" || s.look === "met
 const FACE_Z = PLATE_T / 2 + 0.4;
 /** Metal Press: depth = how high it's pressed (mm), size = how wide the curve up from the plate is (mm). */
 const PRESS: Build = { depth: 0.75, bevel: 0, size: 1.3, segs: 0, colour: 0, rough: 0, coat: 0, metal: 0 };
-const pressPaint = (s: PlateSpec) => (s.look === "metal-white" ? 0xf2f2ef : s.look === "metal-silver" ? 0xe4e6ea : s.side === "rear" ? 0xd69c00 : 0xf1f1ee);
+const pressPaint = (s: PlateSpec) => (s.look === "metal-white" ? 0xf2f2ef : s.look === "metal-silver" ? 0xe4e6ea : s.side === "rear" ? PLATE_YELLOW.press : 0xf1f1ee);
 /** Colour of the pressed tops: black on Metal Press; on the black plates the whole pressed shape is white or silver. */
 const pressTop = (s: PlateSpec) => (blackPress(s) ? pressPaint(s) : 0x0b0b0b);
 const isGel4d = (look: PlateLook) => look === "gel-4d" || look === "gel-4d-bike";
@@ -154,7 +154,7 @@ function outlineShape(s: PlateSpec, inset = 0, shape: THREE.Shape | THREE.Path =
     shape.closePath();
     return shape as THREE.Shape;
   }
-  const r = Math.max(1, 5 - inset), x = -w / 2, y = -h / 2;
+  const r = Math.max(1, PLATE_CORNER_MM - inset), x = -w / 2, y = -h / 2;
   shape.moveTo(x + r, y);
   shape.lineTo(x + w - r, y);
   shape.quadraticCurveTo(x + w, y, x + w, y + r);
@@ -474,7 +474,7 @@ export function buildPlate(s: PlateSpec, softEnv?: THREE.Texture, acrylicEnv?: T
   const uv = geo.attributes.uv as THREE.BufferAttribute;
   for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + s.w / 2) / s.w, (pos.getY(i) + s.h / 2) / s.h);
   uv.needsUpdate = true;
-  const edgeColour = metal ? 0x1a1a1a : s.side === "rear" ? 0xe9b400 : 0xe6e6e2;
+  const edgeColour = metal ? 0x1a1a1a : s.side === "rear" ? PLATE_YELLOW.edge : 0xe6e6e2;
   const faceMat = pressed
     ? new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.22, envMapIntensity: 0.6 })
     : new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.6, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 0.55 });
