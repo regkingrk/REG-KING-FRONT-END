@@ -758,6 +758,16 @@ export function ContactPage() {
                 )}
               </dd>
             </div>
+            <div>
+              <dt>Online and phone</dt>
+              <dd>
+                {HQ.onlineHours.map((h) => (
+                  <span key={h.days}>
+                    {h.days} <b>{h.time}</b>
+                  </span>
+                ))}
+              </dd>
+            </div>
           </dl>
           <a className="rk-c3__dir" href={HQ.directions} target="_blank" rel="noopener noreferrer">
             Get directions <ArrowRight />

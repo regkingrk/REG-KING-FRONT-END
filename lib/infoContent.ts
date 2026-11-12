@@ -219,12 +219,29 @@ export const STORY_NEXT = {
   sign: "Helping Crown Your Car.",
 };
 
-/** The HQ. Address from REG KING (28 Oct 2026). Opening hours: CONFIRM with REG KING before launch. */
+/** The HQ. Address from REG KING (28 Oct 2026); hours from its Google Business Profile (12 Nov 2026). */
 export const HQ = {
   area: "Bilston, Wolverhampton",
   address: "48A Willenhall Road, Bilston, WV14 6NW" as string | null,
   lines: ["48A Willenhall Road", "Bilston", "WV14 6NW"],
-  hours: null as { days: string; time: string }[] | null,
+  /** Shop opening hours (from REG KING's Google Business Profile, 12 Nov 2026). */
+  hours: [
+    { days: "Monday to Friday", time: "10am to 8pm" },
+    { days: "Saturday", time: "10am to 6pm" },
+    { days: "Sunday", time: "11am to 4pm" },
+  ] as { days: string; time: string }[] | null,
+  /** When the team answers online (calls, WhatsApp, messages), from the same profile. */
+  onlineHours: [
+    { days: "Monday to Friday", time: "8am to 10pm" },
+    { days: "Saturday", time: "8am to 8pm" },
+    { days: "Sunday", time: "10am to 5pm" },
+  ],
+  /** The same hours for structured data (schema.org openingHoursSpecification). */
+  hoursSpec: [
+    { days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "10:00", closes: "20:00" },
+    { days: ["Saturday"], opens: "10:00", closes: "18:00" },
+    { days: ["Sunday"], opens: "11:00", closes: "16:00" },
+  ],
   does: ["Plates made while you wait", "Collect and fit", "Office and admin", "Wholesale and trade"],
   /** REG KING's own Google Maps listing (the owner's share link, 12 Nov 2026). */
   maps: "https://maps.google.com/?cid=15230537073648082145",
