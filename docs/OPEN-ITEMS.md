@@ -14,6 +14,7 @@
 - Confirm: Bike Retro and Bike Vintage prices (set and single, retail and trade); builder shows "Price on request" until then.
 - Confirm: custom show plate lengths (set to 289mm to 533mm, one line, 111mm tall) and their charge (the "Other size" charge, +£10 per plate).
 - Confirm: you can print all 19 Custom Text fonts at 4mm to 12mm. Orders read: Custom Text: "WORDS" in FONT, 8mm.
+- Confirm: who makes the plate parts. BS AU 145e wants the component manufacturer's name or trademark next to "BS AU 145e" if it isn't SHOW PLATES LTD.
 - Check on a phone: the "T&Cs apply" line under "How would you like to sell?" in List your plate.
 
 ## Suggested next (not started)
