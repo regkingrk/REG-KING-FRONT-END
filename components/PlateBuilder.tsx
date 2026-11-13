@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   FITTING,
   KITS,
@@ -71,26 +71,96 @@ import { shapePath } from "./AccessoryPreview";
 import { RealPhotos } from "./RealPhotos";
 
 /**
+ * Show plates, Custom size: the plate drawn to scale in millimetres, with a standard 520mm plate
+ * outlined behind it and the length marked underneath. The characters stay their real size, so
+ * moving the length only changes the room around them.
+ */
+function CustomDrawing({ w, hex, flip, reg, gaps, side }: { w: number; hex: boolean; flip: boolean; reg: string; gaps: number[] | null; side: "front" | "rear" }) {
+  const VW = 560, H = 111, top = 14;
+  const x = (VW - w) / 2, sx = (VW - 520) / 2;
+  const fs = 80; // about 79mm characters, as made
+  const text = (reg.trim() || "AB12 CDE").toUpperCase();
+  const chars = [...regChars(text)];
+  const dimY = top + H + 22;
+  return (
+    <svg className="rk-custom__svg" viewBox={`0 0 ${VW} ${dimY + 24}`} role="img" aria-label={`${w}mm plate, drawn to scale next to a standard 520mm plate`}>
+      <path d={shapePath(sx, top, 520, H, 6, false, false)} fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="1.5" strokeDasharray="6 5" />
+      <path d={shapePath(x, top, w, H, 6, hex, flip)} fill={side === "front" ? "#f6f6f2" : "#f6c900"} stroke="rgba(0,0,0,0.45)" strokeWidth="1.5" />
+      <text x={VW / 2} y={top + H / 2 + 1} textAnchor="middle" dominantBaseline="central" fontFamily='"RK Plate", "Barlow Condensed", "Arial Narrow", Arial, sans-serif' fontWeight={700} fontSize={fs} fill="#111">
+        {gaps
+          ? chars.map((ch, i) => (
+              <tspan key={i} dx={i > 0 ? (gaps[i - 1] ?? 0) * 0.195 * fs : undefined}>
+                {ch}
+              </tspan>
+            ))
+          : text}
+      </text>
+      <g stroke="currentColor" strokeWidth="1.5">
+        <line x1={x} y1={dimY - 8} x2={x} y2={dimY + 8} />
+        <line x1={x + w} y1={dimY - 8} x2={x + w} y2={dimY + 8} />
+        <line x1={x} y1={dimY} x2={x + w} y2={dimY} />
+      </g>
+      <text x={VW / 2} y={dimY + 21} textAnchor="middle" fontSize="17" fontWeight={700} fill="currentColor">
+        {w}mm
+      </text>
+      {w !== 520 && (
+        <text x={w > 520 ? x + w + 4 : sx + 520 + 4} y={top - 3} textAnchor="end" fontSize="12" fill="currentColor" fillOpacity="0.6">
+          Standard 520mm
+        </text>
+      )}
+    </svg>
+  );
+}
+
+/**
  * Show plates: a length of the customer's choosing (plain or hex). The slider starts at the shortest
  * length the reg fits at full size, so a plate can never be made with the characters running off it.
+ * Moving it updates the plate preview as it goes; "Use" confirms the size.
  */
-function CustomSize({ c, reg, forRear, chosen, side, priceText, onPick }: { c: BuildConfig; reg: string; forRear: boolean; chosen: string | null; side: "front" | "rear"; priceText: (key: string) => ReactNode; onPick: (key: string) => void }) {
+function CustomSize({ c, reg, forRear, chosen, side, priceText, onPreview, onPick }: { c: BuildConfig; reg: string; forRear: boolean; chosen: string | null; side: "front" | "rear"; priceText: (key: string) => ReactNode; onPreview: (key: string) => void; onPick: (key: string) => void }) {
   const cur = customSize(chosen);
   const [hex, setHex] = useState(cur?.hex ?? false);
-  const styles = forRear ? [c.rearStyle ?? c.style] : [c.style, c.rearStyle];
-  const range = customRange(c.vehicle, c.legal, reg, hex, styles, plateGaps(c, reg), c.extras);
-  const [len, setLen] = useState<number>(cur?.w ?? 450);
+  const gaps = plateGaps(c, reg);
+  const styleKey = forRear ? `${c.rearStyle ?? c.style}` : `${c.style}|${c.rearStyle}`;
+  const extrasKey = c.extras.join("|");
+  const range = useMemo(
+    () => customRange(c.vehicle, c.legal, reg, hex, forRear ? [c.rearStyle ?? c.style] : [c.style, c.rearStyle], gaps, c.extras),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [c.vehicle, c.legal, reg, hex, styleKey, extrasKey, JSON.stringify(gaps)],
+  );
+  const [len, setLen] = useState<number>(cur?.w ?? 520);
   const [typed, setTyped] = useState<string | null>(null);
   const w = range ? Math.min(range.max, Math.max(range.min, Math.round(len))) : null;
   const key = w ? customSizeKey(w, hex) : null;
   const size = customSize(key);
+  // the big plate preview follows the slider (a moment after it stops, so dragging stays smooth)
+  const timer = useRef(0);
+  const previewSoon = (k: string | null) => {
+    window.clearTimeout(timer.current);
+    if (k) timer.current = window.setTimeout(() => onPreview(k), 90);
+  };
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const keyFor = (n: number, h = hex) => {
+    const r = h === hex ? range : customRange(c.vehicle, c.legal, reg, h, forRear ? [c.rearStyle ?? c.style] : [c.style, c.rearStyle], gaps, c.extras);
+    return r ? customSizeKey(Math.min(r.max, Math.max(r.min, Math.round(n))), h) : null;
+  };
   return (
     <div className="rk-custom" data-custom>
       <div className="rk-hexway">
         <span id={`rk-cshape-${forRear ? "r" : "f"}`}>Shape</span>
         <div className="rk-seg" role="radiogroup" aria-labelledby={`rk-cshape-${forRear ? "r" : "f"}`}>
           {[false, true].map((h) => (
-            <button key={String(h)} type="button" role="radio" aria-checked={hex === h} data-custom-shape={h ? "hex" : "plain"} onClick={() => setHex(h)}>
+            <button
+              key={String(h)}
+              type="button"
+              role="radio"
+              aria-checked={hex === h}
+              data-custom-shape={h ? "hex" : "plain"}
+              onClick={() => {
+                setHex(h);
+                previewSoon(keyFor(len, h));
+              }}
+            >
               <svg viewBox="0 0 76 22" width="52" height="15" aria-hidden>
                 <path d={shapePath(1, 1, 74, 20, h ? 1 : 3, h, false)} fill="currentColor" />
               </svg>
@@ -103,6 +173,7 @@ function CustomSize({ c, reg, forRear, chosen, side, priceText, onPick }: { c: B
         <p className="rk-bfine">Your reg is too long for a {hex ? "hex " : ""}plate up to {CUSTOM_MAX}mm at full size. Try fewer spaces{hex ? " or the rectangle" : ""}.</p>
       ) : (
         <>
+          <CustomDrawing w={w} hex={hex} flip={hex && !!c.hexFlip} reg={reg} gaps={gaps} side={side} />
           <div className="rk-custom__len">
             <input
               type="range"
@@ -111,8 +182,10 @@ function CustomSize({ c, reg, forRear, chosen, side, priceText, onPick }: { c: B
               step={1}
               value={w}
               onChange={(e) => {
-                setLen(Number(e.target.value));
+                const n = Number(e.target.value);
+                setLen(n);
                 setTyped(null);
+                previewSoon(keyFor(n));
               }}
               aria-label="Plate length in millimetres"
               data-custom-range
@@ -127,7 +200,10 @@ function CustomSize({ c, reg, forRear, chosen, side, priceText, onPick }: { c: B
                 onChange={(e) => {
                   setTyped(e.target.value);
                   const n = Number(e.target.value);
-                  if (Number.isFinite(n) && n > 0) setLen(n);
+                  if (Number.isFinite(n) && n > 0) {
+                    setLen(n);
+                    previewSoon(keyFor(n));
+                  }
                 }}
                 onBlur={() => setTyped(null)}
                 aria-label="Plate length in millimetres"
@@ -136,19 +212,15 @@ function CustomSize({ c, reg, forRear, chosen, side, priceText, onPick }: { c: B
               mm
             </label>
           </div>
-          <p className="rk-bfine">
-            From {range.min}mm, the shortest your reg fits at full size with 11mm to each end{hex ? " and room for the cut corners" : ""}, up to {range.max}mm. Plates are 111mm tall.
-          </p>
-          <div className="rk-sizecard" aria-hidden>
-            <SizeExample size={size} reg={reg} side={side} flip={hex && !!c.hexFlip} gaps={plateGaps(c, reg)} />
-            <b>{size.label}</b>
-            <small>
-              {size.w} × {size.h}mm
-            </small>
-            {priceText(size.key)}
+          <div className="rk-custom__scale" aria-hidden>
+            <span>{range.min}mm shortest</span>
+            <span>{range.max}mm longest</span>
           </div>
-          <button type="button" className="rk-bnext rk-custom__use" data-b="custom:use" aria-pressed={chosen === size.key} onClick={() => onPick(size.key)}>
-            {chosen === size.key ? `${size.w}mm chosen` : `Use ${size.w}mm`}
+          <p className="rk-bfine">
+            {range.min}mm is the shortest your reg fits at full size, with 11mm to each end{hex ? " and room for the cut corners" : ""}. Plates are 111mm tall. {priceText(size.key)}
+          </p>
+          <button type="button" className="rk-bnext rk-custom__use" data-b="custom:use" onClick={() => onPick(size.key)}>
+            Use {size.w}mm{hex ? " hex" : ""}
           </button>
         </>
       )}
@@ -500,7 +572,8 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
         // Size groups are tabs: Standard, Hex, Van & SUV, Imports. Opens on the chosen size's group.
         const tab = sizeTab && groups.includes(sizeTab) ? sizeTab : (list.find((x) => x.key === chosen)?.group ?? (customSize(chosen) ? "Custom" : groups[0]));
         const pairStep = !forRear && twoSizes(c);
-        const pickSize = (key: string) => done(forRear ? { rearSize: key } : pairStep && sameSize ? { size: key, rearSize: key } : pairStep ? { size: key, rearSize: c.rearSize === c.size ? null : c.rearSize } : { size: key });
+        const sizePatch = (key: string): Partial<BuildConfig> => (forRear ? { rearSize: key } : pairStep && sameSize ? { size: key, rearSize: key } : pairStep ? { size: key, rearSize: c.rearSize === c.size ? null : c.rearSize } : { size: key });
+        const pickSize = (key: string) => done(sizePatch(key));
         const plateSide = forRear ? "rear" : twoSizes(c) || (c.qty === "Single" && c.side === "Front") ? "front" : "rear";
         const best = shortest ? shortestLegalOf(list.filter((x) => x.group === tab), reg) : null;
         return (
@@ -563,9 +636,14 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                 chosen={chosen}
                 side={plateSide}
                 onPick={pickSize}
+                onPreview={(key) => {
+                  // keep this step open while they try lengths (choosing a size would otherwise move on)
+                  setEditing(k);
+                  set(sizePatch(key));
+                }}
                 priceText={(key) => {
                   const sc = studio ? null : sizeChargePrice(key, pricing);
-                  return sc?.single != null ? <small className="rk-sizecard__price" data-size-price>+{formatGBP(sc.single, Number.isInteger(sc.single))} per plate</small> : null;
+                  return sc?.single != null ? <span data-size-price>Custom lengths are +{formatGBP(sc.single, Number.isInteger(sc.single))} per plate.</span> : null;
                 }}
               />
             )}

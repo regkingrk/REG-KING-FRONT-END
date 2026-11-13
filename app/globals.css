@@ -39786,3 +39786,23 @@ body:has(.rk-studio) {
 .rk-custom__use {
   justify-self: start;
 }
+/* Custom size: the plate drawn to scale, and the ends of the slider */
+.rk-custom__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: #121211;
+  overflow: visible;
+}
+.rk-custom__scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -8px;
+  font-size: 12px;
+  color: var(--rk-text-2, #6b6a64);
+  font-variant-numeric: tabular-nums;
+}
+.rk-custom__len input[type="range"] {
+  height: 28px;
+  cursor: pointer;
+}
