@@ -1,9 +1,8 @@
 "use client";
 
 import { forwardRef, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { formatGBP, modeUrl, spaceReg, searchModes, type SearchMode } from "@/lib/brand";
+import { formatGBP, modeUrl, showReg, spaceReg, searchModes, type SearchMode } from "@/lib/brand";
 import { fromSetPrice, withLegal, withVehicle, emptyBuild, isComplete, plateGaps, priceLines, rearOnly, regChars, regLength, sizeFits, spacingNote, summary, total, SPACING_PRESETS, type BuildConfig } from "@/lib/builder";
-import { SpacingEditor } from "./SpacingEditor";
 import { navigate } from "@/lib/nav";
 import { ArrowRight, SearchIcon } from "./Icons";
 import { useMode } from "./ModeProvider";
@@ -63,6 +62,10 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
       return next;
     });
   }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle, cfg.spacing, cfg.extras]);
+  // Show plates are spaced however the customer types them; road-legal and bike plates go back to the usual spacing
+  useEffect(() => {
+    if ((cfg.legal !== "Show" || cfg.vehicle === "Bike") && reg !== spaceReg(reg)) setReg(spaceReg(reg));
+  }, [reg, cfg.legal, cfg.vehicle]);
   // Spacing REG KING has set up for a reg comes back when it's made a show plate again
   useEffect(() => {
     const preset = SPACING_PRESETS[regChars(reg)];
@@ -236,7 +239,7 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
                 name="q"
                 value={reg}
                 onChange={(e) => {
-                  const next = spaceReg(e.target.value);
+                  const next = cfg.legal === "Show" && cfg.vehicle !== "Bike" ? showReg(e.target.value) : spaceReg(e.target.value);
                   // a different reg starts from its own spacing (or one REG KING has set up for it)
                   if (regChars(next) !== regChars(reg)) patch({ spacing: SPACING_PRESETS[regChars(next)] ?? null });
                   setReg(next);
@@ -245,10 +248,10 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
                 autoComplete="off"
                 autoCapitalize="characters"
                 spellCheck={false}
-                maxLength={8}
+                maxLength={cfg.legal === "Show" && cfg.vehicle !== "Bike" ? 25 : 8}
               />
+              {cfg.legal === "Show" && cfg.vehicle !== "Bike" && <small className="rk-regbox__note">Show plates: space your reg however you like, up to 3 spaces between characters.</small>}
             </div>
-            <SpacingEditor reg={reg} c={cfg} onChange={(spacing) => patch({ spacing })} />
             <PlateBuilder reg={reg} c={cfg} set={patch} replace={setCfg} onRegStep={() => inputRef.current?.focus()} />
             <button type="submit" className="rk-search__go" data-after>
               <ArrowRight /> <span id="rk-go-label">{buttonLabel}</span>

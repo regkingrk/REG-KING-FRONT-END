@@ -52,6 +52,10 @@ import {
   plateGaps,
   regChars,
   fromSetPrice,
+  customRange,
+  customSize,
+  customSizeKey,
+  offersCustom,
 } from "@/lib/builder";
 import { formatGBP } from "@/lib/brand";
 import { useAccount } from "./AccountProvider";
@@ -65,6 +69,93 @@ const TickMark = () => (
 import { StyleThumb } from "./StyleThumb";
 import { shapePath } from "./AccessoryPreview";
 import { RealPhotos } from "./RealPhotos";
+
+/**
+ * Show plates: a length of the customer's choosing (plain or hex). The slider starts at the shortest
+ * length the reg fits at full size, so a plate can never be made with the characters running off it.
+ */
+function CustomSize({ c, reg, forRear, chosen, side, priceText, onPick }: { c: BuildConfig; reg: string; forRear: boolean; chosen: string | null; side: "front" | "rear"; priceText: (key: string) => ReactNode; onPick: (key: string) => void }) {
+  const cur = customSize(chosen);
+  const [hex, setHex] = useState(cur?.hex ?? false);
+  const styles = forRear ? [c.rearStyle ?? c.style] : [c.style, c.rearStyle];
+  const range = customRange(c.vehicle, c.legal, reg, hex, styles, plateGaps(c, reg), c.extras);
+  const [len, setLen] = useState<number>(cur?.w ?? 450);
+  const [typed, setTyped] = useState<string | null>(null);
+  const w = range ? Math.min(range.max, Math.max(range.min, Math.round(len))) : null;
+  const key = w ? customSizeKey(w, hex) : null;
+  const size = customSize(key);
+  return (
+    <div className="rk-custom" data-custom>
+      <div className="rk-hexway">
+        <span id={`rk-cshape-${forRear ? "r" : "f"}`}>Shape</span>
+        <div className="rk-seg" role="radiogroup" aria-labelledby={`rk-cshape-${forRear ? "r" : "f"}`}>
+          {[false, true].map((h) => (
+            <button key={String(h)} type="button" role="radio" aria-checked={hex === h} data-custom-shape={h ? "hex" : "plain"} onClick={() => setHex(h)}>
+              <svg viewBox="0 0 76 22" width="52" height="15" aria-hidden>
+                <path d={shapePath(1, 1, 74, 20, h ? 1 : 3, h, false)} fill="currentColor" />
+              </svg>
+              {h ? "Hex" : "Rectangle"}
+            </button>
+          ))}
+        </div>
+      </div>
+      {!range || !w || !size ? (
+        <p className="rk-bfine">Your reg is too long for a {hex ? "hex " : ""}plate up to {CUSTOM_MAX}mm at full size. Try fewer spaces{hex ? " or the rectangle" : ""}.</p>
+      ) : (
+        <>
+          <div className="rk-custom__len">
+            <input
+              type="range"
+              min={range.min}
+              max={range.max}
+              step={1}
+              value={w}
+              onChange={(e) => {
+                setLen(Number(e.target.value));
+                setTyped(null);
+              }}
+              aria-label="Plate length in millimetres"
+              data-custom-range
+            />
+            <label className="rk-custom__mm">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={range.min}
+                max={range.max}
+                value={typed ?? String(w)}
+                onChange={(e) => {
+                  setTyped(e.target.value);
+                  const n = Number(e.target.value);
+                  if (Number.isFinite(n) && n > 0) setLen(n);
+                }}
+                onBlur={() => setTyped(null)}
+                aria-label="Plate length in millimetres"
+                data-custom-mm
+              />
+              mm
+            </label>
+          </div>
+          <p className="rk-bfine">
+            From {range.min}mm, the shortest your reg fits at full size with 11mm to each end{hex ? " and room for the cut corners" : ""}, up to {range.max}mm. Plates are 111mm tall.
+          </p>
+          <div className="rk-sizecard" aria-hidden>
+            <SizeExample size={size} reg={reg} side={side} flip={hex && !!c.hexFlip} gaps={plateGaps(c, reg)} />
+            <b>{size.label}</b>
+            <small>
+              {size.w} × {size.h}mm
+            </small>
+            {priceText(size.key)}
+          </div>
+          <button type="button" className="rk-bnext rk-custom__use" data-b="custom:use" aria-pressed={chosen === size.key} onClick={() => onPick(size.key)}>
+            {chosen === size.key ? `${size.w}mm chosen` : `Use ${size.w}mm`}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+const CUSTOM_MAX = 533;
 
 /** A plate drawn at its real size, so customers can compare sizes at a glance. */
 function SizeExample({ size, reg, side, flip = false, gaps = null }: { size: SizeOption; reg: string; side: "front" | "rear"; flip?: boolean; gaps?: number[] | null }) {
@@ -404,10 +495,14 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
         const shortest = offersShortest(c.vehicle, c.legal, reg);
         const hidden = allSizesFor(c.vehicle, c.legal).filter((x) => !list.some((y) => y.key === x.key)).length;
         const groups = [...new Set(list.map((x) => x.group))];
+        // Show plates (cars): a length of their own choosing, as well as the sizes we list
+        if (offersCustom(c.vehicle, c.legal)) groups.push("Custom");
         // Size groups are tabs: Standard, Hex, Van & SUV, Imports. Opens on the chosen size's group.
-        const tab = sizeTab && groups.includes(sizeTab) ? sizeTab : list.find((x) => x.key === chosen)?.group ?? groups[0];
-        const best = shortest ? shortestLegalOf(list.filter((x) => x.group === tab), reg) : null;
+        const tab = sizeTab && groups.includes(sizeTab) ? sizeTab : (list.find((x) => x.key === chosen)?.group ?? (customSize(chosen) ? "Custom" : groups[0]));
         const pairStep = !forRear && twoSizes(c);
+        const pickSize = (key: string) => done(forRear ? { rearSize: key } : pairStep && sameSize ? { size: key, rearSize: key } : pairStep ? { size: key, rearSize: c.rearSize === c.size ? null : c.rearSize } : { size: key });
+        const plateSide = forRear ? "rear" : twoSizes(c) || (c.qty === "Single" && c.side === "Front") ? "front" : "rear";
+        const best = shortest ? shortestLegalOf(list.filter((x) => x.group === tab), reg) : null;
         return (
           <>
             {pairStep && (
@@ -460,7 +555,21 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                 </span>
               </p>
             )}
-            <div className="rk-sizecards" role="radiogroup" aria-label={tab}>
+            {tab === "Custom" && (
+              <CustomSize
+                c={c}
+                reg={reg}
+                forRear={forRear}
+                chosen={chosen}
+                side={plateSide}
+                onPick={pickSize}
+                priceText={(key) => {
+                  const sc = studio ? null : sizeChargePrice(key, pricing);
+                  return sc?.single != null ? <small className="rk-sizecard__price" data-size-price>+{formatGBP(sc.single, Number.isInteger(sc.single))} per plate</small> : null;
+                }}
+              />
+            )}
+            {tab !== "Custom" && <div className="rk-sizecards" role="radiogroup" aria-label={tab}>
               {list
                 .filter((x) => x.group === tab)
                 .map((x) => (
@@ -471,9 +580,9 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                     className="rk-sizecard"
                     aria-checked={chosen === x.key}
                     data-b={`${k}:${x.key}`}
-                    onClick={() => done(forRear ? { rearSize: x.key } : pairStep && sameSize ? { size: x.key, rearSize: x.key } : pairStep ? { size: x.key, rearSize: c.rearSize === c.size ? null : c.rearSize } : { size: x.key })}
+                    onClick={() => pickSize(x.key)}
                   >
-                    <SizeExample size={x} reg={hasReg ? reg : ""} side={forRear ? "rear" : twoSizes(c) || (c.qty === "Single" && c.side === "Front") ? "front" : "rear"} flip={!!x.hex && !!c.hexFlip} gaps={plateGaps(c, reg)} />
+                    <SizeExample size={x} reg={hasReg ? reg : ""} side={plateSide} flip={!!x.hex && !!c.hexFlip} gaps={plateGaps(c, reg)} />
                     <b>{x.label.replace(/ \(.*\)$/, "")}</b>
                     <small>
                       {Math.round(x.w)} × {Math.round(x.h)}mm
@@ -486,8 +595,8 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                     {shortest && !legalFor(x, reg) && <em className="rk-sizecard__tag" data-tag="short">Too short to be road legal</em>}
                   </button>
                 ))}
-            </div>
-            <p className="rk-bfine">
+            </div>}
+            {tab !== "Custom" && <p className="rk-bfine">
               {chars === 0
                 ? c.legal === "Legal"
                   ? "Type your reg to see the shortest road-legal length and the sizes that fit it."
@@ -495,7 +604,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                 : hidden > 0
                     ? `Showing the sizes your reg fits at full size. Shorter plates need a shorter reg.`
                     : `Every size fits ${chars} characters.`}
-            </p>
+            </p>}
           </>
         );
       }

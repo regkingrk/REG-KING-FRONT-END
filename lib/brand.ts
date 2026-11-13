@@ -342,6 +342,20 @@ export const normaliseReg = (v: string) =>
   v.toUpperCase().replace(/[^A-Z0-9 ]/g, "").replace(/\s{2,}/g, " ").slice(0, 8);
 
 /**
+ * Show plates: the reg spaced however the customer types it (up to 3 spaces between two characters),
+ * at most 7 characters. Spaces at the start are dropped; one at the end stays while they're still typing.
+ */
+export function showReg(v: string): string {
+  let n = 0;
+  let out = "";
+  for (const ch of v.toUpperCase().replace(/[^A-Z0-9 ]/g, "").replace(/^ +/, "").replace(/ {4,}/g, "   ")) {
+    if (ch !== " " && ++n > 7) break;
+    out += ch;
+  }
+  return out;
+}
+
+/**
  * Put the gap where a real plate has it, as the customer types (AX55HAA → AX55 HAA, K1NGS → K1 NGS).
  * Words and names with no numbers are left as typed.
  */

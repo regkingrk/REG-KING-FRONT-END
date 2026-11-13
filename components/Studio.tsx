@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { spaceReg } from "@/lib/brand";
+import { showReg, spaceReg } from "@/lib/brand";
 import { emptyBuild, plateGaps, regChars, regLength, rearOnly, sizeFits, SPACING_PRESETS, type BuildConfig } from "@/lib/builder";
-import { SpacingEditor } from "./SpacingEditor";
 import { Plate3D } from "./Plate3D";
 import { PlateBuilder } from "./PlateBuilder";
 import { PlateOnCar } from "./PlateOnCar";
@@ -104,6 +103,10 @@ export function Studio() {
       return next;
     });
   }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle, cfg.spacing, cfg.extras]);
+  // Show plates are spaced however the customer types them; road-legal and bike plates go back to the usual spacing
+  useEffect(() => {
+    if ((cfg.legal !== "Show" || cfg.vehicle === "Bike") && reg !== spaceReg(reg)) setReg(spaceReg(reg));
+  }, [reg, cfg.legal, cfg.vehicle]);
   // Spacing REG KING has set up for a reg comes back when it's made a show plate again
   useEffect(() => {
     const preset = SPACING_PRESETS[regChars(reg)];
@@ -146,7 +149,7 @@ export function Studio() {
             className="rk-studio__reg"
             value={reg}
             onChange={(e) => {
-              const next = spaceReg(e.target.value);
+              const next = cfg.legal === "Show" && cfg.vehicle !== "Bike" ? showReg(e.target.value) : spaceReg(e.target.value);
               if (regChars(next) !== regChars(reg)) patch({ spacing: SPACING_PRESETS[regChars(next)] ?? null });
               setReg(next);
             }}
@@ -154,7 +157,7 @@ export function Studio() {
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
-            maxLength={8}
+            maxLength={cfg.legal === "Show" && cfg.vehicle !== "Bike" ? 25 : 8}
           />
         </label>
         <button type="button" className="rk-studio__show" data-studio-showcase onClick={enterShowcase}>
@@ -206,7 +209,6 @@ export function Studio() {
           </div>
           <div className="rk-studio__ctl">
             <div className="rk-make">
-              <SpacingEditor reg={reg} c={cfg} onChange={(spacing) => patch({ spacing })} />
               <PlateBuilder key={`b${run}`} studio reg={reg} c={cfg} set={patch} replace={setCfg} onRegStep={() => regRef.current?.focus()} title={<>Design your <span>plates</span></>} />
             </div>
           </div>

@@ -9,6 +9,7 @@
  * For production, load this from the same price list the workshop tool uses.
  */
 
+import { spaceReg } from "./brand";
 import { ACCESSORY_PRICES, surroundSummary, type SurroundConfig } from "./accessories";
 
 export type Price = { set: number | null; single: number | null };
@@ -159,6 +160,24 @@ const BIKE_SHOW: SizeOption[] = [...BIKE_LEGAL, { key: "8x6", label: "8 × 6", g
 
 export const ALL_SIZES = [...CAR_SIZES, ...VAN_SIZES, ...IMPORT_LEGAL, ...IMPORT_SHOW, ...BIKE_SHOW];
 
+/**
+ * Show plates for cars: any length the customer picks, plain or hex, 111mm tall, on one line.
+ * The shortest offered is the shortest the reg fits at full size (never squeezed or overhanging).
+ * CONFIRM: the lengths REG KING can make (set here to one-line plates up to the 533mm oversized length).
+ */
+export const CUSTOM_LEN = { min: 289, max: 533 } as const;
+export const customSizeKey = (w: number, hex: boolean) => `Custom${hex ? " Hex" : ""} ${Math.round(w)}mm`;
+/** A custom size from its key ("Custom 430mm", "Custom Hex 480mm"), or null. */
+export function customSize(key: string | null | undefined): SizeOption | null {
+  const m = (key ?? "").match(/^Custom( Hex)? (\d{3})mm$/);
+  if (!m) return null;
+  const w = Number(m[2]);
+  if (w < CUSTOM_LEN.min || w > CUSTOM_LEN.max) return null;
+  return { key: key!, label: `Custom ${m[1] ? "hex " : ""}${w}mm`, group: "Custom", w, h: 111, hex: !!m[1] };
+}
+/** Whether this plate can have a custom length: show plates for cars, vans and SUVs. */
+export const offersCustom = (v: Vehicle | null, legal: Legal | null) => legal === "Show" && v !== "Bike";
+
 /* ------------------------------------------------------------------ */
 /* Shortest road-legal length                                          */
 /* ------------------------------------------------------------------ */
@@ -197,22 +216,16 @@ export const legalEndInset = (hex = false) => (hex ? (hexInset ||= hexEndInset()
 /* ------------------------------------------------------------------ */
 /* Custom spacing (show plates)                                        */
 /* ------------------------------------------------------------------ */
-/** The gaps a customer can choose between two characters, in spaces. */
-export const GAP_STEPS: { v: number; label: string }[] = [
-  { v: 0, label: "Together" },
-  { v: 0.5, label: "Small" },
-  { v: 1, label: "Space" },
-  { v: 1.5, label: "Wide" },
-  { v: 2, label: "Extra wide" },
-];
 /** The reg's characters, without its spaces. */
 export const regChars = (reg: string) => reg.replace(/\s/g, "").toUpperCase();
-/** The gaps as typed: a space where the reg has one, together everywhere else. */
+/** Show plates: the most spaces a customer can put between two characters. */
+export const MAX_GAP = 3;
+/** The gaps as typed: how many spaces sit between each pair of characters (0 = together, up to MAX_GAP). */
 export function typedGaps(reg: string): number[] {
   const out: number[] = [];
   let pending = 0, first = true;
   for (const ch of reg.trim().toUpperCase()) {
-    if (/\s/.test(ch)) pending = 1;
+    if (/\s/.test(ch)) pending = Math.min(MAX_GAP, pending + 1);
     else {
       if (!first) out.push(pending);
       pending = 0;
@@ -228,14 +241,22 @@ export function typedGaps(reg: string): number[] {
 export const SPACING_PRESETS: Record<string, number[]> = {
   TL11CKY: [1, 0, 0.5, 0, 0, 0],
 };
-/** The custom gaps that apply to this plate, or null for the standard spacing (road legal, bikes, none set). */
+/** Whether a reg is typed with its usual spacing (as the reg box sets it out on road-legal plates). */
+const standardSpacing = (reg: string) => reg.trim().toUpperCase() === spaceReg(reg).trim();
+/**
+ * The custom gaps that apply to this plate, or null for the standard spacing (road legal and bikes always).
+ * Show plates are spaced however the customer types them; a reg typed the usual way takes any spacing
+ * REG KING has set up for it.
+ */
 export function plateGaps(c: Pick<BuildConfig, "legal" | "vehicle" | "spacing">, reg: string): number[] | null {
-  if (c.legal !== "Show" || c.vehicle === "Bike" || !c.spacing) return null;
-  return c.spacing.length === Math.max(0, regChars(reg).length - 1) ? c.spacing : null;
+  if (c.legal !== "Show" || c.vehicle === "Bike" || regChars(reg).length < 2) return null;
+  if (!standardSpacing(reg)) return typedGaps(reg);
+  if (!c.spacing) return null;
+  return c.spacing.length === regChars(reg).length - 1 ? c.spacing : null;
 }
 /** The plate's characters with its custom gaps spelled out, for the order: "T (space) L1 (small gap) 1CKY". */
 export function spacedReg(reg: string, gaps: number[]): string {
-  const name = (g: number) => (g === 1 ? "space" : `${(GAP_STEPS.find((x) => x.v === g)?.label ?? `${g} spaces`).toLowerCase()} gap`);
+  const name = (g: number) => (g === 1 ? "space" : g === 0.5 ? "small gap" : Number.isInteger(g) ? `${g} spaces` : `${g} space gap`);
   return [...regChars(reg)].map((ch, i) => (i === 0 || !gaps[i - 1] ? "" : ` (${name(gaps[i - 1])}) `) + ch).join("");
 }
 
@@ -243,8 +264,8 @@ export function spacedReg(reg: string, gaps: number[]): string {
 export function spacingNote(c: Pick<BuildConfig, "legal" | "vehicle" | "spacing">, reg: string): string | null {
   const gaps = plateGaps(c, reg);
   if (!gaps) return null;
-  const typed = typedGaps(reg);
-  return gaps.some((g, i) => g !== typed[i]) ? `custom spacing ${spacedReg(reg, gaps)}` : null;
+  const usual = typedGaps(spaceReg(reg));
+  return gaps.some((g, i) => g !== usual[i]) ? `custom spacing ${spacedReg(reg, gaps)}` : null;
 }
 
 /** Widths in the plate font, as fractions of the font size (measured from the font file: 0.7em cap height). */
@@ -287,8 +308,8 @@ export function legalLength(reg: string, hex = false, gaps?: number[] | null): n
   return Math.ceil(ends + glyphs + LEGAL_MM.gap * (chars.length - groups.length) + LEGAL_MM.groupGap * (groups.length - 1));
 }
 
-export const sizeLabel = (key: string | null) => ALL_SIZES.find((s) => s.key === key)?.label ?? key ?? "";
-export const sizeInfo = (key: string | null) => ALL_SIZES.find((s) => s.key === key) ?? null;
+export const sizeLabel = (key: string | null) => (ALL_SIZES.find((s) => s.key === key) ?? customSize(key))?.label ?? key ?? "";
+export const sizeInfo = (key: string | null) => ALL_SIZES.find((s) => s.key === key) ?? customSize(key);
 
 /** Characters on the plate, not counting spaces. */
 export const regLength = (reg: string) => reg.replace(/\s/g, "").length;
@@ -300,7 +321,7 @@ export function allSizesFor(v: Vehicle | null, legal: Legal | null): SizeOption[
 }
 
 /** One-line car plates, where the legal length rule is worked out from the reg. */
-const oneLine = (s: SizeOption) => s.group === "Standard" || s.group === "Hex" || s.key === "Oversized";
+const oneLine = (s: SizeOption) => s.group === "Standard" || s.group === "Hex" || s.group === "Custom" || s.key === "Oversized";
 /** Whether the shortest-legal option applies: road-legal car plates once a reg is typed. */
 export const offersShortest = (v: Vehicle | null, legal: Legal | null, reg: string) => legal === "Legal" && v !== "Bike" && regLength(reg) > 0;
 
@@ -393,8 +414,24 @@ export const legalFor = (s: SizeOption, reg: string) => !oneLine(s) || s.w >= le
 export const shortestLegalOf = (list: SizeOption[], reg: string) =>
   list.filter((s) => oneLine(s) && legalFor(s, reg)).sort((x, y) => x.w - y.w)[0] ?? null;
 
-export const sizeFits = (key: string | null, v: Vehicle | null, legal: Legal | null, reg: string, styles: (string | null | undefined)[] = [], gaps?: number[] | null, extras: string[] = []) =>
-  !!key && sizesFor(v, legal, reg, styles, gaps, extras).some((s) => s.key === key);
+export const sizeFits = (key: string | null, v: Vehicle | null, legal: Legal | null, reg: string, styles: (string | null | undefined)[] = [], gaps?: number[] | null, extras: string[] = []) => {
+  if (!key) return false;
+  const custom = customSize(key);
+  if (custom) return offersCustom(v, legal) && fitsFullSize(custom, reg, { v, legal, styles, gaps, badge: hasBadge(extras) });
+  return sizesFor(v, legal, reg, styles, gaps, extras).some((s) => s.key === key);
+};
+
+/**
+ * The lengths a custom plate can be for this reg, style(s), spacing and badge: from the shortest it fits
+ * at full size up to the longest made. Null when it doesn't fit even the longest.
+ */
+export function customRange(v: Vehicle | null, legal: Legal | null, reg: string, hex: boolean, styles: (string | null | undefined)[] = [], gaps?: number[] | null, extras: string[] = []): { min: number; max: number } | null {
+  if (!offersCustom(v, legal)) return null;
+  for (let w = CUSTOM_LEN.min; w <= CUSTOM_LEN.max; w++) {
+    if (fitsFullSize({ key: "", label: "", group: "Custom", w, h: 111, hex }, reg, { v, legal, styles, gaps, badge: hasBadge(extras) })) return { min: w, max: CUSTOM_LEN.max };
+  }
+  return null;
+}
 
 /**
  * Whether this finished plate design can be made as chosen: each plate's size takes the reg at full
@@ -555,8 +592,9 @@ function tidy(c: BuildConfig): BuildConfig {
   const sizes = allSizesFor(next.vehicle, next.legal).map((s) => s.key);
   if (next.style && !styles.includes(next.style)) next.style = null;
   if (next.rearStyle && !styles.includes(next.rearStyle)) next.rearStyle = null;
-  if (next.size && !sizes.includes(next.size)) next.size = null;
-  if (next.rearSize && !sizes.includes(next.rearSize)) next.rearSize = null;
+  const keep = (k: string) => sizes.includes(k) || (!!customSize(k) && offersCustom(next.vehicle, next.legal));
+  if (next.size && !keep(next.size)) next.size = null;
+  if (next.rearSize && !keep(next.rearSize)) next.rearSize = null;
   next.extras = next.extras.filter((x) => extrasFor(next.vehicle, next.legal).some((e) => e.name === x));
   return next;
 }
@@ -815,6 +853,7 @@ export function sizeCharge(key: string | null): SizeCharge | null {
   if (!s || s.key === "Normal" || s.key === "9x7") return null;
   if (s.group === "Hex") return "Hex";
   if (s.group === "Standard") return "Shortened";
+  // CONFIRM: a custom length is charged as another size
   return "Other size";
 }
 /** What a size adds, per plate, under this pricing (null when it's included). */
@@ -942,6 +981,8 @@ export const sizeText = (c: Pick<BuildConfig, "hexFlip">, key: string | null) =>
 export const sizeScale = (size: string | null) => {
   const fixed: Record<string, number> = { "Hex Medium": 0.85, "Hex Small": 0.72, "Hex XS": 0.6, Square: 0.56, "4x4": 0.56 };
   if (size && fixed[size]) return fixed[size];
+  const custom = customSize(size);
+  if (custom) return Math.max(0.42, Math.min(1, custom.w / 520));
   const m = (size ?? "").match(/(\d+)"/);
   if (m) return Math.max(0.42, Math.min(1, Number(m[1]) / 20.5));
   return 1;
