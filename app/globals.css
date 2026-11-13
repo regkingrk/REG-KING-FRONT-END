@@ -39895,3 +39895,17 @@ body:has(.rk-studio) {
 .rk-btfont__sample {
   font-size: 18px;
 }
+
+/* Road legal markings, as printed: 3mm capitals in one solid black, the company name bold and the postcode
+   in a lighter weight, BS AU 145e at the bottom right (REG KING, 13 Nov 2026) */
+.rk-pmark,
+.rk-pbs {
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #111;
+  bottom: 6%;
+}
+.rk-pmark b {
+  font-weight: 700;
+}
