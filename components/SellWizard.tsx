@@ -290,6 +290,12 @@ export function SellWizard({ startReg = "", startPkg = "", onDone }: { startReg?
                 onPick={(v) => p.pkg !== v && set({ pkg: v, termsAccepted: false })}
                 options={PACKAGES.map((o) => ({ k: o.key, t: o.title, d: o.line, f: o.fee }))}
               />
+              <p className="lw-tcs">
+                T&amp;Cs apply.{" "}
+                <a href="/terms-of-service" target="_blank" rel="noopener noreferrer">
+                  Read our terms
+                </a>
+              </p>
             </Q>
             {pkg && (
               <Q title={`Terms for ${pkg.title}`} err={err("termsAccepted")}>

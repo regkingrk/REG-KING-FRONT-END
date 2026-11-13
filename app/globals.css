@@ -38103,101 +38103,101 @@ body:has(.rk-studio) {
 }
 
 /* ================================================================== */
-/* Brokerage form: black and yellow (Task 3). Only the brokerage form; */
-/* the sourcing and other forms keep their own look.                   */
+/* Brokerage and plate sourcing forms: a black card with white boxes   */
+/* (Task 3; white boxes and sourcing added by REG KING, 13 Nov 2026)   */
 /* ================================================================== */
-.bk[data-service="brk"] .bk__card {
+.bk .bk__card {
   border: 0;
   border-radius: 12px;
   background: #121211;
   color: #f4f2ec;
 }
-.bk[data-service="brk"] .bk__card h2 {
+.bk .bk__card h2 {
   color: #fff;
 }
-.bk[data-service="brk"] .bk-f > span:first-child,
-.bk[data-service="brk"] .bk-f label,
-.bk[data-service="brk"] .bk-money > span {
+.bk .bk-f > span:first-child,
+.bk .bk-f label,
+.bk .bk-money > span {
   color: #f4f2ec;
 }
-.bk[data-service="brk"] .bk-f i {
+.bk .bk-f i {
   color: #bdb8ad;
 }
-.bk[data-service="brk"] .bk-f input,
-.bk[data-service="brk"] .bk-f textarea {
-  border: 1.5px solid #7a7468;
-  background: #1f1e1c;
-  color: #fff;
+.bk .bk-f input,
+.bk .bk-f textarea {
+  border: 1.5px solid #fff;
+  background: #fff;
+  color: #161514;
 }
-.bk[data-service="brk"] .bk-f input::placeholder,
-.bk[data-service="brk"] .bk-f textarea::placeholder {
-  color: #a39d91;
+.bk .bk-f input::placeholder,
+.bk .bk-f textarea::placeholder {
+  color: #8a857a;
 }
-.bk[data-service="brk"] .bk-f input:hover,
-.bk[data-service="brk"] .bk-f textarea:hover {
-  border-color: #a39d91;
+.bk .bk-f input:hover,
+.bk .bk-f textarea:hover {
+  border-color: #d8d3c6;
 }
-.bk[data-service="brk"] .bk-f input:focus-visible,
-.bk[data-service="brk"] .bk-f textarea:focus-visible {
+.bk .bk-f input:focus-visible,
+.bk .bk-f textarea:focus-visible {
   border-color: var(--rk-yellow);
   outline: 2px solid var(--rk-yellow);
   outline-offset: 1px;
 }
-.bk[data-service="brk"] .bk-f input[aria-invalid="true"],
-.bk[data-service="brk"] .bk-f textarea[aria-invalid="true"] {
+.bk .bk-f input[aria-invalid="true"],
+.bk .bk-f textarea[aria-invalid="true"] {
   border-color: #ff8a80;
 }
-.bk[data-service="brk"] .bk-err {
+.bk .bk-err {
   color: #ff8a80;
   font-weight: 600;
 }
 /* the registration box stays a real white front plate */
-.bk[data-service="brk"] .bk-f input.bk-reg {
+.bk .bk-f input.bk-reg {
   border: 0;
 }
-.bk[data-service="brk"] .bk-f input.bk-reg:focus-visible {
+.bk .bk-f input.bk-reg:focus-visible {
   outline: 3px solid var(--rk-yellow);
   outline-offset: 2px;
 }
-.bk[data-service="brk"] .bk-choice button {
+.bk .bk-choice button {
   border: 1.5px solid #7a7468;
   background: #1f1e1c;
   color: #fff;
 }
-.bk[data-service="brk"] .bk-choice button:hover {
+.bk .bk-choice button:hover {
   border-color: #a39d91;
 }
-.bk[data-service="brk"] .bk-choice button[aria-checked="true"] {
+.bk .bk-choice button[aria-checked="true"] {
   border-color: var(--rk-yellow);
   background: var(--rk-yellow);
   color: #000;
 }
-.bk[data-service="brk"] .bk-choice button:focus-visible {
+.bk .bk-choice button:focus-visible {
   outline: 2px solid var(--rk-yellow);
   outline-offset: 2px;
 }
-.bk[data-service="brk"] .bk-btn {
+.bk .bk-btn {
   background: var(--rk-yellow);
   color: #000;
 }
-.bk[data-service="brk"] .bk-btn:hover {
+.bk .bk-btn:hover {
   background: #ffd23f;
 }
-.bk[data-service="brk"] .bk-btn:focus-visible {
+.bk .bk-btn:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
 }
-.bk[data-service="brk"] .bk-small,
-.bk[data-service="brk"] .bk-msg {
+.bk .bk-small,
+.bk .bk-msg {
   color: #bdb8ad;
 }
-.bk[data-service="brk"] .bk__sent p {
+.bk .bk__sent p {
   color: rgba(244, 242, 236, 0.88);
 }
-.bk[data-service="brk"] .bk__fee b {
+.bk .bk__fee b {
   color: var(--rk-yellow);
 }
-.bk[data-service="brk"] .bk__fee {
+.bk .bk__fee {
   background: #1f1e1c;
   color: #f4f2ec;
 }
@@ -39698,4 +39698,22 @@ body:has(.rk-studio) {
   .vlt__page[data-kind="exclusive"] .xp-tile__plate {
     transition: none;
   }
+}
+/* sourcing: the name box stays a yellow (rear) plate */
+.bk[data-service="src"] .bk-f input.bk-reg {
+  border: 0;
+  background: var(--rk-plate-yellow);
+  color: var(--rk-plate-ink);
+}
+
+/* List your plate: "T&Cs apply" under the ways to sell */
+.lw-tcs {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  color: #6f6a5f;
+}
+.lw-tcs a {
+  color: inherit;
+  font-weight: 600;
+  text-underline-offset: 3px;
 }
