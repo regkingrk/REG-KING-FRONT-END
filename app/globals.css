@@ -39806,3 +39806,92 @@ body:has(.rk-studio) {
   height: 28px;
   cursor: pointer;
 }
+
+/* Custom Text: the customer's own font and size (REG KING, 13 Nov 2026). The words keep the case they're typed in,
+   and the reg stays its full size: the words sit in the strip below it. */
+.rk-pbottom,
+.rk-p3d__face .rk-pbottom,
+.rk-p3d__face[data-extras~="border"] .rk-pbottom {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: calc(var(--bt-mm, 8) / 520 * 100cqi / 0.7);
+  bottom: 3.5%;
+  line-height: 1;
+}
+[data-extras~="border"] .rk-pbottom {
+  bottom: 9%;
+}
+[data-extras~="text"] .rk-ptext {
+  translate: none;
+  scale: none;
+}
+.rk-btext input {
+  text-transform: none;
+}
+.rk-btfont {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.rk-btfont__h {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.rk-btfont__h small {
+  font-weight: 400;
+  color: var(--rk-text-3, #6b675f);
+}
+.rk-btfont__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.rk-btfont__grid button {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 10px 8px;
+  border: 1.5px solid rgba(22, 21, 20, 0.16);
+  border-radius: 10px;
+  background: #fff;
+  color: #161514;
+  text-align: left;
+  cursor: pointer;
+}
+.rk-btfont__grid button[aria-checked="true"] {
+  border-color: #161514;
+  box-shadow: 0 0 0 1px #161514 inset;
+}
+.rk-btfont__grid button:focus-visible {
+  outline: 2px solid #d88e00;
+  outline-offset: 2px;
+}
+.rk-btfont__sample {
+  overflow: hidden;
+  font-size: 20px;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.rk-btfont__grid small {
+  font-size: 12px;
+  color: var(--rk-text-3, #6b675f);
+}
+.rk-btsize {
+  flex-wrap: wrap;
+}
+.rk-btsize button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.rk-btfont__warn {
+  color: #a3330f;
+}
+.rk-seg.rk-btsize {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+}
+.rk-btfont__sample {
+  font-size: 18px;
+}

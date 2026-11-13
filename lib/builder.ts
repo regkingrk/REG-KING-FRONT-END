@@ -10,6 +10,7 @@
  */
 
 import { spaceReg } from "./brand";
+import { bottomFont, DEFAULT_BOTTOM_SIZE } from "./bottomText";
 import { ACCESSORY_PRICES, surroundSummary, type SurroundConfig } from "./accessories";
 
 export type Price = { set: number | null; single: number | null };
@@ -468,8 +469,8 @@ export const EXTRAS: ExtraOption[] = [
   { name: "Custom Text", set: 10, single: 5, look: "text" },
 ];
 /** An extra as it reads on the order: custom text with its words, a faded tint with its direction. */
-export function extraLabel(e: ExtraOption, c: Pick<BuildConfig, "bottomText" | "fadeFrom">): string {
-  if (e.look === "text" && c.bottomText?.trim()) return `Custom Text: "${c.bottomText.trim()}"`;
+export function extraLabel(e: ExtraOption, c: Pick<BuildConfig, "bottomText" | "fadeFrom" | "bottomFont" | "bottomSize">): string {
+  if (e.look === "text" && c.bottomText?.trim()) return `Custom Text: "${c.bottomText.trim()}" in ${bottomFont(c.bottomFont).label}, ${c.bottomSize ?? DEFAULT_BOTTOM_SIZE}mm`;
   if (e.look === "fade") return `${e.name} (darker at the ${c.fadeFrom === "bottom" ? "bottom" : "top"})`;
   return e.name;
 }
@@ -543,6 +544,9 @@ export interface BuildConfig {
   withPlate?: boolean;
   /** Custom Text extra (show plates): the words along the bottom of the plate. */
   bottomText?: string;
+  /** Custom Text: font (see lib/bottomText) and capital height in mm. */
+  bottomFont?: string;
+  bottomSize?: number;
   /** Faded Tint extra: which edge the tint is darkest at, fading away across the plate. Default "top". */
   fadeFrom?: "top" | "bottom";
   /**

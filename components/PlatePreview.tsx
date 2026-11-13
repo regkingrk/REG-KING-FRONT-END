@@ -1,3 +1,4 @@
+import { bottomFont, DEFAULT_BOTTOM_SIZE } from "@/lib/bottomText";
 import { EXTRAS, fontOf, isHex, lookOf, smallChars, sizeInfo, sizeOf, sizeScale, styleOf, type BuildConfig } from "@/lib/builder";
 
 /** Data attributes that drive the plate's look (shared by the hero plate and previews). */
@@ -58,7 +59,11 @@ export function PlateDecor({ c }: { c: BuildConfig }) {
       <span className="rk-prim" aria-hidden />
       <PlateBadge c={c} />
       {border && <span className="rk-pborder" aria-hidden />}
-      {bottom && <span className="rk-pbottom" aria-hidden>{bottom}</span>}
+      {bottom && (
+        <span className="rk-pbottom" aria-hidden style={{ fontFamily: `var(${bottomFont(c.bottomFont).cssVar}), "${bottomFont(c.bottomFont).family}", Arial, sans-serif`, fontWeight: bottomFont(c.bottomFont).weight, ["--bt-mm" as string]: String(c.bottomSize ?? DEFAULT_BOTTOM_SIZE) }}>
+          {bottom}
+        </span>
+      )}
     </>
   );
 }

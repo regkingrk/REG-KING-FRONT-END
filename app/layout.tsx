@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono, Oswald } from "next/font/google";
 import "./globals.css";
+import { plateTextFontVars } from "./plateTextFonts";
 import { HOME_TITLE } from "@/lib/routes";
 import { JsonLd, siteSchema } from "@/lib/schema";
 
@@ -57,7 +58,7 @@ const introGate = `(function(){try{
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB" className={`${oswald.variable} ${plateFont.variable} ${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="en-GB" className={`${oswald.variable} ${plateFont.variable} ${geist.variable} ${geistMono.variable} ${plateTextFontVars}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: introGate }} />
         <JsonLd data={siteSchema()} />

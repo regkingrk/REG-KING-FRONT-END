@@ -45,7 +45,7 @@ export function PlateOnCar({ reg, c, side, onStyle, studio = false }: { reg: str
   // The plate picture, redrawn whenever the design changes.
   useEffect(() => {
     let live = true;
-    plateFontReady().then(() => {
+    plateFontReady(spec.bottomFont).then(() => {
       if (!live) return;
       plateImg.current = renderPlate(spec, 6);
       setPlateVer((v) => v + 1);

@@ -60,6 +60,8 @@ import {
   withoutHexBorder,
 } from "@/lib/builder";
 import { formatGBP } from "@/lib/brand";
+import { BOTTOM_FONTS, BOTTOM_SIZES, DEFAULT_BOTTOM_FONT, DEFAULT_BOTTOM_SIZE, bottomFontReady } from "@/lib/bottomText";
+import { bottomTextFits, specFrom } from "@/lib/plateRender";
 import { useAccount } from "./AccountProvider";
 
 /** Drawn tick (a text tick character can turn into an emoji on some phones). */
@@ -71,6 +73,77 @@ const TickMark = () => (
 import { StyleThumb } from "./StyleThumb";
 import { shapePath } from "./AccessoryPreview";
 import { RealPhotos } from "./RealPhotos";
+
+/**
+ * Custom Text: the words, then a font and a size. A size only shows if the words fit under the reg at
+ * that size on every plate in the order (clear of the reg, any badge, a border and the edge); if the
+ * words grow too long for the size chosen, it steps down to the largest that still fits.
+ */
+function BottomTextPicker({ c, reg, set, onFits }: { c: BuildConfig; reg: string; set: (p: Partial<BuildConfig>) => void; onFits: (ok: boolean) => void }) {
+  const font = c.bottomFont ?? DEFAULT_BOTTOM_FONT;
+  const size = c.bottomSize ?? DEFAULT_BOTTOM_SIZE;
+  const text = (c.bottomText ?? "").trim();
+  // fit checks measure the real font, so wait for it to load (and check again once it has)
+  const [loaded, setLoaded] = useState(0);
+  useEffect(() => {
+    let live = true;
+    void bottomFontReady(font).then(() => live && setLoaded((n) => n + 1));
+    return () => {
+      live = false;
+    };
+  }, [font]);
+  const sides: ("front" | "rear")[] = c.vehicle === "Bike" ? ["rear"] : c.qty === "Single" ? [c.side === "Front" ? "front" : "rear"] : ["front", "rear"];
+  const fits = useMemo(() => {
+    const specs = sides.map((sd) => specFrom({ ...c, bottomFont: font }, reg || "AB12 CDE", sd));
+    return Object.fromEntries(BOTTOM_SIZES.map((n) => [n, !text || specs.every((sp) => bottomTextFits(sp, n))])) as Record<number, boolean>;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, font, reg, c.size, c.rearSize, c.style, c.rearStyle, c.extras.join("|"), c.qty, c.side, c.vehicle, c.hexFlip, loaded]);
+  const best = [...BOTTOM_SIZES].reverse().find((n) => n <= size && fits[n]) ?? [...BOTTOM_SIZES].reverse().find((n) => fits[n]) ?? null;
+  // keep the chosen size one that fits
+  useEffect(() => {
+    if (!loaded) return;
+    if (best !== null && best !== size) set({ bottomSize: best });
+    if (c.bottomFont === undefined || c.bottomSize === undefined) set({ bottomFont: font, bottomSize: best ?? size });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [best, loaded]);
+  const ok = !text || best !== null;
+  useEffect(() => onFits(ok), [ok]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sample = text || "REG KING";
+  return (
+    <div className="rk-btfont" data-btfont>
+      <p className="rk-btfont__h" id="rk-btfont-h">
+        Font
+      </p>
+      <div className="rk-btfont__grid" role="radiogroup" aria-labelledby="rk-btfont-h">
+        {BOTTOM_FONTS.map((f) => (
+          <button key={f.id} type="button" role="radio" aria-checked={font === f.id} data-b={`btfont:${f.id}`} onClick={() => set({ bottomFont: f.id })}>
+            <span className="rk-btfont__sample" style={{ fontFamily: `var(${f.cssVar}), "${f.family}", Arial, sans-serif`, fontWeight: f.weight }}>
+              {sample}
+            </span>
+            <small>{f.label}</small>
+          </button>
+        ))}
+      </div>
+      <p className="rk-btfont__h" id="rk-btsize-h">
+        Size <small>height of a capital letter</small>
+      </p>
+      <div className="rk-seg rk-btsize" role="radiogroup" aria-labelledby="rk-btsize-h">
+        {BOTTOM_SIZES.map((n) => (
+          <button key={n} type="button" role="radio" aria-checked={size === n} disabled={!fits[n]} data-b={`btsize:${n}`} onClick={() => set({ bottomSize: n })}>
+            {n}mm
+          </button>
+        ))}
+      </div>
+      {text && best === null ? (
+        <p className="rk-bfine rk-btfont__warn" data-btwarn>
+          These words are too long to fit under the reg in this font. Try fewer words or a narrower font.
+        </p>
+      ) : (
+        <p className="rk-bfine">Sizes that would touch the reg, a badge, a border or the edge of the plate are greyed out.</p>
+      )}
+    </div>
+  );
+}
 
 /**
  * Show plates, Custom size: the plate drawn to scale in millimetres, with a standard 520mm plate
@@ -426,6 +499,8 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
   const unpriced = trade ? "Trade price" : "Price on request";
   const money = (n: number | null) => (n === null ? (trade ? "Trade price" : "On request") : n === 0 ? (trade ? "Included" : "Free") : formatGBP(n, Number.isInteger(n)));
   const [editing, setEditing] = useState<StepKey | null>(null);
+  // Custom Text: false while the words don't fit under the reg at any size
+  const [btFits, setBtFits] = useState(true);
   const [sizeTab, setSizeTab] = useState<string | null>(null);
   // A set: one size for both plates, or a different size on the rear
   const [sameSize, setSameSize] = useState(() => !(c.size && c.rearSize && c.size !== c.rearSize));
@@ -766,16 +841,19 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
                 </small>
               </label>
             )}
+            {c.extras.includes("Custom Text") && c.legal === "Show" && <BottomTextPicker c={c} reg={reg} set={set} onFits={setBtFits} />}
 
             <button
               type="button"
               className="rk-bnext"
               data-b="extras:done"
-              disabled={c.extras.includes("Custom Text") && c.legal === "Show" && !(c.bottomText ?? "").trim()}
+              disabled={c.extras.includes("Custom Text") && c.legal === "Show" && (!(c.bottomText ?? "").trim() || !btFits)}
               onClick={() => done({ extrasDone: true })}
             >
               {c.extras.includes("Custom Text") && c.legal === "Show" && !(c.bottomText ?? "").trim()
                 ? "Type your custom text to continue"
+                : c.extras.includes("Custom Text") && c.legal === "Show" && !btFits
+                  ? "Shorten your custom text to continue"
                 : c.extras.length
                   ? `Continue with ${c.extras.length} extra${c.extras.length > 1 ? "s" : ""}`
                   : "No extras, continue"}

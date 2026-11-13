@@ -7,7 +7,8 @@
  * Measurements follow a standard UK plate (520 × 111mm, 79mm characters).
  */
 
-import { EXTRAS, hexPoints, smallChars, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
+import { bottomFamily, bottomFont, bottomFontReady, DEFAULT_BOTTOM_SIZE } from "./bottomText";
+import { EXTRAS, HEX, hexPoints, smallChars, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
 
 export type PlateSpec = {
   reg: string;
@@ -21,8 +22,10 @@ export type PlateSpec = {
   /** Upside-down hex. */
   hexFlip?: boolean;
   bike: boolean;
-  /** Custom Text extra (show plates only). */
+  /** Custom Text extra (show plates only): the words, their font and capital height in mm. */
   bottomText?: string;
+  bottomFont?: string;
+  bottomSize?: number;
   /** The style's name (some styles share a look but are made differently). */
   styleName?: string;
   /** Show plates: custom gaps between the characters, in spaces (see plateGaps). */
@@ -47,7 +50,9 @@ export function specFrom(c: BuildConfig, reg: string, side: "front" | "rear", st
     hexFlip: isHex(size) && !!c.hexFlip,
     bike,
     gaps: plateGaps(c, reg) ?? undefined,
-    bottomText: c.legal === "Show" && c.extras.some((x) => EXTRAS.find((e) => e.name === x)?.look === "text") ? (c.bottomText ?? "").trim().toUpperCase() : "",
+    bottomText: c.legal === "Show" && c.extras.some((x) => EXTRAS.find((e) => e.name === x)?.look === "text") ? (c.bottomText ?? "").trim() : "",
+    bottomFont: c.bottomFont,
+    bottomSize: c.bottomSize,
     fadeFrom: c.fadeFrom === "bottom" ? "bottom" : "top",
   };
 }
@@ -56,11 +61,74 @@ const FONT = '"RK Plate", "Barlow Condensed", "Arial Narrow", Arial, sans-serif'
 /** Metro (show plates): a wider, squarer font, made 60mm high. */
 const METRO = '"RK Metro", "RK Plate", "Barlow Condensed", Arial, sans-serif';
 
-/** Make sure the plate font is ready before drawing (it's embedded in the page). */
-export async function plateFontReady(): Promise<void> {
+/** Make sure the plate font (embedded in the page), and any Custom Text font, is ready before drawing. */
+export async function plateFontReady(bottomFontId?: string | null): Promise<void> {
   try {
-    await Promise.all([document.fonts.load(`400 100px ${FONT}`, "AB12 CDE"), document.fonts.load(`400 100px ${METRO}`, "AB12 CDE")]);
+    await Promise.all([document.fonts.load(`400 100px ${FONT}`, "AB12 CDE"), document.fonts.load(`400 100px ${METRO}`, "AB12 CDE"), bottomFontReady(bottomFontId)]);
   } catch {}
+}
+
+/** The reg's character height in mm, and how far down the plate its last line ends, as drawn. */
+function regBlock(s: PlateSpec): { charH: number; bottom: number } {
+  const two = twoLineLayout(s.w, s.h, s.bike);
+  const lines = two ? bikeSplit(s.reg) : [s.reg];
+  const small = smallChars(s.look, s.styleName);
+  const metro = s.styleName === "Metro Print";
+  const charH =
+    two && lines.length > 1 ? Math.min(two.charH, metro ? 60 : 79, small ? 64 : 79) : metro ? Math.min(60, s.h * 0.71) : s.bike || small ? 64 : Math.min(79, s.h * 0.71);
+  const total = lines.length * charH + (lines.length - 1) * (two?.gap ?? 14);
+  return { charH, bottom: (s.h + total) / 2 };
+}
+
+/**
+ * Custom Text: where the words can go, in mm. Between the bottom of the reg (2mm clear) and the plate's
+ * bottom edge (3mm clear), or inside a printed border; across the plate clear of any badge, with 6mm
+ * at each end, and further in where a hex plate's corners are cut.
+ */
+export function bottomBand(s: PlateSpec): { top: number; bottom: number; left: number; right: number } {
+  const border = s.extras.includes("border");
+  const top = regBlock(s).bottom + 2;
+  const bottom = border ? s.h - 7 - 2 : s.h - 3;
+  const badge = !s.bike && s.extras.some((e) => e === "uk" || e === "ev-uk" || e === "ev" || e === "flag" || e === "badge");
+  // a hex is cut in at its lower corners: the cut at the bottom of the strip
+  let cut = 0;
+  if (s.hex) {
+    // the side points sit HEX.point down from the top (or up from the bottom, upside down); the cut grows from
+    // nothing there to its full depth at the bottom edge
+    const atBottom = s.hexFlip ? HEX.top : HEX.bottom;
+    const pointY = s.hexFlip ? s.h * (1 - HEX.point) : s.h * HEX.point;
+    const frac = Math.min(1, Math.max(0, (bottom - pointY) / (s.h - pointY)));
+    cut = s.h * atBottom * frac;
+  }
+  const end = border ? 7 + 2 : 6;
+  return { top, bottom, left: (badge ? 50 : 0) + Math.max(end, cut + 3), right: s.w - Math.max(end, cut + 3) };
+}
+
+let probe: CanvasRenderingContext2D | null = null;
+/** The Custom Text's size in mm, at a capital height: font size, ink width, and ink above and below the baseline. */
+export function measureBottomText(text: string, fontId: string | null | undefined, capMm: number) {
+  probe ??= document.createElement("canvas").getContext("2d");
+  const f = bottomFont(fontId);
+  const ctx = probe!;
+  ctx.font = `${f.weight} 100px ${bottomFamily(fontId)}`;
+  const cap = ctx.measureText("H").actualBoundingBoxAscent || 70;
+  const m = ctx.measureText(text);
+  const scale = capMm / cap; // mm per px at 100px
+  return {
+    fontMm: 100 * scale,
+    w: (Math.abs(m.actualBoundingBoxLeft) + m.actualBoundingBoxRight) * scale,
+    left: m.actualBoundingBoxLeft * scale,
+    asc: m.actualBoundingBoxAscent * scale,
+    desc: m.actualBoundingBoxDescent * scale,
+  };
+}
+
+/** Whether the Custom Text fits its strip at this size (never over the reg, a badge, a border or the edge). */
+export function bottomTextFits(s: PlateSpec, capMm: number): boolean {
+  if (!s.bottomText) return true;
+  const b = bottomBand(s);
+  const m = measureBottomText(s.bottomText, s.bottomFont, capMm);
+  return m.w <= b.right - b.left && m.asc + m.desc <= b.bottom - b.top;
 }
 
 /** The plate's outline (rounded rectangle, or REG KING's hex shape). */
@@ -226,15 +294,24 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     ctx.restore();
   }
 
-  // 4b. Custom Text along the bottom (show plates)
+  // 4b. Custom Text along the bottom (show plates): in the chosen font and size, centred in the strip
+  // under the reg. Only drawn where it fits (the builder never lets a size that doesn't be chosen).
   if (s.bottomText) {
-    ctx.save();
-    ctx.fillStyle = metal ? "#e8e8e8" : "#111";
-    ctx.font = `700 ${Math.round(11 * k)}px "Barlow", Arial, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText(s.bottomText, W / 2, H - 6 * k, W * 0.8);
-    ctx.restore();
+    const cap = s.bottomSize ?? DEFAULT_BOTTOM_SIZE;
+    if (bottomTextFits(s, cap)) {
+      const b = bottomBand(s);
+      const m = measureBottomText(s.bottomText, s.bottomFont, cap);
+      const f = bottomFont(s.bottomFont);
+      ctx.save();
+      ctx.fillStyle = metal ? "#e8e8e8" : "#111";
+      ctx.font = `${f.weight} ${m.fontMm * k}px ${bottomFamily(s.bottomFont)}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      const x = ((b.left + b.right) / 2 - m.w / 2 + m.left) * k;
+      const y = ((b.top + b.bottom) / 2 + (m.asc - m.desc) / 2) * k;
+      ctx.fillText(s.bottomText, x, y);
+      ctx.restore();
+    }
   }
 
   // 5. Tint (show plates) is the colour of the acrylic itself (step 1): the letters stay black on top of it.
