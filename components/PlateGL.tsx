@@ -89,8 +89,8 @@ export function PlateGL({
     const l = lights.current;
     if (!l) return;
     l.renderer.toneMappingExposure = day ? 1.12 : 1;
-    l.fill.intensity = day ? 0.6 : 0.25;
-    l.key.intensity = day ? 1.4 : 1.2;
+    l.fill.intensity = day ? 0.75 : 0.45;
+    l.key.intensity = day ? 2.2 : 1.9;
     window.dispatchEvent(new Event("rk-gl-redraw"));
   }, [day, ready]);
 
@@ -118,7 +118,7 @@ export function PlateGL({
     scene.environment = studioEnvironment(renderer);
     softEnv.current = studioEnvironment(renderer, false);
     acrylicEnv.current = acrylicEnvironment(renderer);
-    const key = new THREE.DirectionalLight(0xffffff, 1.2);
+    const key = new THREE.DirectionalLight(0xffffff, 1.9);
     key.position.set(-180, 260, 420);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -129,7 +129,7 @@ export function PlateGL({
     key.shadow.radius = 4;
     key.shadow.bias = -0.0004;
     key.shadow.normalBias = 0.35; // no shadow speckle on shallow faces such as Retro's facets
-    const fill = new THREE.AmbientLight(0xffffff, 0.25);
+    const fill = new THREE.AmbientLight(0xffffff, 0.45);
     scene.add(key, fill);
     lights.current = { renderer, key, fill };
 

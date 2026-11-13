@@ -610,8 +610,8 @@ export function studioEnvironment(renderer: THREE.WebGLRenderer, strips = true):
   // One light only: a single softbox up and to the left, in front of the plate, the same direction as
   // the key light, so every highlight and shadow comes from the one place (REG KING, 13 Nov 2026).
   // Gel gets a slightly bigger, softer box so its rounded letters show one clean line of light.
-  if (strips) panel(4.6, 1.8, -1.6, 1.9, 4.6, 0, 4.5);
-  else panel(5.2, 2.2, -1.6, 2.1, 4.4, 0, 4.2);
+  if (strips) panel(4.6, 1.8, -1.6, 1.9, 4.6, 0, 6);
+  else panel(5.2, 2.2, -1.6, 2.1, 4.4, 0, 5.5);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = pmrem.fromScene(scene, strips ? 0.005 : 0.025).texture;
   pmrem.dispose();
