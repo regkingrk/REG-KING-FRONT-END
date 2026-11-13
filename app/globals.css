@@ -39684,18 +39684,31 @@ body:has(.rk-studio) {
   background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.4) 55%, rgba(255, 255, 255, 0) 100%);
 }
 
-/* Exclusive plates: hovering a plate turns it black, with white letters (REG KING, 13 Nov 2026) */
-.vlt__page[data-kind="exclusive"] .xp-tile__plate {
-  transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.25s ease, background 0.3s ease, color 0.3s ease;
+/* Exclusive plates: hovering a plate turns its box black; the plate keeps its yellow (REG KING, 13 Nov 2026) */
+.vlt__page[data-kind="exclusive"] .xp-tile {
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.25s ease, transform 0.25s cubic-bezier(0.23, 1, 0.32, 1);
 }
-.vlt__page[data-kind="exclusive"] .xp-tile:hover .xp-tile__plate,
-.vlt__page[data-kind="exclusive"] .xp-tile:focus-visible .xp-tile__plate {
+.vlt__page[data-kind="exclusive"] .xp-tile:hover,
+.vlt__page[data-kind="exclusive"] .xp-tile:focus-visible {
   background: #0b0b0a;
+  border-color: #0b0b0a;
   color: #fff;
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.18) inset, 0 26px 36px -18px #000;
+}
+.vlt__page[data-kind="exclusive"] .xp-tile:hover .xp-tile__price,
+.vlt__page[data-kind="exclusive"] .xp-tile:focus-visible .xp-tile__price {
+  color: #fff;
+}
+.vlt__page[data-kind="exclusive"] .xp-tile:hover .xp-tile__fit,
+.vlt__page[data-kind="exclusive"] .xp-tile:focus-visible .xp-tile__fit {
+  color: rgba(255, 255, 255, 0.72);
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+.vlt__page[data-kind="exclusive"] .xp-tile:hover .xp-tile__own,
+.vlt__page[data-kind="exclusive"] .xp-tile:focus-visible .xp-tile__own {
+  color: var(--rk-yellow);
 }
 @media (prefers-reduced-motion: reduce) {
-  .vlt__page[data-kind="exclusive"] .xp-tile__plate {
+  .vlt__page[data-kind="exclusive"] .xp-tile {
     transition: none;
   }
 }
