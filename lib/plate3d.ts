@@ -617,8 +617,9 @@ export function studioEnvironment(renderer: THREE.WebGLRenderer, strips = true):
     m.lookAt(0, 0, 0);
     scene.add(m);
   };
-  if (strips) disc(1.4, -0.2, 0.9, 4.9, 6);
-  else disc(1.8, -0.2, 1, 4.8, 5.5);
+  // up and to the left of straight ahead, so the flat letter faces (looking straight back) stay black
+  if (strips) disc(1.3, -1.8, 2.3, 4.2, 5);
+  else disc(1.6, -1.8, 2.4, 4.1, 5);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = pmrem.fromScene(scene, strips ? 0.005 : 0.025).texture;
   pmrem.dispose();

@@ -121,7 +121,7 @@ export function PlateGL({
     // One light: a spotlight in front of the plates, slightly above, throwing a soft circle of light
     // that's brightest in the middle and fades towards the plates' ends
     const key = new THREE.SpotLight(0xffffff, 2.6, 0, 0.36, 0.6, 0);
-    key.position.set(-40, 170, 900);
+    key.position.set(-260, 340, 820);
     key.target.position.set(0, 0, 0);
     scene.add(key.target);
     key.castShadow = true;
