@@ -8,7 +8,7 @@
  */
 
 import { bottomFamily, bottomFont, bottomFontReady, DEFAULT_BOTTOM_SIZE } from "./bottomText";
-import { BS_MARK, EXTRAS, HEX, LEGAL_MARK_MM, SUPPLIER_NAME, SUPPLIER_POSTCODE, hexPoints, smallChars, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
+import { BS_MARK, EXTRAS, HEX, LEGAL_MARK_MM, LEGAL_NAME_MM, SUPPLIER_NAME, SUPPLIER_POSTCODE, hexPoints, smallChars, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
 
 export type PlateSpec = {
   reg: string;
@@ -302,15 +302,15 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   if (s.legal) {
     const b = bottomBand(s);
     const ink = metal ? "#e8e8e8" : "#111";
-    const sized = (weight: number, text: string) => {
+    const sized = (weight: number, text: string, mm = LEGAL_MARK_MM) => {
       ctx.font = `${weight} 100px Arial, "Helvetica Neue", sans-serif`;
       const cap = ctx.measureText("H").actualBoundingBoxAscent || 71.6;
-      const px = (LEGAL_MARK_MM * 100) / cap; // mm font size giving 3mm capitals
+      const px = (mm * 100) / cap; // font size (in mm) giving capitals this tall
       ctx.font = `${weight} ${px * k}px Arial, "Helvetica Neue", sans-serif`;
       return { px, w: ctx.measureText(text).width / k };
     };
     // 7mm clear below the reg where the plate has room (inside a border it sits as low as the border allows)
-    const y = Math.min(b.bottom, Math.max((b.top + b.bottom) / 2 + LEGAL_MARK_MM / 2, regBlock(s).bottom + 7 + LEGAL_MARK_MM)) * k;
+    const y = Math.min(b.bottom, Math.max((b.top + b.bottom) / 2 + LEGAL_NAME_MM / 2, regBlock(s).bottom + 7 + LEGAL_NAME_MM)) * k;
     ctx.save();
     ctx.fillStyle = ink;
     ctx.textBaseline = "alphabetic";
@@ -320,13 +320,13 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
     const bsX = b.right - bs.w;
     ctx.fillText(BS_MARK, bsX * k, y);
     // supplier, centred under the reg (moved left if it would come within 4mm of the standard mark)
-    const name = sized(700, SUPPLIER_NAME);
+    const name = sized(700, SUPPLIER_NAME, LEGAL_NAME_MM);
     const space = name.px * 0.3;
     const post = sized(400, SUPPLIER_POSTCODE);
     const total = name.w + space + post.w;
     let x = (b.left + b.right) / 2 - total / 2;
     x = Math.max(b.left, Math.min(x, bsX - 4 - total));
-    sized(700, SUPPLIER_NAME);
+    sized(700, SUPPLIER_NAME, LEGAL_NAME_MM);
     ctx.fillText(SUPPLIER_NAME, x * k, y);
     sized(400, SUPPLIER_POSTCODE);
     ctx.fillText(SUPPLIER_POSTCODE, (x + name.w + space) * k, y);

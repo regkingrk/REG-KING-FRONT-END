@@ -961,16 +961,18 @@ export const lookOf = (style: string | null): PlateLook => (style && STYLES[styl
 /**
  * Road legal plates carry the supplying outlet's name and postcode (bottom centre) and the British
  * Standard number (bottom right), permanently and legibly (DVLA INF104). REG KING prints them at
- * the smallest legal size, 3mm tall (the bottom-line markings must be 3mm to 10mm): the company name
- * in bold, the postcode in a lighter weight.
+ * the smallest legal size, 3mm tall (the bottom-line markings must be 3mm to 10mm), with the company
+ * name in bold and slightly bigger (3.5mm), the postcode in a lighter weight.
  * CONFIRM: BS AU 145e also asks for the name or trademark of the plate's component manufacturer next
  * to the standard number, if that isn't SHOW PLATES LTD.
  */
 export const SUPPLIER_NAME = "SHOW PLATES LTD";
 export const SUPPLIER_POSTCODE = "WV14 6NW";
 export const BS_MARK = "BS AU 145e";
-/** Height of the legal markings' capital letters, in mm (the legal minimum). */
+/** Height of the legal markings' capital letters, in mm: the postcode and BS AU 145e at the legal minimum. */
 export const LEGAL_MARK_MM = 3;
+/** The company name, slightly bigger than the postcode. */
+export const LEGAL_NAME_MM = 3.5;
 
 export const isHex = (size: string | null) => /hex/i.test(size ?? "");
 

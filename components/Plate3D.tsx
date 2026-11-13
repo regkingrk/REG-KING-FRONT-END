@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import { BADGE_MM, EXTRAS, plateFontPct, plateGaps, rearOnly, regChars, sizeInfo, sizeOf, sizeScale, type BuildConfig, twoLineLayout } from "@/lib/builder";
 import { PlateDecor, bikeLines, plateAttrs } from "./PlatePreview";
-import { BS_MARK, LEGAL_MARK_MM, SUPPLIER_NAME, SUPPLIER_POSTCODE } from "@/lib/builder";
+import { BS_MARK, LEGAL_MARK_MM, LEGAL_NAME_MM, SUPPLIER_NAME, SUPPLIER_POSTCODE } from "@/lib/builder";
 import { bevelFilterFor, thinFilterFor, type BevelLook } from "./PlateFilters";
 import { PlateGL } from "./PlateGL";
 import { canRender3D } from "@/lib/plate3d";
@@ -180,7 +180,7 @@ export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (st
         {c.legal === "Legal" && (
           <>
             <span className="rk-pmark" style={{ fontSize: `${((LEGAL_MARK_MM / 0.716 / (info?.w ?? 520)) * 100).toFixed(3)}cqi` }}>
-              <b>{SUPPLIER_NAME}</b> {SUPPLIER_POSTCODE}
+              <b style={{ fontSize: `${LEGAL_NAME_MM / LEGAL_MARK_MM}em` }}>{SUPPLIER_NAME}</b> {SUPPLIER_POSTCODE}
             </span>
             <span className="rk-pbs" style={{ fontSize: `${((LEGAL_MARK_MM / 0.716 / (info?.w ?? 520)) * 100).toFixed(3)}cqi` }}>
               {BS_MARK}
