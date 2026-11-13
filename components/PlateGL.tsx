@@ -81,7 +81,7 @@ export function PlateGL({
   const tightRef = useRef(tight);
   tightRef.current = tight;
   const softEnv = useRef<THREE.Texture | null>(null);
-  const lights = useRef<{ renderer: THREE.WebGLRenderer; key: THREE.DirectionalLight; fill: THREE.AmbientLight } | null>(null);
+  const lights = useRef<{ renderer: THREE.WebGLRenderer; key: THREE.SpotLight; fill: THREE.AmbientLight } | null>(null);
   const acrylicEnv = useRef<THREE.Texture | null>(null);
 
   // Day or night light on the plates (the builder's Day / Night switch)
@@ -89,8 +89,8 @@ export function PlateGL({
     const l = lights.current;
     if (!l) return;
     l.renderer.toneMappingExposure = day ? 1.12 : 1;
-    l.fill.intensity = day ? 0.75 : 0.45;
-    l.key.intensity = day ? 2.2 : 1.9;
+    l.fill.intensity = day ? 0.6 : 0.3;
+    l.key.intensity = day ? 3 : 2.6;
     window.dispatchEvent(new Event("rk-gl-redraw"));
   }, [day, ready]);
 
@@ -118,18 +118,20 @@ export function PlateGL({
     scene.environment = studioEnvironment(renderer);
     softEnv.current = studioEnvironment(renderer, false);
     acrylicEnv.current = acrylicEnvironment(renderer);
-    const key = new THREE.DirectionalLight(0xffffff, 1.9);
-    key.position.set(-180, 260, 420);
+    // One light: a spotlight in front of the plates, slightly above, throwing a soft circle of light
+    // that's brightest in the middle and fades towards the plates' ends
+    const key = new THREE.SpotLight(0xffffff, 2.6, 0, 0.36, 0.6, 0);
+    key.position.set(-40, 170, 900);
+    key.target.position.set(0, 0, 0);
+    scene.add(key.target);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
-    key.shadow.camera.left = -340;
-    key.shadow.camera.right = 340;
-    key.shadow.camera.top = 260;
-    key.shadow.camera.bottom = -260;
+    key.shadow.camera.near = 300;
+    key.shadow.camera.far = 1600;
     key.shadow.radius = 4;
     key.shadow.bias = -0.0004;
     key.shadow.normalBias = 0.35; // no shadow speckle on shallow faces such as Retro's facets
-    const fill = new THREE.AmbientLight(0xffffff, 0.45);
+    const fill = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(key, fill);
     lights.current = { renderer, key, fill };
 

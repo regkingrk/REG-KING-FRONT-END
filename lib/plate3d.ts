@@ -607,11 +607,18 @@ export function studioEnvironment(renderer: THREE.WebGLRenderer, strips = true):
     m.rotateZ(rz);
     scene.add(m);
   };
-  // One light only: a single softbox up and to the left, in front of the plate, the same direction as
-  // the key light, so every highlight and shadow comes from the one place (REG KING, 13 Nov 2026).
-  // Gel gets a slightly bigger, softer box so its rounded letters show one clean line of light.
-  if (strips) panel(4.6, 1.8, -1.6, 1.9, 4.6, 0, 6);
-  else panel(5.2, 2.2, -1.6, 2.1, 4.4, 0, 5.5);
+  // One light only, a circle of light in front of the plate, slightly above, the same place as the
+  // spotlight, so every highlight and shadow comes from the one place (REG KING, 13 Nov 2026).
+  // Gel gets a slightly bigger, softer circle.
+  // a round light, so the gloss shows a circle of light rather than a strip
+  const disc = (r: number, x: number, y: number, z: number, intensity: number) => {
+    const m = new THREE.Mesh(new THREE.CircleGeometry(r, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(intensity), side: THREE.DoubleSide }));
+    m.position.set(x, y, z);
+    m.lookAt(0, 0, 0);
+    scene.add(m);
+  };
+  if (strips) disc(1.4, -0.2, 0.9, 4.9, 6);
+  else disc(1.8, -0.2, 1, 4.8, 5.5);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = pmrem.fromScene(scene, strips ? 0.005 : 0.025).texture;
   pmrem.dispose();

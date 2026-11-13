@@ -39666,3 +39666,20 @@ body:has(.rk-studio) {
 .rk-blive .rk-pp[data-side="rear"] {
   background: var(--rk-build-yellow);
 }
+
+/* Live preview: the circle of light falls on the backdrop behind the plates too */
+.rk-p3d[data-gl] .rk-p3d__stage {
+  isolation: isolate;
+}
+.rk-p3d[data-gl] .rk-p3d__stage::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -10% 4%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 250, 235, 0.16), rgba(255, 250, 235, 0.06) 55%, rgba(255, 250, 235, 0) 100%);
+  pointer-events: none;
+}
+.rk-p3d[data-gl][data-light="day"] .rk-p3d__stage::before {
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.4) 55%, rgba(255, 255, 255, 0) 100%);
+}
