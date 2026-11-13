@@ -159,7 +159,7 @@ function ProductCard({ p }: { p: AccProduct }) {
     <article className="acx-card" data-product={p.key}>
       <a className="acx-card__link" href={`#accessories-item-${p.key}`} onClick={(e) => (e.preventDefault(), go(`accessories-item-${p.key}`))} data-acc-open={p.key}>
         <span className="acx-card__show" aria-hidden>
-          {p.soon ? <ComingSoon /> : p.photo && !noPhoto ? <img src={p.photo} alt="" loading="lazy" onError={() => setNoPhoto(true)} /> : <span className="acx-plate">{words ?? p.name}</span>}
+          {p.photo && !noPhoto ? <img src={p.photo} alt="" loading="lazy" onError={() => setNoPhoto(true)} /> : p.soon ? <ComingSoon /> : <span className="acx-plate">{words ?? p.name}</span>}
         </span>
         <h3>{p.name}</h3>
       </a>
@@ -241,7 +241,7 @@ function ProductPage({ p }: { p: AccProduct }) {
 
         <div className="acp__grid">
           <div className="acp__photo">
-            {p.soon ? <ComingSoon /> : p.photo && !noPhoto ? <img src={p.photo} alt={p.name} onError={() => setNoPhoto(true)} /> : <span className="acx-plate">{words ?? p.name}</span>}
+            {p.photo && !noPhoto ? <img src={p.photo} alt={p.name} onError={() => setNoPhoto(true)} /> : p.soon ? <ComingSoon /> : <span className="acx-plate">{words ?? p.name}</span>}
           </div>
           <div className="acp__buy">
             <h1 id="acp-title">{p.name}</h1>

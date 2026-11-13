@@ -37,7 +37,7 @@ export type AccProduct = {
   art: AccArt;
   /** More about it, for its own page. Only what's known for sure (from the product and its photo). */
   about?: string[];
-  /** Not on sale yet: shows a "Coming soon" image and price. */
+  /** Not on sale yet: "Coming soon" in place of the price (and in place of the photo if there isn't one). */
   soon?: boolean;
 };
 
@@ -53,7 +53,7 @@ export const ACC_PRODUCTS: AccProduct[] = [
   { key: "screws", name: "Screw Kit", cat: "fixings", line: "Screws with black, white and yellow caps", price: 1.99, handle: "number-plate-screw-kit", photo: "products/screw-kit.jpg", about: ["Pick the cap colour that matches each plate: yellow for the rear, white for the front, or black."], art: "screws" },
   // CONFIRM: price, and whether it fits standard 520mm plates only.
   { key: "plate-holder", name: "Plate Holder", cat: "mounting", line: "A frame the plate clips into, for a clean fit", price: null, photo: "products/plate-holder.jpg", about: ["A frame that fixes to the car. The plate clips into it, so the plate itself needs no screw holes."], art: "clips" },
-  // Not on sale yet: shown with a "Coming soon" image.
-  { key: "clips", name: "Plate Clips", cat: "mounting", line: "Hold a plate without drilling", price: null, art: "clips", soon: true },
-  { key: "magnets", name: "Magnet Kits", cat: "mounting", line: "Swap plates on and off in seconds", price: null, art: "magnets", soon: true },
+  // Not on sale yet: REG KING's own photo, with "Coming soon" in place of a price.
+  { key: "clips", name: "Plate Clips", cat: "mounting", line: "Hold a plate without drilling", price: null, photo: "products/plate-clips.jpg", art: "clips", soon: true },
+  { key: "magnets", name: "Magnet Kits", cat: "mounting", line: "Swap plates on and off in seconds", price: null, photo: "products/magnet-kit.jpg", art: "magnets", soon: true },
 ];
