@@ -66,8 +66,8 @@ export async function plateFontReady(): Promise<void> {
 /** The plate's outline (rounded rectangle, or REG KING's hex shape). */
 /** Corner radius of REG KING's plates, in mm (rounder than a sharp-cut plate; matches the workshop's plates). */
 export const PLATE_CORNER_MM = 10;
-/** The reflective yellow, top to bottom: a clean, bright yellow rather than amber. */
-export const PLATE_YELLOW = { top: "#f0b800", bottom: "#dca100", edge: 0xd89d00, press: 0xd49a00 };
+/** The reflective yellow, top to bottom: a warm sunflower yellow (matched to REG KING's reference, 13 Nov 2026). */
+export const PLATE_YELLOW = { top: "#ffcd35", bottom: "#f8b81e", edge: 0xf2b01a, press: 0xeeac18 };
 /** The green of the EV badge (from REG KING's own plates). */
 export const EV_GREEN = "#1f9a48";
 /** The blue of the UK letters, printed straight onto the reflective. */
