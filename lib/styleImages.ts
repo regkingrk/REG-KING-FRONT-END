@@ -11,6 +11,8 @@ export const STYLE_PLATE_TEXT: Record<string, string> = {
   "3D Gel": "3D GEL",
   "4D 3MM": "4D 3MM",
   "Bike Gel": "BIKE GEL",
+  "Bike Retro": "BK RETRO",
+  "Bike Vintage": "BK VNTG",
   "4D 3MM Bike": "4D BIKE",
   "Metal Press": "PRESSED",
   "4D 6MM": "4D 6MM",

@@ -7,7 +7,7 @@
  * Measurements follow a standard UK plate (520 × 111mm, 79mm characters).
  */
 
-import { EXTRAS, hexPoints, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
+import { EXTRAS, hexPoints, smallChars, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
 
 export type PlateSpec = {
   reg: string;
@@ -185,8 +185,8 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   // Two-line plates (bikes, Square, 4x4, imports): four characters on top, three underneath
   const two = twoLineLayout(s.w, s.h, s.bike);
   const lines = two ? bikeSplit(s.reg) : [s.reg];
-  // Bike Print and Bike Gel: the smaller 64mm motorbike characters, also on car plates
-  const small = s.look === "printed-bike" || s.look === "gel-bike" || s.look === "raised-bike" || s.look === "gel-4d-bike";
+  // Bike Print, Bike Gel, Bike Retro and so on: the smaller 64mm motorbike characters, also on car plates
+  const small = smallChars(s.look, s.styleName);
   const metro = s.styleName === "Metro Print";
   const charH =
     two && lines.length > 1

@@ -12,7 +12,7 @@
  */
 import * as THREE from "three";
 import { GLYPHS, GLYPH_CAP, GLYPH_SPACE, METRO_BEARING, METRO_GLYPHS, METRO_SPACE } from "./plateGlyphs";
-import { hexPoints, twoLineLayout, type PlateLook } from "./builder";
+import { hexPoints, smallChars, twoLineLayout, type PlateLook } from "./builder";
 import { PLATE_CORNER_MM, PLATE_YELLOW, TINT, renderPlate, type PlateSpec } from "./plateRender";
 import { chiselArrays, domeArrays, glyphShapes, smoothNormals, type GeoArrays } from "./plateGeoCore";
 
@@ -176,7 +176,7 @@ function characters(s: PlateSpec, b: Build, mat: THREE.Material | THREE.Material
   // Two-line plates (bikes, Square, 4x4, imports): four characters on top, three underneath
   const two = twoLineLayout(s.w, s.h, s.bike);
   const lines = two ? bikeLines(s.reg) : [s.reg];
-  const small = s.look === "printed-bike" || s.look === "gel-bike" || s.look === "raised-bike" || s.look === "gel-4d-bike";
+  const small = smallChars(s.look, s.styleName);
   const charH = two && lines.length > 1 ? Math.min(two.charH, small ? 64 : two.charH) : s.bike || small ? 64 : Math.min(79, s.h * 0.71);
   const k = charH / GLYPH_CAP; // mm per font unit
   const gap = two?.gap ?? 14;

@@ -39730,3 +39730,9 @@ body:has(.rk-studio) {
   font-weight: 600;
   text-underline-offset: 3px;
 }
+
+/* Bike Retro and Bike Vintage: Retro and Vintage on the smaller 64mm characters (REG KING, 13 Nov 2026) */
+.rk-pp:not(.rk-pp--bike)[data-small] .rk-ptext,
+.rk-p3d [data-small]:not([data-bike]) .rk-ptext {
+  transform: scale(0.81);
+}

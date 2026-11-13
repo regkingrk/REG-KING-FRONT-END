@@ -1,4 +1,4 @@
-import { EXTRAS, fontOf, isHex, lookOf, sizeInfo, sizeOf, sizeScale, styleOf, type BuildConfig } from "@/lib/builder";
+import { EXTRAS, fontOf, isHex, lookOf, smallChars, sizeInfo, sizeOf, sizeScale, styleOf, type BuildConfig } from "@/lib/builder";
 
 /** Data attributes that drive the plate's look (shared by the hero plate and previews). */
 export function plateAttrs(c: BuildConfig, side: "front" | "rear", size: string | null = sizeOf(c, side)) {
@@ -7,6 +7,7 @@ export function plateAttrs(c: BuildConfig, side: "front" | "rear", size: string 
     "data-side": side,
     "data-look": lookOf(styleOf(c, side)),
     "data-font": fontOf(styleOf(c, side)) ?? undefined,
+    "data-small": smallChars(lookOf(styleOf(c, side)), styleOf(c, side)) ? "true" : undefined,
     "data-hex": isHex(size) ? "true" : undefined,
     "data-hexflip": isHex(size) && c.hexFlip ? "true" : undefined,
     "data-extras": looks.join(" ") || undefined,

@@ -22,6 +22,8 @@ export type StyleOption = Price & {
   name: string;
   /** How the live plate preview draws it. */
   look: PlateLook;
+  /** Made with the smaller 64mm motorbike characters, on car plates too (Bike Retro, Bike Vintage). */
+  small?: boolean;
 };
 
 /* ------------------------------------------------------------------ */
@@ -61,6 +63,9 @@ export const STYLES: Record<string, StyleOption> = Object.fromEntries(
     st("Bike Print", "printed-bike", 30, 15),
     st("Metro Print", "printed", 30, 15),
     st("Bike Gel", "gel-bike", 40, 25),
+    // CONFIRM: prices for Bike Retro and Bike Vintage (REG KING to set; shown as price on request until then)
+    { ...st("Bike Retro", "bevel"), small: true },
+    { ...st("Bike Vintage", "bevel-matt"), small: true },
     st("4D 3MM Bike", "raised-bike", 40, 25),
     st("4D Bike Gel", "gel-4d-bike", 65, 40),
     st("Onyx", "raised", 60, 35),
@@ -85,6 +90,8 @@ export const CAR_SHOW = [
   "Metro Print",
   "3D Gel",
   "Bike Gel",
+  "Bike Retro",
+  "Bike Vintage",
   "4D 3MM",
   "4D 3MM Bike",
   "4D 6MM",
@@ -100,7 +107,7 @@ export const CAR_SHOW = [
   "Metal Press Black & Silver",
 ];
 /** Motorbikes: the same styles for road legal and show. */
-export const BIKE_STYLES = ["Bike Print", "Bike Gel", "4D 3MM Bike", "4D Bike Gel"];
+export const BIKE_STYLES = ["Bike Print", "Bike Gel", "Bike Retro", "Bike Vintage", "4D 3MM Bike", "4D Bike Gel"];
 
 /** Styles offered for this vehicle, once road legal or show is chosen. */
 export const stylesFor = (v: Vehicle | null, legal: Legal | null): StyleOption[] =>
@@ -312,6 +319,8 @@ const BADGE_LOOKS: ExtraLook[] = ["uk", "ev", "ev-uk", "flag", "badge"];
 export const hasBadge = (extras: string[]) => extras.some((n) => BADGE_LOOKS.includes(EXTRAS.find((e) => e.name === n)?.look as ExtraLook));
 /** Styles drawn with the smaller 64mm motorbike characters (also on car plates). */
 const SMALL_LOOKS: PlateLook[] = ["printed-bike", "gel-bike", "raised-bike", "gel-4d-bike"];
+/** Whether a style is drawn with the smaller 64mm motorbike characters (by its look, or flagged on the style). */
+export const smallChars = (look: PlateLook, styleName?: string | null) => SMALL_LOOKS.includes(look) || !!(styleName && STYLES[styleName]?.small);
 const BIKE_CHAR_MM = 64;
 /**
  * Two-line plates: bikes, and the squarer car sizes (Square, 4x4 and the import sizes). The reg goes
@@ -361,7 +370,7 @@ function fitsFullSize(s: SizeOption, reg: string, o: { v: Vehicle | null; legal:
   const ends = 2 * legalEndInset(s.hex);
   const full = metro ? metroLength(reg, s.hex, o.gaps) : legalLength(reg, s.hex, o.gaps);
   // the smaller 64mm characters take proportionally less room (the ends stay the same)
-  const small = !metro && o.styles.some((n) => !!n && SMALL_LOOKS.includes(STYLES[n]?.look));
+  const small = !metro && o.styles.some((n) => !!n && !!STYLES[n] && smallChars(STYLES[n].look, n));
   const need = small ? ends + (full - ends) * (BIKE_CHAR_MM / LEGAL_MM.charH) : full;
   const room = s.w - (o.badge && !bike ? BADGE_MM : 0);
   return need <= room;
