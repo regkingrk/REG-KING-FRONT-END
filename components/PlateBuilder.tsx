@@ -56,6 +56,8 @@ import {
   customSize,
   customSizeKey,
   offersCustom,
+  hasHexSize,
+  withoutHexBorder,
 } from "@/lib/builder";
 import { formatGBP } from "@/lib/brand";
 import { useAccount } from "./AccountProvider";
@@ -572,7 +574,12 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
         // Size groups are tabs: Standard, Hex, Van & SUV, Imports. Opens on the chosen size's group.
         const tab = sizeTab && groups.includes(sizeTab) ? sizeTab : (list.find((x) => x.key === chosen)?.group ?? (customSize(chosen) ? "Custom" : groups[0]));
         const pairStep = !forRear && twoSizes(c);
-        const sizePatch = (key: string): Partial<BuildConfig> => (forRear ? { rearSize: key } : pairStep && sameSize ? { size: key, rearSize: key } : pairStep ? { size: key, rearSize: c.rearSize === c.size ? null : c.rearSize } : { size: key });
+        const sizePatch = (key: string): Partial<BuildConfig> => {
+          const p: Partial<BuildConfig> = forRear ? { rearSize: key } : pairStep && sameSize ? { size: key, rearSize: key } : pairStep ? { size: key, rearSize: c.rearSize === c.size ? null : c.rearSize } : { size: key };
+          // a hex plate has no printed border: take it off if it was picked
+          const extras = withoutHexBorder({ ...c, ...p }).extras;
+          return extras.length !== c.extras.length ? { ...p, extras } : p;
+        };
         const pickSize = (key: string) => done(sizePatch(key));
         const plateSide = forRear ? "rear" : twoSizes(c) || (c.qty === "Single" && c.side === "Front") ? "front" : "rear";
         const best = shortest ? shortestLegalOf(list.filter((x) => x.group === tab), reg) : null;
@@ -690,7 +697,7 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
         return (
           <>
             {(() => {
-              const list = extrasFor(c.vehicle, c.legal);
+              const list = extrasFor(c.vehicle, c.legal, hasHexSize(c));
               const row = (x: (typeof list)[number]) => {
                 const on = c.extras.includes(x.name);
                 // a badge takes 50mm: not offered if the reg would no longer fit the chosen size(s)

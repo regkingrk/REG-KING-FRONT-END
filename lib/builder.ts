@@ -443,7 +443,9 @@ export function buildFits(c: BuildConfig, reg: string): boolean {
   const extras = Array.isArray(c.extras) ? c.extras : [];
   const front = sizeFits(c.size, c.vehicle, c.legal, reg, [c.style, same ? c.rearStyle : null], gaps, extras);
   const rear = !c.rearSize || sizeFits(c.rearSize, c.vehicle, c.legal, reg, [c.rearStyle ?? c.style], gaps, extras);
-  return front && rear;
+  // no printed border on a hex plate
+  const border = hasHexSize(c) && extras.some((x) => EXTRAS.find((e) => e.name === x)?.look === "border");
+  return front && rear && !border;
 }
 
 /* ------------------------------------------------------------------ */
@@ -484,7 +486,13 @@ export const FITTING: Price = { set: 15, single: 10 };
 /** Looks that break the road-legal rules (tints, fades, non-approved badges): show plates only. */
 const SHOW_ONLY_LOOKS: ExtraLook[] = ["tint", "fade", "text"];
 
-export const extrasFor = (_v: Vehicle | null, legal: Legal | null = null) => EXTRAS.filter((e) => !(legal === "Legal" && SHOW_ONLY_LOOKS.includes(e.look)));
+/** Hex plates don't take a printed border (REG KING, 13 Nov 2026). */
+export const hasHexSize = (c: Pick<BuildConfig, "size" | "rearSize">) => isHex(c.size) || isHex(c.rearSize);
+export const extrasFor = (_v: Vehicle | null, legal: Legal | null = null, hex = false) =>
+  EXTRAS.filter((e) => !(legal === "Legal" && SHOW_ONLY_LOOKS.includes(e.look)) && !(hex && e.look === "border"));
+/** Drop the printed border once a hex size is chosen on either plate. */
+export const withoutHexBorder = <T extends Pick<BuildConfig, "size" | "rearSize" | "extras">>(c: T): T =>
+  hasHexSize(c) ? { ...c, extras: c.extras.filter((x) => EXTRAS.find((e) => e.name === x)?.look !== "border") } : c;
 
 /** Turn an extra on or off; turning one on drops any other from its group (one badge, one tint). */
 export function toggleExtra(extras: string[], name: string): string[] {
