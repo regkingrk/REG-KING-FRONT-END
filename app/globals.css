@@ -39683,3 +39683,19 @@ body:has(.rk-studio) {
 .rk-p3d[data-gl][data-light="day"] .rk-p3d__stage::before {
   background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.4) 55%, rgba(255, 255, 255, 0) 100%);
 }
+
+/* Exclusive plates: hovering a plate turns it black, with white letters (REG KING, 13 Nov 2026) */
+.vlt__page[data-kind="exclusive"] .xp-tile__plate {
+  transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.25s ease, background 0.3s ease, color 0.3s ease;
+}
+.vlt__page[data-kind="exclusive"] .xp-tile:hover .xp-tile__plate,
+.vlt__page[data-kind="exclusive"] .xp-tile:focus-visible .xp-tile__plate {
+  background: #0b0b0a;
+  color: #fff;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.18) inset, 0 26px 36px -18px #000;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vlt__page[data-kind="exclusive"] .xp-tile__plate {
+    transition: none;
+  }
+}
