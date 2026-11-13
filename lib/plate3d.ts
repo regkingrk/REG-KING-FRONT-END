@@ -607,35 +607,12 @@ export function studioEnvironment(renderer: THREE.WebGLRenderer, strips = true):
     m.rotateZ(rz);
     scene.add(m);
   };
-  // In front of the plate (behind the viewer) is what a gloss face reflects:
-  if (strips) panel(4.6, 1.8, -1.6, 1.9, 4.6, 0, 4.5); // a big softbox up and to the left
-  // long diagonal strips right across the wall: the streaks that run across a gloss plate at any angle
-  // (left out for gel, where the curve would squeeze each one into a thin line)
-  if (strips) panel(0.5, 16, -2.6, 0, 4.9, -0.62, 8);
-  if (strips) panel(0.32, 16, 0.6, 0, 4.9, -0.62, 7);
-  if (strips) panel(0.22, 16, 3.2, 0, 4.9, -0.62, 6);
-  // and round the front corners, which a turned plate reflects
-  for (const sx of strips ? [-1, 1] : []) {
-    panel(0.55, 16, sx * 4.3, 0, 4.9, -0.62 * sx, 9);
-    panel(0.3, 16, sx * 3.5, 0, 4.9, -0.62 * sx, 6);
-    panel(0.55, 16, sx * 4.9, 0, 4.3, -0.62 * sx, 9);
-    panel(0.3, 16, sx * 4.9, 0, 3.4, -0.62 * sx, 6);
-    panel(0.4, 16, sx * 4.9, 0, 1.8, -0.62 * sx, 5);
-  }
-  panel(6, 1.2, 0, 2.9, 0.5, 0, 3); // overhead
-  panel(1.2, 4, -4.8, 0.4, 1.5, 0, 2.5); // a window to the left
-  panel(1, 3, 4.8, 0.2, 0, 0, 1.5); // softer, to the right
-  panel(5, 0.8, 0, -2.9, 2.5, 0, 0.6); // a little bounce from below
+  // One light only: a single softbox up and to the left, in front of the plate, the same direction as
+  // the key light, so every highlight and shadow comes from the one place (REG KING, 13 Nov 2026).
+  // Gel gets a slightly bigger, softer box so its rounded letters show one clean line of light.
+  if (strips) panel(4.6, 1.8, -1.6, 1.9, 4.6, 0, 4.5);
+  else panel(5.2, 2.2, -1.6, 2.1, 4.4, 0, 4.2);
   const pmrem = new THREE.PMREMGenerator(renderer);
-  if (!strips) {
-    // gel: one wide streak (in front, and round each front corner for when the plate is turned) and
-    // a softbox, so each rounded edge shows a single clean line of light and the tops one streak
-    panel(1.3, 16, -1.2, 0, 4.9, -0.62, 9);
-    panel(1.3, 16, -4.9, 0, 3.6, 0.62, 8);
-    panel(1.3, 16, 4.9, 0, 3.6, -0.62, 8);
-    panel(4.6, 1.8, -1.6, 2.1, 4.4, 0, 4);
-    panel(6, 1.4, 0, 2.8, 2.6, 0, 3.5); // a long light above, for a bright line along the top edges
-  }
   const env = pmrem.fromScene(scene, strips ? 0.005 : 0.025).texture;
   pmrem.dispose();
   scene.traverse((o) => {
@@ -660,23 +637,9 @@ export function acrylicEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture
     m.lookAt(0, 0, 0);
     scene.add(m);
   };
-  // a ring of light all round the view, off to the side of the viewer: each facet (tilted about 33°)
-  // mirrors part of it, so every facet lights up, brightest on top, while the flat tops (facing
-  // straight back at the viewer) mirror the dark middle and stay black
-  const ring = new THREE.CylinderGeometry(6, 6, 7, 96, 1, true);
-  ring.rotateX(Math.PI / 2);
-  ring.translate(0, 0, 6); // seen between about 32° and 67° off straight ahead
-  const rc: number[] = [];
-  const rp = ring.attributes.position as THREE.BufferAttribute;
-  for (let i = 0; i < rp.count; i++) {
-    const up = rp.getY(i) / 6; // 1 at the top of the ring, -1 at the bottom
-    const v = 1.8 + 1.4 * up + 0.4 * Math.cos(Math.atan2(rp.getY(i), rp.getX(i)) * 6); // a little variation round it
-    rc.push(v, v, v);
-  }
-  ring.setAttribute("color", new THREE.Float32BufferAttribute(rc, 3));
-  scene.add(new THREE.Mesh(ring, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
-  panel(9, 3, 0, 6.5, -1, 1.6); // and light from above and behind, for when the plate is tilted
-  panel(4, 1.4, -1.5, 1.2, 6.5, 0.5); // a faint softbox in front, a soft sheen across the tops
+  // One light only: a big softbox up and to the left, the same direction as the key light. Facets
+  // facing it light up, the rest fall into shade, as under a single light.
+  panel(7, 4, -3.2, 4.2, 4.2, 3.4);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = pmrem.fromScene(scene, 0.015).texture;
   pmrem.dispose();
