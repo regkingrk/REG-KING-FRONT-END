@@ -1890,7 +1890,7 @@ body::before {
 [data-extras~="fade"][data-side="rear"] {
   background:
     linear-gradient(180deg, rgba(40, 36, 24, 0.9) 0%, rgba(40, 36, 24, 0.59) 35%, rgba(40, 36, 24, 0) 92%),
-    linear-gradient(180deg, #f6c000, #e6aa00) !important;
+    linear-gradient(180deg, #f0b800, #dca100) !important;
 }
 [data-extras~="fade"][data-fade="bottom"] {
   background:
@@ -1900,7 +1900,7 @@ body::before {
 [data-extras~="fade"][data-fade="bottom"][data-side="rear"] {
   background:
     linear-gradient(0deg, rgba(40, 36, 24, 0.9) 0%, rgba(40, 36, 24, 0.59) 35%, rgba(40, 36, 24, 0) 92%),
-    linear-gradient(180deg, #f6c000, #e6aa00) !important;
+    linear-gradient(180deg, #f0b800, #dca100) !important;
 }
 
 .rk-pborder {
@@ -39658,7 +39658,7 @@ body:has(.rk-studio) {
 :root {
   --rk-build-yellow:
     linear-gradient(112deg, rgba(255, 255, 255, 0) 18%, rgba(255, 245, 160, 0.4) 24%, rgba(255, 255, 255, 0) 31%),
-    linear-gradient(100deg, #f7c300 0%, #f1bb00 35%, #eab200 65%, #e2a900 100%);
+    linear-gradient(100deg, #f1ba00 0%, #eab200 35%, #e3a900 65%, #dba000 100%);
 }
 .rk-p3d__face[data-side="rear"],
 .rk-search[data-mode="build"] .rk-plate[data-side="rear"],
