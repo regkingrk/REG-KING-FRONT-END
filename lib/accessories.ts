@@ -7,6 +7,7 @@
  * MANUFACTURERS: brands with artwork in lib/carLogos.ts show their real logos; the rest are shown by
  * name until their artwork is added. Logos are trade marks: confirm the right to use them before launch.
  */
+import { artItem } from "./artLibrary";
 
 export type Price = number | null;
 
@@ -302,8 +303,13 @@ export type CentrePiece = {
   /** Car Related: the make (from the list) and the model (typed). */
   make?: string;
   model?: string;
-  /** Custom Text: the words. */
+  /** Custom Text: the words, their font and colour. */
   text?: string;
+  font?: "plate" | "metro";
+  /** Country / Caste, Faith, Other: the design picked from the library (see lib/artLibrary). */
+  item?: string;
+  /** Colour of the words or a one-colour design (TEXT_COLOURS key). */
+  colour?: string;
   /** Car Related: an example picture (its name goes on the order; the picture stays in the basket). */
   imageName?: string;
   image?: string | null;
@@ -315,7 +321,9 @@ export function centreText(p: CentrePiece | undefined): string {
   const name = CENTRE_CATS.find((x) => x.key === p.cat)?.name ?? "";
   const bits = [
     p.cat === "car" ? [p.make, p.model].filter(Boolean).join(" ") : "",
-    p.cat === "text" && p.text?.trim() ? `"${p.text.trim()}"` : "",
+    p.cat === "text" && p.text?.trim() ? `"${p.text.trim()}"${p.font ? ` in ${ART_FONTS.find((f) => f.key === p.font)?.name ?? p.font}` : ""}` : "",
+    p.item ? artItem(p.item)?.name ?? p.item : "",
+    p.colour && (p.cat === "text" || p.cat === "faith" || (p.item && artItem(p.item)?.mono)) ? `colour ${swatch(TEXT_COLOURS, p.colour).name}` : "",
     p.imageName ? `example image ${p.imageName}` : "",
     p.note?.trim() ? `note: ${p.note.trim()}` : "",
   ].filter(Boolean);

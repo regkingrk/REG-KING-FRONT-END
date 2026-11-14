@@ -176,9 +176,28 @@ const CHECK_STATUS = { good: "Suitable", review: "Review required", poor: "Unsui
  */
 function CentrePick({ value, onChange, onDone, onSkip }: { value: CentrePiece | undefined; onChange: (p: CentrePiece | undefined) => void; onDone: () => void; onSkip: () => void }) {
   const [fileErr, setFileErr] = useState("");
+  const [region, setRegion] = useState<Region>(() => artItem(value?.item)?.region ?? "uk");
+  const [flagQ, setFlagQ] = useState("");
   const p = value;
+  // the library designs we had before: flags and caste, faith & heritage symbols, and the other designs
+  const library = (group: ArtItem["group"], only?: (x: ArtItem) => boolean) => (
+    <div className={`rk-artlib${group === "country" ? " rk-artlib--flags" : ""}`} role="radiogroup" aria-label="Choose one">
+      {ART_ITEMS.filter((x) => x.group === group && (!only || only(x))).map((x) => (
+        <button key={x.key} type="button" role="radio" aria-checked={p?.item === x.key} data-b={`scentre-item:${x.key}`} onClick={() => p && onChange({ ...p, item: p.item === x.key ? undefined : x.key })} title={x.name}>
+          <ArtThumb item={x} />
+          <small>{x.name}</small>
+        </button>
+      ))}
+    </div>
+  );
+  const colourPick = (
+    <div className="rk-art__sub">
+      <span className="rk-art__l">Colour</span>
+      <ColourPicker label="Colour" list={TEXT_COLOURS} value={p?.colour ?? "yellow"} onPick={(k) => p && onChange({ ...p, colour: k })} name="scentre-colour" />
+    </div>
+  );
   const put = (x: Partial<CentrePiece>) => p && onChange({ ...p, ...x });
-  const pick = (cat: CentreCat) => onChange({ cat, note: p?.note ?? "" });
+  const pick = (cat: CentreCat) => onChange({ cat, note: p?.note ?? "", ...(cat === "text" ? { font: "plate" as const, colour: "yellow" } : cat === "faith" || cat === "other" ? { colour: "yellow" } : {}) });
   const onFile = (f: File | undefined) => {
     setFileErr("");
     if (!f) return;
@@ -190,7 +209,7 @@ function CentrePick({ value, onChange, onDone, onSkip }: { value: CentrePiece | 
     r.readAsDataURL(f);
   };
   // Car and Custom Text have their own boxes; for the rest, the note is where they say what they want
-  const needsNote = !!p && p.cat !== "car" && p.cat !== "text";
+  const needsNote = !!p && p.cat !== "car" && p.cat !== "text" && !p.item;
   const ready = !!p && (p.cat !== "car" || !!p.make) && (p.cat !== "text" || !!p.text?.trim()) && (!needsNote || !!p.note?.trim());
   return (
     <div className="rk-art rk-centre">
@@ -239,14 +258,61 @@ function CentrePick({ value, onChange, onDone, onSkip }: { value: CentrePiece | 
         </>
       )}
       {p?.cat === "text" && (
-        <label className="rk-art__field">
-          <span>Your text</span>
-          <input value={p.text ?? ""} maxLength={30} onChange={(e) => put({ text: e.target.value })} placeholder="For example REG KING" data-b="scentre:text" />
-        </label>
+        <>
+          <span className="rk-art__l">Font</span>
+          <div className="rk-seg" role="radiogroup" aria-label="Font">
+            {ART_FONTS.map((f) => (
+              <button key={f.key} type="button" role="radio" aria-checked={(p.font ?? "plate") === f.key} data-b={`scentre-font:${f.key}`} onClick={() => put({ font: f.key })} style={{ fontFamily: f.css }}>
+                {f.name}
+              </button>
+            ))}
+          </div>
+          <label className="rk-art__field">
+            <span>Your text</span>
+            <input value={p.text ?? ""} maxLength={22} onChange={(e) => put({ text: e.target.value })} placeholder="For example REG KING" data-b="scentre:words" style={{ fontFamily: ART_FONTS.find((f) => f.key === (p.font ?? "plate"))?.css }} />
+          </label>
+          {colourPick}
+        </>
+      )}
+      {p?.cat === "country" && (
+        <>
+          <label className="rk-art__field rk-art__search">
+            <span>Find a country</span>
+            <input type="search" value={flagQ} onChange={(e) => setFlagQ(e.target.value)} placeholder="For example Jamaica" data-b="scentre:flagq" />
+          </label>
+          {!flagQ.trim() && (
+            <div className="rk-pills rk-pills--wrap" role="radiogroup" aria-label="Region">
+              {REGIONS.map(([k, l]) => (
+                <button key={k} type="button" role="radio" aria-checked={region === k} aria-pressed={region === k} data-b={`scentre-region:${k}`} onClick={() => setRegion(k)}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
+          {(() => {
+            const q = flagQ.trim().toLowerCase();
+            const match = (x: ArtItem) => (q ? x.name.toLowerCase().includes(q) : x.region === region);
+            return ART_ITEMS.some((x) => x.group === "country" && match(x)) ? library("country", match) : <p className="rk-bfine">No flag by that name yet. Tell us in the note.</p>;
+          })()}
+          {artItem(p.item)?.mono && colourPick}
+        </>
+      )}
+      {p?.cat === "faith" && (
+        <>
+          {library("faith")}
+          <p className="rk-bfine">Symbols shown by name are drawn by our team and shown on your proof. Not listed? Tell us in the note.</p>
+          {colourPick}
+        </>
+      )}
+      {p?.cat === "other" && (
+        <>
+          {library("other")}
+          {(!p.item || artItem(p.item)?.mono) && colourPick}
+        </>
       )}
       {p && (
         <label className="rk-art__field rk-art__note">
-          <span>Note for our team{p.cat === "car" || p.cat === "text" ? " (optional)" : ""}</span>
+          <span>Note for our team{needsNote ? "" : " (optional)"}</span>
           <textarea
             rows={3}
             maxLength={400}
@@ -255,10 +321,12 @@ function CentrePick({ value, onChange, onDone, onSkip }: { value: CentrePiece | 
             placeholder={
               p.cat === "social"
                 ? "Which platform and your username, for example TikTok @regking_"
-                : p.cat === "country"
-                  ? "Which country, flag or caste symbol you'd like"
-                  : p.cat === "faith"
-                    ? "Which symbol or words you'd like"
+                : (p.cat === "country" || p.cat === "faith" || p.cat === "other") && p.item
+                  ? "Anything to add, for example spelling or colours"
+                  : p.cat === "country"
+                    ? "Which country, flag or caste symbol you'd like"
+                    : p.cat === "faith"
+                      ? "Which symbol or words you'd like"
                     : p.cat === "other"
                       ? "Tell us what you'd like as your centre piece"
                       : "Anything else, for example colours or spelling"
