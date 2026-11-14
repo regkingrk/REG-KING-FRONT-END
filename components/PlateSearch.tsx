@@ -23,7 +23,22 @@ const STAMP = "SEARCH";
  */
 export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, plateRef) {
   const [reg, setReg] = useState("");
-  const { mode, setMode, query, setQuery, setSellReg, sellTask, setSellTask, setValueAsk, filters, setFilters, setBrowse, item } = useMode();
+  const { mode, setMode, query, setQuery, setSellReg, sellTask, setSellTask, setValueAsk, filters, setFilters, setBrowse, item, go: goTo } = useMode();
+  // After plates go in the basket: offer Checkout or Make another plate
+  const [added, setAdded] = useState<{ reg: string; updated: boolean } | null>(null);
+  const addedRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = addedRef.current;
+    if (!d) return;
+    if (added && !d.open) {
+      try {
+        d.showModal();
+      } catch {
+        d.setAttribute("open", "");
+      }
+    }
+    if (!added && d.open) d.close();
+  }, [added]);
   const [cfg, setCfg] = useState<BuildConfig>(emptyBuild);
   const building = mode === "build";
   const inputRef = useRef<HTMLInputElement>(null);
@@ -136,9 +151,9 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
         lines: priceLines(cfg),
         data: { reg: reg.trim(), cfg },
       });
+      setAdded({ reg: reg.trim(), updated: !!editingPlates });
       setCfg(emptyBuild());
       setReg("");
-      requestAnimationFrame(() => document.getElementById("rk-basket")?.scrollIntoView({ behavior: "smooth", block: "start" }));
       return;
     }
     if (building && !ready) {
@@ -177,6 +192,42 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
 
   return (
     <form id="plate-search" className="rk-search" role="search" onSubmit={onSubmit} data-mode={mode}>
+      <dialog ref={addedRef} className="rk-added" aria-labelledby="rk-added-h" onClose={() => setAdded(null)} onClick={(e) => e.target === e.currentTarget && setAdded(null)} data-added>
+        {added && (
+          <div className="rk-added__box">
+            <p className="rk-added__plate" aria-hidden>
+              {added.reg}
+            </p>
+            <h2 id="rk-added-h">{added.updated ? "Basket updated" : "Added to your basket"}</h2>
+            <p className="rk-added__line">Your {added.reg} plates are in the basket. What would you like to do next?</p>
+            <div className="rk-added__actions">
+              <button
+                type="button"
+                className="rk-added__go"
+                data-added-checkout
+                onClick={() => {
+                  setAdded(null);
+                  goTo("checkout");
+                }}
+              >
+                Checkout
+              </button>
+              <button
+                type="button"
+                className="rk-added__more"
+                data-added-more
+                onClick={() => {
+                  setAdded(null);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  setTimeout(() => inputRef.current?.focus(), 250);
+                }}
+              >
+                Make another plate
+              </button>
+            </div>
+          </div>
+        )}
+      </dialog>
 
       <div className="rk-modes" role="tablist" aria-label="What would you like to do?" data-hero-item>
         {searchModes.map((x) => (

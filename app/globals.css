@@ -39917,3 +39917,97 @@ body:has(.co--shop) .rk-footer,
 body:has(.co--shop) #rk-hero {
   display: none;
 }
+
+/* After Add to basket: Checkout or Make another plate (REG KING, 14 Nov 2026) */
+.rk-added {
+  width: min(440px, calc(100vw - 32px));
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+  color: #161514;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.55);
+}
+.rk-added::backdrop {
+  background: rgba(10, 10, 9, 0.62);
+}
+.rk-added[open] {
+  animation: rk-added-in 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes rk-added-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-added[open] {
+    animation: none;
+  }
+}
+.rk-added__box {
+  display: grid;
+  gap: 10px;
+  padding: 28px 24px 24px;
+  text-align: center;
+}
+.rk-added__plate {
+  justify-self: center;
+  margin: 0 0 6px;
+  padding: 6px 18px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #ffd64f 0%, var(--rk-yellow, #ffc400) 55%, #efb400 100%);
+  color: #111;
+  font-family: var(--font-plate), "Barlow Condensed", Arial, sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.rk-added h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+.rk-added__line {
+  margin: 0 0 8px;
+  color: #55524b;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.rk-added__actions {
+  display: grid;
+  gap: 10px;
+}
+.rk-added__go,
+.rk-added__more {
+  min-height: 52px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rk-added__go {
+  border: 0;
+  background: #161514;
+  color: #fff;
+}
+.rk-added__go:hover {
+  background: #000;
+}
+.rk-added__more {
+  border: 1.5px solid #161514;
+  background: #fff;
+  color: #161514;
+}
+.rk-added__more:hover {
+  background: #f3f1ea;
+}
+.rk-added__go:focus-visible,
+.rk-added__more:focus-visible {
+  outline: 2px solid #d88e00;
+  outline-offset: 2px;
+}
