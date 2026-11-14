@@ -287,7 +287,7 @@ export function Plate3D({ reg, c, bright = false }: { reg: string; c: BuildConfi
         aria-label={`${view === "2d" ? "2D" : "3D"} preview of your ${both ? "front and rear plates" : `${sides[0]} plate`}${reg ? `, ${reg.toUpperCase()}` : ""}`}
       >
         {real3d ? (
-          <PlateGL reg={reg} c={c} sides={sides} onFail={() => setGl(false)} day={day} boost={bright ? 1.7 : 1} />
+          <PlateGL reg={reg} c={c} sides={sides} onFail={() => setGl(false)} day={day} boost={bright ? (/Retro/.test(`${c.style} ${c.rearStyle ?? ""}`) ? 2.6 : 1.7) : 1} />
         ) : (
           <>
             {sides.map(plate)}
