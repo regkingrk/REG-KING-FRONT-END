@@ -333,7 +333,7 @@ export const offersShortest = (v: Vehicle | null, legal: Legal | null, reg: stri
  */
 export function sizesFor(v: Vehicle | null, legal: Legal | null, reg = "", styles: (string | null | undefined)[] = [], gaps?: number[] | null, extras: string[] = []): SizeOption[] {
   const chars = regLength(reg);
-  return allSizesFor(v, legal).filter((s) => (!s.maxChars || chars === 0 || chars <= s.maxChars) && fitsFullSize(s, reg, { v, legal, styles, gaps, badge: hasBadge(extras) }));
+  return allSizesFor(v, legal).filter((s) => (!s.maxChars || chars === 0 || legal === "Show" || chars <= s.maxChars) && fitsFullSize(s, reg, { v, legal, styles, gaps, badge: hasBadge(extras) }));
 }
 
 /** Badges sit in a 50mm panel at the left of a car plate, so the reg has that much less room. */
