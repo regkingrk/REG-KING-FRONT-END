@@ -515,15 +515,25 @@ export type Side = "Front" | "Rear";
 export type Match = "Same" | "Different";
 export type Delivery = "Deliver" | "Collect" | "CollectFit";
 /** How the customer fits the plates themselves (free, so it still comes in the box if we fit them). */
-export type Kit = "Pads" | "Screws" | "None";
+export type Kit = "Pads" | "Screws" | "Magnets" | "Clips" | "None";
 /** Road legal only: the documents the law says we must see. Prototype keeps the file names only. */
 export type LegalDocs = { identity: string | null; entitlement: string | null; later: boolean };
 
 /** Fitting kits: usually KIT_WAS, free with every order (confirm with REG KING before launch). */
 export const KIT_WAS = 2.99;
-export const KITS: { key: Kit; name: string; line: string; recommended?: boolean }[] = [
+/** The kits that come free with plates. */
+export const kitIsFree = (k: Kit | null) => k === "Pads" || k === "Screws";
+const formatPounds = (n: number) => `£${Number.isInteger(n) ? n : n.toFixed(2)}`;
+/**
+ * `price`: what a kit costs on top of the plates. The free kits leave it out. A kit priced null is shown
+ * as "Coming soon" and can't be picked yet.
+ * CONFIRM: prices for the magnet kit and plate clips (set and single plates).
+ */
+export const KITS: { key: Kit; name: string; line: string; recommended?: boolean; price?: number | null }[] = [
   { key: "Pads", name: "Sticky pad kit", line: "Strong double-sided pads. No drilling.", recommended: true },
   { key: "Screws", name: "Screw kit", line: "Screws with caps in black, white and yellow." },
+  { key: "Magnets", name: "Magnet kit", line: "Swap plates on and off in seconds.", price: null },
+  { key: "Clips", name: "Plate clips", line: "Hold a plate without drilling.", price: null },
   { key: "None", name: "No kit needed", line: "You already have a way to fit them." },
 ];
 
@@ -824,7 +834,7 @@ export function answerText(k: StepKey, c: BuildConfig): string {
     case "delivery":
       return c.delivery === "Deliver" ? "Delivered to you" : c.delivery === "Collect" ? "Collect in Bilston" : "Collect & fit in Bilston";
     case "kit":
-      return c.kit === "None" ? "No kit" : `${KITS.find((x) => x.key === c.kit)?.name ?? ""} (free)`;
+      return c.kit === "None" ? "No kit" : kitIsFree(c.kit) ? `${KITS.find((x) => x.key === c.kit)?.name ?? ""} (free)` : `${KITS.find((x) => x.key === c.kit)?.name ?? ""} (+${formatPounds(KITS.find((x) => x.key === c.kit)?.price ?? 0)})`;
     case "docs":
       return docsReady(c) ? "ID and proof uploaded" : "Upload later from your account";
   }
@@ -988,6 +998,10 @@ export function priceLines(c: BuildConfig, pricing: Pricing = RETAIL): Line[] {
     lines.push({ label: `Personalised ${c.surround.cfg.style} surround${pair > 1 ? "s × 2" : ""}`, amount: p === null ? null : p * pair });
   }
   if (c.kit === "Pads" || c.kit === "Screws") lines.push({ label: KITS.find((x) => x.key === c.kit)!.name, amount: 0, was: KIT_WAS });
+  else if (c.kit === "Magnets" || c.kit === "Clips") {
+    const k = KITS.find((x) => x.key === c.kit)!;
+    if (k.price != null) lines.push({ label: k.name, amount: k.price });
+  }
   if (c.delivery === "CollectFit") lines.push({ label: "Fitting on collection", amount: priceOf(FITTING, c) });
   return lines;
 }
@@ -1070,7 +1084,7 @@ export function summary(c: BuildConfig) {
     c.extras.length ? "+ " + c.extras.map((x) => { const e = EXTRAS.find((y) => y.name === x); return e ? extraLabel(e, c) : x; }).join(", ") : null,
     c.surround?.kind === "standard" ? "+ standard surrounds" : c.surround?.kind === "custom" ? `+ ${surroundSummary(c.surround.cfg).replace(/^./, (x) => x.toLowerCase())}` : null,
     c.delivery === "Deliver" ? "delivery" : c.delivery === "Collect" ? "collect" : c.delivery === "CollectFit" ? "collect & fit" : null,
-    c.kit === "Pads" ? "sticky pad kit" : c.kit === "Screws" ? "screw kit" : null,
+    c.kit === "Pads" ? "sticky pad kit" : c.kit === "Screws" ? "screw kit" : c.kit === "Magnets" ? "magnet kit" : c.kit === "Clips" ? "plate clips" : null,
   ]
     .filter(Boolean)
     .join(" · ");

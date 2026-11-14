@@ -40016,3 +40016,17 @@ body:has(.co--shop) #rk-hero {
 .rk-studio:not([data-scene="night"]):not([data-scene="lights"]) .rk-studio__view {
   filter: brightness(1.1);
 }
+
+/* Fitting kit: magnet kit and plate clips, shown as Coming soon until they have prices (REG KING, 14 Nov 2026) */
+.rk-kits button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.rk-kits button:disabled .rk-kits__price em {
+  color: inherit;
+  font-style: normal;
+}
+.rk-choice.rk-kits {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}

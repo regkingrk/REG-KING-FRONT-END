@@ -886,11 +886,19 @@ export function PlateBuilder({ reg, c, set, replace, onRegStep, pricing = RETAIL
           <>
             <div className="rk-choice rk-kits" role="radiogroup" aria-label="Fitting kit">
               {KITS.map((x) => (
-                <button key={x.key} type="button" role="radio" aria-checked={c.kit === x.key} data-b={`kit:${x.key}`} onClick={() => done({ kit: x.key })}>
+                <button key={x.key} type="button" role="radio" aria-checked={c.kit === x.key} data-b={`kit:${x.key}`} disabled={x.price === null} onClick={() => done({ kit: x.key })}>
                   {x.recommended && <span className="rk-kits__rec">Recommended</span>}
                   <b>{x.name}</b>
                   <small>{x.line}</small>
-                  {x.key !== "None" && (
+                  {x.key === "None" ? null : x.price === null ? (
+                    <span className="rk-kits__price">
+                      <em>Coming soon</em>
+                    </span>
+                  ) : x.price !== undefined ? (
+                    <span className="rk-kits__price">
+                      <em>+{formatGBP(x.price, Number.isInteger(x.price))}</em>
+                    </span>
+                  ) : (
                     <span className="rk-kits__price">
                       <s>{formatGBP(KIT_WAS)}</s> <em>Free</em>
                     </span>
