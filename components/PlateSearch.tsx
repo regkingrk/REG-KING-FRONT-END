@@ -24,13 +24,21 @@ const STAMP = "SEARCH";
 export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, plateRef) {
   const [reg, setReg] = useState("");
   const { mode, setMode, query, setQuery, setSellReg, sellTask, setSellTask, setValueAsk, filters, setFilters, setBrowse, item, go: goTo } = useMode();
-  // After plates go in the basket, the main button splits in two: Checkout and Make another plate
-  // (until they start on another plate)
+  // After plates go in the basket: offer Checkout or Make another plate
   const [added, setAdded] = useState<{ reg: string; updated: boolean } | null>(null);
+  const addedRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    if (added && reg.trim()) setAdded(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reg]);
+    const d = addedRef.current;
+    if (!d) return;
+    if (added && !d.open) {
+      try {
+        d.showModal();
+      } catch {
+        d.setAttribute("open", "");
+      }
+    }
+    if (!added && d.open) d.close();
+  }, [added]);
   const [cfg, setCfg] = useState<BuildConfig>(emptyBuild);
   const building = mode === "build";
   const inputRef = useRef<HTMLInputElement>(null);
@@ -184,6 +192,42 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
 
   return (
     <form id="plate-search" className="rk-search" role="search" onSubmit={onSubmit} data-mode={mode}>
+      <dialog ref={addedRef} className="rk-added" aria-labelledby="rk-added-h" onClose={() => setAdded(null)} onClick={(e) => e.target === e.currentTarget && setAdded(null)} data-added>
+        {added && (
+          <div className="rk-added__box">
+            <p className="rk-added__plate" aria-hidden>
+              {added.reg}
+            </p>
+            <h2 id="rk-added-h">{added.updated ? "Basket updated" : "Added to your basket"}</h2>
+            <p className="rk-added__line">Your {added.reg} plates are in the basket. What would you like to do next?</p>
+            <div className="rk-added__actions">
+              <button
+                type="button"
+                className="rk-added__go"
+                data-added-checkout
+                onClick={() => {
+                  setAdded(null);
+                  goTo("checkout");
+                }}
+              >
+                Checkout
+              </button>
+              <button
+                type="button"
+                className="rk-added__more"
+                data-added-more
+                onClick={() => {
+                  setAdded(null);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  setTimeout(() => inputRef.current?.focus(), 250);
+                }}
+              >
+                Make another plate
+              </button>
+            </div>
+          </div>
+        )}
+      </dialog>
 
       <div className="rk-modes" role="tablist" aria-label="What would you like to do?" data-hero-item>
         {searchModes.map((x) => (
@@ -260,31 +304,11 @@ export const PlateSearch = forwardRef<HTMLDivElement>(function PlateSearch(_, pl
               {cfg.legal === "Show" && cfg.vehicle !== "Bike" && <small className="rk-regbox__note">Show plates: space your reg however you like, up to 3 spaces between characters.</small>}
             </div>
             <PlateBuilder reg={reg} c={cfg} set={patch} replace={setCfg} onRegStep={() => inputRef.current?.focus()} />
-            {added ? (
-              <div className="rk-search__split" data-after data-added>
-                <button type="button" className="rk-search__go rk-search__go--checkout" data-added-checkout onClick={() => (setAdded(null), goTo("checkout"))}>
-                  <ArrowRight /> <span>Checkout</span>
-                </button>
-                <button
-                  type="button"
-                  className="rk-search__go rk-search__go--more"
-                  data-added-more
-                  onClick={() => {
-                    setAdded(null);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                    setTimeout(() => inputRef.current?.focus(), 250);
-                  }}
-                >
-                  <span>Make another plate</span>
-                </button>
-              </div>
-            ) : (
-              <button type="submit" className="rk-search__go" data-after>
-                <ArrowRight /> <span id="rk-go-label">{buttonLabel}</span>
-              </button>
-            )}
-            <p className="rk-search__help" id="rk-help" data-after role="status">
-              {added ? `${added.reg} plates ${added.updated ? "updated in" : "added to"} your basket.` : cfg.style ? [summary(cfg), spacingNote(cfg, reg)].filter(Boolean).join(", ") : makeHelp}
+            <button type="submit" className="rk-search__go" data-after>
+              <ArrowRight /> <span id="rk-go-label">{buttonLabel}</span>
+            </button>
+            <p className="rk-search__help" id="rk-help" data-after>
+              {cfg.style ? [summary(cfg), spacingNote(cfg, reg)].filter(Boolean).join(", ") : makeHelp}
             </p>
           </div>
         </div>
