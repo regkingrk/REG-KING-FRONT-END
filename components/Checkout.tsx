@@ -664,7 +664,7 @@ export function Checkout() {
 
         <ul className="co-trust">
           <li className="co-trust__score">
-            <GoogleScore compact />
+            <GoogleScore compact tone="dark" />
           </li>
           <li>
             <LockIcon />

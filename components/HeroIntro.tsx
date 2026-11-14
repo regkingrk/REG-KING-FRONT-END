@@ -24,7 +24,7 @@ export function HeroIntro() {
   const plateRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<IntroHandle | null>(null);
   const [skippable, setSkippable] = useState(false);
-  const { focused, mode, info, acc, plate, account, vault, sellTask } = useMode();
+  const { focused, mode, info, acc, plate, account, vault, sellTask, page } = useMode();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -117,7 +117,7 @@ export function HeroIntro() {
         data-mode="buy"
         data-focused={focused || undefined}
         // Searching or selling: the hero steps aside for the results / sell form. The builder keeps a slim hero.
-        hidden={vault || !!info || !!acc || !!plate || !!account || (focused && mode !== "build")}
+        hidden={vault || !!info || !!acc || !!plate || !!account || !!page || (focused && mode !== "build")}
         aria-labelledby="rk-hero-title"
       >
         <HeroVideo />

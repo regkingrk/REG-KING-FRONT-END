@@ -39909,3 +39909,11 @@ body:has(.rk-studio) {
 .rk-pmark b {
   font-weight: 700;
 }
+
+/* Checkout is a page of its own (REG KING, 14 Nov 2026): the builder, site header and footer step away and
+   the checkout's own bar (logo, back to basket) is the only navigation, as on a Shopify checkout */
+body:has(.co--shop) .rk-header,
+body:has(.co--shop) .rk-footer,
+body:has(.co--shop) #rk-hero {
+  display: none;
+}
