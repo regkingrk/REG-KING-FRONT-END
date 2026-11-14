@@ -544,10 +544,29 @@ export function cutOutPoints(reg: string, w: number, h: number, bike: boolean, s
   if (Math.abs(half[0] - half[1]) < 1) return null;
   const mid = (h - (2 * charH + two.gap)) / 2 + charH + two.gap / 2;
   const c = w / 2;
-  return [
+  const corners: [number, number][] = [
     [c - half[0], 0], [c + half[0], 0], [c + half[0], mid], [c + half[1], mid],
     [c + half[1], h], [c - half[1], h], [c - half[1], mid], [c - half[0], mid],
   ];
+  return roundCorners(corners, 8);
+}
+
+/** Rounds every corner of a closed polygon (radius r mm, less where the sides are short). */
+function roundCorners(pts: [number, number][], r: number): [number, number][] {
+  const out: [number, number][] = [];
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const p = pts[i], a = pts[(i + n - 1) % n], b = pts[(i + 1) % n];
+    const la = Math.hypot(a[0] - p[0], a[1] - p[1]), lb = Math.hypot(b[0] - p[0], b[1] - p[1]);
+    const d = Math.min(r, la / 2, lb / 2);
+    const s0: [number, number] = [p[0] + ((a[0] - p[0]) / la) * d, p[1] + ((a[1] - p[1]) / la) * d];
+    const e0: [number, number] = [p[0] + ((b[0] - p[0]) / lb) * d, p[1] + ((b[1] - p[1]) / lb) * d];
+    for (let t = 0; t <= 8; t++) {
+      const u = t / 8, v = 1 - u;
+      out.push([v * v * s0[0] + 2 * v * u * p[0] + u * u * e0[0], v * v * s0[1] + 2 * v * u * p[1] + u * u * e0[1]]);
+    }
+  }
+  return out;
 }
 
 export interface BuildConfig {
