@@ -437,7 +437,7 @@ export function PlateGL({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The plates: rebuilt when anything about them changes.
-  const key = groups ? `g:${groupsKey}` : JSON.stringify([reg, sides, c?.vehicle, c?.legal, c?.qty, c?.style, c?.size, c?.rearSize, c?.extras, c?.hexFlip, c?.bottomText, c?.bottomFont, c?.bottomSize, c?.spacing, c?.fadeFrom]);
+  const key = groups ? `g:${groupsKey}` : JSON.stringify([reg, sides, c?.vehicle, c?.legal, c?.qty, c?.style, c?.size, c?.rearSize, c?.extras, c?.hexFlip, c?.bottomText, c?.bottomFont, c?.bottomSize, c?.spacing, c?.fadeFrom, c?.cutOut]);
   useEffect(() => {
     if (!ready) return;
     let live = true;

@@ -509,7 +509,7 @@ export function buildPlate(s: PlateSpec, softEnv?: THREE.Texture, acrylicEnv?: T
     group.add(characters(s, PRESS, press, FACE_Z - 0.02));
     const rim = outlineShape(s, 1.2);
     rim.holes.push(outlineShape(s, 5.2, new THREE.Path()) as unknown as THREE.Path);
-    const rimGeo = pressGeometry(`rim|${s.w}|${s.h}|${s.hex}|${s.hexFlip}|${s.side}|${s.look}`, [rim], 1, PRESS.depth, PRESS.size, pressTop(s), pressPaint(s));
+    const rimGeo = pressGeometry(`rim|${s.w}|${s.h}|${s.hex}|${s.hexFlip}|${s.side}|${s.look}|${s.cutOut}|${s.reg}`, [rim], 1, PRESS.depth, PRESS.size, pressTop(s), pressPaint(s));
     const rimMesh = new THREE.Mesh(rimGeo, press.clone());
     rimMesh.position.z = FACE_Z - 0.02;
     rimMesh.castShadow = true;
