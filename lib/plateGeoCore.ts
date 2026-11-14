@@ -109,6 +109,8 @@ export function smoothNormals(geo: THREE.BufferGeometry, crease = 35) {
 export function chiselArrays(ch: string, riseU: number): GeoArrays {
   const shapes = glyphShapes(ch);
   const R = 62; // half a stroke (strokes are 124 font units)
+  const RM = R * 4; // how far in we keep measuring, so a wide part of a letter keeps sloping up instead of going flat
+  const OVER = 0.25; // past half a stroke the facet keeps rising, more gently, so no part of the top is ever flat
   const L = 4; // finest edge length
   const pos: number[] = [], nor: number[] = [];
   for (const shape of shapes) {
@@ -125,9 +127,9 @@ export function chiselArrays(ch: string, riseU: number): GeoArrays {
     // distance in from the outline, and the direction away from it (exact). Only an edge within R
     // matters (anything further sits on the flat top), so each point checks just the edges near it,
     // found through a grid, in their original order: the same answer as checking every edge, far faster.
-    const G = 16, gx0 = Math.min(...segs.map((q) => Math.min(q[0], q[2]))) - R, gy0 = Math.min(...segs.map((q) => Math.min(q[1], q[3]))) - R;
-    const gcw = Math.ceil((Math.max(...segs.map((q) => Math.max(q[0], q[2]))) + R - gx0) / G) + 1;
-    const gch = Math.ceil((Math.max(...segs.map((q) => Math.max(q[1], q[3]))) + R - gy0) / G) + 1;
+    const G = 16, gx0 = Math.min(...segs.map((q) => Math.min(q[0], q[2]))) - RM, gy0 = Math.min(...segs.map((q) => Math.min(q[1], q[3]))) - RM;
+    const gcw = Math.ceil((Math.max(...segs.map((q) => Math.max(q[0], q[2]))) + RM - gx0) / G) + 1;
+    const gch = Math.ceil((Math.max(...segs.map((q) => Math.max(q[1], q[3]))) + RM - gy0) / G) + 1;
     const cells: number[][] = Array.from({ length: gcw * gch }, () => []);
     segs.forEach(([ax, ay, bx, by], n) => {
       const i0 = Math.floor((Math.min(ax, bx) - gx0) / G), i1 = Math.floor((Math.max(ax, bx) - gx0) / G);
@@ -171,9 +173,9 @@ export function chiselArrays(ch: string, riseU: number): GeoArrays {
         }
         // every edge not yet visited is at least this far away
         const reach = Math.min(x - (gx0 + (ci - r) * G), gx0 + (ci + r + 1) * G - x, y - (gy0 + (cj - r) * G), gy0 + (cj + r + 1) * G - y);
-        if (best < reach || reach >= R) break;
+        if (best < reach || reach >= RM) break;
       }
-      if (best >= R) return { d: R, gx: 0, gy: 0 };
+      if (best >= RM) return { d: RM, gx: 0, gy: 0 };
       return { d: best, gx: best > 1e-6 ? (x - nx) / best : 0, gy: best > 1e-6 ? (y - ny) / best : 0 };
     };
 
@@ -231,9 +233,12 @@ export function chiselArrays(ch: string, riseU: number): GeoArrays {
     const vz: number[] = [], vn: THREE.Vector3[] = [];
     for (let i = 0; i < vx.length; i++) {
       const { d, gx, gy } = near(vx[i], vy[i]);
-      if (d >= R) {
-        vz.push(riseU);
+      if (d >= RM) {
+        vz.push(riseU + (RM - R) * k * OVER);
         vn.push(new THREE.Vector3(0, 0, 1));
+      } else if (d > R) {
+        vz.push(riseU + (d - R) * k * OVER);
+        vn.push(new THREE.Vector3(-gx * k * OVER, -gy * k * OVER, 1).normalize());
       } else {
         vz.push(d * k);
         vn.push(new THREE.Vector3(-gx * k, -gy * k, 1).normalize());
