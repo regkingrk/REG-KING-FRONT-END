@@ -103,9 +103,9 @@ export function Studio() {
       return next;
     });
   }, [reg, cfg.legal, cfg.vehicle, cfg.style, cfg.rearStyle, cfg.spacing, cfg.extras]);
-  // Show plates are spaced however the customer types them; road-legal and bike plates go back to the usual spacing
+  // Show plates keep the spacing the customer types (on a two-line plate the space is where it breaks to the second line); road-legal plates go back to the usual spacing
   useEffect(() => {
-    if ((cfg.legal !== "Show" || cfg.vehicle === "Bike") && reg !== spaceReg(reg)) setReg(spaceReg(reg));
+    if (cfg.legal !== "Show" && reg !== spaceReg(reg)) setReg(spaceReg(reg));
   }, [reg, cfg.legal, cfg.vehicle]);
   // Spacing REG KING has set up for a reg comes back when it's made a show plate again
   useEffect(() => {
@@ -149,7 +149,7 @@ export function Studio() {
             className="rk-studio__reg"
             value={reg}
             onChange={(e) => {
-              const next = cfg.legal === "Show" && cfg.vehicle !== "Bike" ? showReg(e.target.value) : spaceReg(e.target.value);
+              const next = cfg.legal === "Show" ? showReg(e.target.value) : spaceReg(e.target.value);
               if (regChars(next) !== regChars(reg)) patch({ spacing: SPACING_PRESETS[regChars(next)] ?? null });
               setReg(next);
             }}
