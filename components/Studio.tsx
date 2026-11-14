@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { showReg, spaceReg } from "@/lib/brand";
-import { emptyBuild, plateGaps, regChars, regLength, rearOnly, sizeFits, SPACING_PRESETS, type BuildConfig } from "@/lib/builder";
+import { cutOutPoints, emptyBuild, plateGaps, regChars, regLength, rearOnly, sizeFits, SPACING_PRESETS, type BuildConfig } from "@/lib/builder";
+import { specFrom } from "@/lib/plateRender";
 import { Plate3D } from "./Plate3D";
 import { PlateBuilder } from "./PlateBuilder";
 import { PlateOnCar } from "./PlateOnCar";
@@ -128,6 +129,9 @@ export function Studio() {
     regRef.current?.focus();
   };
 
+  // Cut out: a show plate on two lines can be cut to follow the letters (only when the two lines differ in length)
+  const cutSpec = specFrom(cfg, reg, "rear");
+  const canCut = cfg.legal === "Show" && tab === "plates" && !!cutOutPoints(cutSpec.reg, cutSpec.w, cutSpec.h, cutSpec.bike);
   const hasReg = reg.replace(/\s/g, "").length >= 2;
 
   return (
@@ -160,6 +164,11 @@ export function Studio() {
             maxLength={cfg.legal === "Show" && cfg.vehicle !== "Bike" ? 25 : 8}
           />
         </label>
+        {canCut && (
+          <button type="button" className="rk-studio__show" data-studio-cutout aria-pressed={!!cfg.cutOut} onClick={() => patch({ cutOut: !cfg.cutOut })}>
+            {cfg.cutOut ? "Full plate" : "Cut out"}
+          </button>
+        )}
         <button type="button" className="rk-studio__show" data-studio-showcase onClick={enterShowcase}>
           Showcase
         </button>

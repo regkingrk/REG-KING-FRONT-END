@@ -527,7 +527,32 @@ export const KITS: { key: Kit; name: string; line: string; recommended?: boolean
   { key: "None", name: "No kit needed", line: "You already have a way to fit them." },
 ];
 
+/**
+ * Cut out (show plates on two lines): the plate follows the letters. The empty squares beside the shorter
+ * line are removed, leaving a stepped shape, 10mm clear all round the letters. Points in mm, y down from
+ * the top left of the plate. null when the plate isn't two lines or both lines are the same length.
+ */
+export function cutOutPoints(reg: string, w: number, h: number, bike: boolean, small = false): [number, number][] | null {
+  const two = twoLineLayout(w, h, bike);
+  const lines = bikeSplitLines(reg);
+  if (!two || lines.length < 2) return null;
+  const charH = Math.min(two.charH, small ? 64 : 79);
+  const k = charH / LEGAL_MM.charH;
+  const width = (l: string) => k * ([...l].reduce((a, ch) => a + (ch === "1" || ch === "I" ? LEGAL_MM.narrowW : LEGAL_MM.charW), 0) + LEGAL_MM.gap * (l.length - 1));
+  const M = 10;
+  const half = [width(lines[0]) / 2 + M, width(lines[1]) / 2 + M].map((x) => Math.min(w / 2, x));
+  if (Math.abs(half[0] - half[1]) < 1) return null;
+  const mid = (h - (2 * charH + two.gap)) / 2 + charH + two.gap / 2;
+  const c = w / 2;
+  return [
+    [c - half[0], 0], [c + half[0], 0], [c + half[0], mid], [c + half[1], mid],
+    [c + half[1], h], [c - half[1], h], [c - half[1], mid], [c - half[0], mid],
+  ];
+}
+
 export interface BuildConfig {
+  /** Show plates on two lines: the plate is cut to follow the letters (see cutOutPoints). */
+  cutOut?: boolean;
   vehicle: Vehicle | null;
   legal: Legal | null;
   qty: Qty | null;

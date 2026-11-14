@@ -12,7 +12,7 @@
  */
 import * as THREE from "three";
 import { GLYPHS, GLYPH_CAP, GLYPH_SPACE, METRO_BEARING, METRO_GLYPHS, METRO_SPACE } from "./plateGlyphs";
-import { hexPoints, smallChars, twoLineLayout, type PlateLook } from "./builder";
+import { cutOutPoints, hexPoints, smallChars, twoLineLayout, type PlateLook } from "./builder";
 import { PLATE_CORNER_MM, PLATE_YELLOW, TINT, renderPlate, type PlateSpec } from "./plateRender";
 import { chiselArrays, domeArrays, glyphShapes, smoothNormals, type GeoArrays } from "./plateGeoCore";
 
@@ -148,6 +148,13 @@ const BIKE_INSET = 15;
 /* ------------------------------------------------------------------ */
 function outlineShape(s: PlateSpec, inset = 0, shape: THREE.Shape | THREE.Path = new THREE.Shape()): THREE.Shape {
   const w = s.w - inset * 2, h = s.h - inset * 2;
+  const cut = s.cutOut && !s.hex ? cutOutPoints(s.reg, s.w, s.h, s.bike, smallChars(s.look, s.styleName)) : null;
+  if (cut) {
+    // the stepped cut-out outline, y down from the top left, turned to y up about the centre
+    cut.forEach(([px, py], i) => (i ? shape.lineTo(px - s.w / 2, s.h / 2 - py) : shape.moveTo(px - s.w / 2, s.h / 2 - py)));
+    shape.closePath();
+    return shape as THREE.Shape;
+  }
   if (s.hex) {
     // hexPoints is y-down from the top left; flip to y-up about the centre
     hexPoints(-w / 2, -h / 2, w, h, s.hexFlip).forEach(([px, py], i) => (i ? shape.lineTo(px, -py) : shape.moveTo(px, -py)));

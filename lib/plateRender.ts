@@ -8,7 +8,7 @@
  */
 
 import { bottomFamily, bottomFont, bottomFontReady, DEFAULT_BOTTOM_SIZE } from "./bottomText";
-import { BS_MARK, EXTRAS, HEX, LEGAL_MARK_MM, LEGAL_NAME_MM, SUPPLIER_NAME, SUPPLIER_POSTCODE, hexPoints, smallChars, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
+import { BS_MARK, EXTRAS, HEX, LEGAL_MARK_MM, LEGAL_NAME_MM, SUPPLIER_NAME, SUPPLIER_POSTCODE, cutOutPoints, hexPoints, smallChars, isHex, lookOf, plateGaps, regChars, sizeInfo, sizeOf, twoLineLayout, type BuildConfig, type ExtraLook, type PlateLook } from "./builder";
 
 export type PlateSpec = {
   reg: string;
@@ -34,6 +34,8 @@ export type PlateSpec = {
   gaps?: number[];
   /** Faded Tint: the edge the tint is darkest at. */
   fadeFrom?: "top" | "bottom";
+  /** Show plates on two lines: the plate is cut to follow the letters. */
+  cutOut?: boolean;
 };
 
 export function specFrom(c: BuildConfig, reg: string, side: "front" | "rear", style?: string | null): PlateSpec {
@@ -57,6 +59,7 @@ export function specFrom(c: BuildConfig, reg: string, side: "front" | "rear", st
     bottomSize: c.bottomSize,
     legal: c.legal === "Legal",
     fadeFrom: c.fadeFrom === "bottom" ? "bottom" : "top",
+    cutOut: c.legal === "Show" && !!c.cutOut,
   };
 }
 
@@ -152,8 +155,16 @@ export const TINT = { front: { top: "#8f8e8a", bottom: "#71706c", edge: 0x6c6b67
  */
 export const FADE_TOP = { front: 0.82, rear: 0.9 };
 
-function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number, hex: boolean, flip = false) {
+/** The cut-out plate's outline (mm), when the plate is cut to follow its letters. */
+export const cutPts = (s: PlateSpec) => (s.cutOut && !s.hex ? cutOutPoints(s.reg, s.w, s.h, s.bike, smallChars(s.look, s.styleName)) : null);
+
+function outline(ctx: CanvasRenderingContext2D, W: number, H: number, k: number, hex: boolean, flip = false, cut: [number, number][] | null = null) {
   ctx.beginPath();
+  if (cut) {
+    cut.forEach(([px, py], i) => (i ? ctx.lineTo(px * k, py * k) : ctx.moveTo(px * k, py * k)));
+    ctx.closePath();
+    return;
+  }
   if (hex) {
     hexPoints(0, 0, W, H, flip).forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
     ctx.closePath();
@@ -185,7 +196,7 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
 
   // 1. Plate body
   ctx.save();
-  outline(ctx, W, H, k, s.hex, s.hexFlip);
+  outline(ctx, W, H, k, s.hex, s.hexFlip, cutPts(s));
   ctx.clip();
   const bg = ctx.createLinearGradient(0, 0, 0, H);
   const tint = !metal && s.extras.includes("tint") ? TINT[s.side] : null;
@@ -359,7 +370,7 @@ export function renderPlate(s: PlateSpec, pxPerMm = 6, opts: { chars?: boolean; 
   // 6. The acrylic edge: a thin darker rim
   if (!edge) return cv;
   ctx.save();
-  outline(ctx, W, H, k, s.hex, s.hexFlip);
+  outline(ctx, W, H, k, s.hex, s.hexFlip, cutPts(s));
   ctx.lineWidth = 1.6 * k;
   ctx.strokeStyle = metal ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.22)";
   ctx.stroke();

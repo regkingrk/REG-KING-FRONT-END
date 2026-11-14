@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
-import { BADGE_MM, EXTRAS, plateFontPct, plateGaps, rearOnly, regChars, sizeInfo, sizeOf, sizeScale, type BuildConfig, twoLineLayout } from "@/lib/builder";
+import { BADGE_MM, EXTRAS, cutOutPoints, plateFontPct, plateGaps, rearOnly, regChars, sizeInfo, sizeOf, sizeScale, type BuildConfig, twoLineLayout } from "@/lib/builder";
 import { PlateDecor, bikeLines, plateAttrs } from "./PlatePreview";
 import { BS_MARK, LEGAL_MARK_MM, LEGAL_NAME_MM, SUPPLIER_NAME, SUPPLIER_POSTCODE } from "@/lib/builder";
 import { bevelFilterFor, thinFilterFor, type BevelLook } from "./PlateFilters";
@@ -145,6 +145,13 @@ export function Plate3D({ reg, c, bright = false }: { reg: string; c: BuildConfi
     return () => ro.disconnect();
   });
 
+  /** Cut out: the plate shape following the letters, as a CSS clip-path (percent of the plate), or undefined. */
+  const cutClip = (info: { w: number; h: number } | undefined | null) => {
+    if (!c.cutOut || c.legal !== "Show" || !info) return undefined;
+    const pts = cutOutPoints(text, info.w, info.h, bike);
+    return pts ? `polygon(${pts.map(([x, y]) => `${((x / info.w) * 100).toFixed(3)}% ${((y / info.h) * 100).toFixed(3)}%`).join(",")})` : undefined;
+  };
+
   /** The plate face itself: the site's own plate styles, so every option matches the builder. */
   const face = (side: Side) => {
     const size = sizeOf(c, side);
@@ -163,6 +170,7 @@ export function Plate3D({ reg, c, bright = false }: { reg: string; c: BuildConfi
           ...attrs.style,
           aspectRatio: ratio,
           width: "100%",
+          clipPath: cutClip(info),
           // Letters are sized from the plate's height, as on a real plate, so shorter plates (hex,
           // 16", 13") keep full-size characters; a long reg shrinks only as much as it must to fit.
           ["--rk-hxr" as string]: String((info?.h ?? 111) / (info?.w ?? 520)),
@@ -230,7 +238,7 @@ export function Plate3D({ reg, c, bright = false }: { reg: string; c: BuildConfi
             data-hex={attrs["data-hex"]}
             data-hexflip={attrs["data-hexflip"]}
             data-look={attrs["data-look"]}
-            style={{ aspectRatio: ratio, transform: `translateZ(${-(i + 1) * 1.4}px)` /* halved by the 2x supersample scale */, ...(attrs["data-hex"] ? { ["--rk-hxr" as string]: String((info?.h ?? 111) / (info?.w ?? 520)) } : {}) }}
+            style={{ aspectRatio: ratio, clipPath: cutClip(info), transform: `translateZ(${-(i + 1) * 1.4}px)` /* halved by the 2x supersample scale */, ...(attrs["data-hex"] ? { ["--rk-hxr" as string]: String((info?.h ?? 111) / (info?.w ?? 520)) } : {}) }}
             aria-hidden
           />
         ))}
