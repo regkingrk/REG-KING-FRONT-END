@@ -52,6 +52,7 @@ export function PlateGL({
   angles = true,
   tight = false,
   day = false,
+  boost = 1,
 }: {
   reg?: string;
   c?: BuildConfig;
@@ -65,6 +66,8 @@ export function PlateGL({
   tight?: boolean;
   /** Daylight: a brighter scene, to see the plates as they look outside in the day. */
   day?: boolean;
+  /** More light on the plates (the in-store studio): scales the lights and the exposure. */
+  boost?: number;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<{ setPlates: (g: THREE.Group[], lay?: boolean) => void; reset: () => void; view: (v: View) => void; zoomBy: (f: number) => void; setStart: (v: { yaw: number; pitch: number }) => void; prepare: (g: THREE.Group) => Promise<void> } | null>(null);
@@ -88,11 +91,11 @@ export function PlateGL({
   useEffect(() => {
     const l = lights.current;
     if (!l) return;
-    l.renderer.toneMappingExposure = day ? 1.12 : 1;
-    l.fill.intensity = day ? 0.6 : 0.3;
-    l.key.intensity = day ? 3 : 2.6;
+    l.renderer.toneMappingExposure = (day ? 1.12 : 1) * (1 + (boost - 1) * 0.5);
+    l.fill.intensity = (day ? 0.6 : 0.3) * boost;
+    l.key.intensity = (day ? 3 : 2.6) * boost;
     window.dispatchEvent(new Event("rk-gl-redraw"));
-  }, [day, ready]);
+  }, [day, ready, boost]);
 
   // The scene: made once.
   useEffect(() => {

@@ -205,7 +205,7 @@ export function Studio() {
         )}
         <section id="studio-panel-plates" role="tabpanel" aria-labelledby="studio-tab-plates" className="rk-studio__panel rk-studio__panel--plates" data-active={tab === "plates"} inert={tab !== "plates"}>
           <div className="rk-studio__view">
-            <Plate3D key={`v${run}`} reg={hasReg ? reg : ""} c={cfg} />
+            <Plate3D key={`v${run}`} reg={hasReg ? reg : ""} c={cfg} bright />
           </div>
           <div className="rk-studio__ctl">
             <div className="rk-make">

@@ -25,7 +25,7 @@ function defaultSide(c: BuildConfig): Side {
  * match the builder. Drag to turn it; on its own it sways slowly and a light moves across the face.
  */
 // onStyle is still accepted so callers don't change; the preview no longer uses it.
-export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (style: string) => void }) {
+export function Plate3D({ reg, c, bright = false }: { reg: string; c: BuildConfig; onStyle?: (style: string) => void; bright?: boolean }) {
   const stage = useRef<HTMLDivElement>(null);
   // The 3D plate (three.js), opening straight on. Only if the browser can't draw 3D does it show the
   // flat straight-on picture instead.
@@ -287,7 +287,7 @@ export function Plate3D({ reg, c }: { reg: string; c: BuildConfig; onStyle?: (st
         aria-label={`${view === "2d" ? "2D" : "3D"} preview of your ${both ? "front and rear plates" : `${sides[0]} plate`}${reg ? `, ${reg.toUpperCase()}` : ""}`}
       >
         {real3d ? (
-          <PlateGL reg={reg} c={c} sides={sides} onFail={() => setGl(false)} day={day} />
+          <PlateGL reg={reg} c={c} sides={sides} onFail={() => setGl(false)} day={day} boost={bright ? 1.7 : 1} />
         ) : (
           <>
             {sides.map(plate)}

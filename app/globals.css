@@ -39945,4 +39945,7 @@ body:has(.co--shop) #rk-hero {
   .rk-search__split {
     grid-template-columns: 1fr;
   }
+/* Studio: a lift of light on the plates in the plain and day scenes (night and lights on set their own) */
+.rk-studio:not([data-scene="night"]):not([data-scene="lights"]) .rk-studio__view {
+  filter: brightness(1.1);
 }
