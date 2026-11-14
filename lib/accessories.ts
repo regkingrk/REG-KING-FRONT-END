@@ -278,11 +278,48 @@ export interface SurroundConfig {
   /** A set can have a different shape and size at the rear (framed only). */
   rearShape?: SurroundShape;
   rearSize?: SurroundSize;
-  /** The customer's car, for the order (never puts a logo on the surround). */
+  /** The customer's car, for the order (never puts a logo on the surround). Older baskets; now part of `centre`. */
   vehicleMake?: string;
   vehicleModel?: string;
+  /** The centre piece item the customer wants, for our team to prepare (see CENTRE_CATS). */
+  centre?: CentrePiece;
   /** Your design: the customer confirmed they own or may use the artwork. */
   rightsOk?: boolean;
+}
+
+/** Surround centre piece item: what kind, and the details our team needs. Every kind has a note. */
+export type CentreCat = "car" | "country" | "faith" | "social" | "text" | "other";
+export const CENTRE_CATS: { key: CentreCat; name: string }[] = [
+  { key: "car", name: "Car Related" },
+  { key: "country", name: "Country / Caste Related" },
+  { key: "faith", name: "Faith Related" },
+  { key: "social", name: "Social Media" },
+  { key: "text", name: "Custom Text" },
+  { key: "other", name: "Other" },
+];
+export type CentrePiece = {
+  cat: CentreCat;
+  /** Car Related: the make (from the list) and the model (typed). */
+  make?: string;
+  model?: string;
+  /** Custom Text: the words. */
+  text?: string;
+  /** Car Related: an example picture (its name goes on the order; the picture stays in the basket). */
+  imageName?: string;
+  image?: string | null;
+  note?: string;
+};
+/** The centre piece in a few words, for the basket and the order. */
+export function centreText(p: CentrePiece | undefined): string {
+  if (!p) return "";
+  const name = CENTRE_CATS.find((x) => x.key === p.cat)?.name ?? "";
+  const bits = [
+    p.cat === "car" ? [p.make, p.model].filter(Boolean).join(" ") : "",
+    p.cat === "text" && p.text?.trim() ? `"${p.text.trim()}"` : "",
+    p.imageName ? `example image ${p.imageName}` : "",
+    p.note?.trim() ? `note: ${p.note.trim()}` : "",
+  ].filter(Boolean);
+  return bits.length ? `${name}: ${bits.join(", ")}` : name;
 }
 
 export const defaultSurroundConfig = (qty: "single" | "set" = "set"): SurroundConfig => ({
@@ -366,7 +403,7 @@ export function surroundSummary(c: SurroundConfig) {
         : c.size !== "standard" && c.size !== "Normal"
           ? ` (${fitOf(c.shape, c.size)})`
           : "";
-  const style = (c.style === "frameless" ? "Frameless" : "Framed") + fit + (c.vehicleMake ? ` for a ${[c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ")}` : "");
+  const style = (c.style === "frameless" ? "Frameless" : "Framed") + fit + (c.centre ? ` with centre piece (${centreText(c.centre)})` : c.vehicleMake ? ` for a ${[c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ")}` : "");
   if (c.qty === "single") return `${style} surround: ${one(c.front)}`;
   return c.same ? `${style} surrounds (pair): ${one(c.front)}` : `${style} surrounds: front ${one(c.front)}; rear ${one(c.rear)}`;
 }
@@ -428,7 +465,8 @@ export function surroundOrderDetails(c: SurroundConfig, reg = ""): { key: string
   if (reg) out.push({ key: "Registration", value: reg });
   out.push({ key: "Surround", value: `${c.style === "framed" ? "Framed" : "Frameless"}, ${c.qty === "set" ? "front and rear" : "single"}, size ${c.size}${c.qty === "set" && c.rearSize && c.rearSize !== c.size ? ` (rear ${c.rearSize})` : ""}` });
   out.push({ key: "Colours", value: c.style === "framed" ? `Frame ${surroundColourName(d.surface, d.frame)}; strip ${surroundColourName(stripSurfaceOf(d), d.backing)}` : surroundColourName(stripSurfaceOf(d), d.backing) });
-  if (c.vehicleMake) out.push({ key: "Vehicle", value: [c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ").slice(0, 80) });
+  if (c.centre) out.push({ key: "Centre piece", value: centreText(c.centre).slice(0, 480) });
+  else if (c.vehicleMake) out.push({ key: "Vehicle", value: [c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ").slice(0, 80) });
   out.push({ key: "Design", value: artworkText(d).slice(0, 300) });
   if (cat === "custom") {
     out.push({ key: "Design finish", value: d.artFinish === "acrylic" ? "4D ACRYLIC (laser cut, raised)" : "FLAT PRINTED" });

@@ -6,7 +6,7 @@
  * next/font in app/plateTextFonts.ts. Each sets a CSS variable on <html>; the canvas reads the real
  * family name from it. Files only download when a font is used.
  *
- * Sizes are the height of a capital letter, in mm, as printed. A size is only offered if the words
+ * Sizes are the height of a capital letter, in mm, as printed, up to 8mm (REG KING, 14 Nov 2026). A size is only offered if the words
  * fit in the strip under the reg (clear of the characters, any border and the plate edge) and across
  * the plate (clear of any badge), so the text never overlaps the reg or runs off the plate.
  * CONFIRM: REG KING can print each font at these sizes.
@@ -37,7 +37,7 @@ export const BOTTOM_FONTS: BottomFont[] = [
 export const DEFAULT_BOTTOM_FONT = "classic";
 
 /** Capital-letter heights a customer can choose, in mm. */
-export const BOTTOM_SIZES = [4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+export const BOTTOM_SIZES = [4, 5, 6, 7, 8] as const;
 export const DEFAULT_BOTTOM_SIZE = 8;
 
 export const bottomFont = (id: string | null | undefined): BottomFont => BOTTOM_FONTS.find((f) => f.id === id) ?? BOTTOM_FONTS[0];

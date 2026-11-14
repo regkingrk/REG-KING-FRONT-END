@@ -200,9 +200,36 @@ export function PlateGL({
     const stopGlide = () => {
       if (lay) lay.from = null;
     };
+    // a surround part that has just been reached rises into place from behind, over 0.7s
+    const ENTER_MS = 700;
+    const enterStep = () => {
+      let busy = false;
+      const now = performance.now();
+      rig.traverse((o) => {
+        const e = o.userData.enter;
+        if (!e) return;
+        if (reduce) {
+          o.userData.enter = false;
+          return;
+        }
+        if (typeof e !== "object") o.userData.enter = { t0: now, y: o.position.y, z: o.position.z };
+        const st = o.userData.enter as { t0: number; y: number; z: number };
+        const p = Math.min(1, (now - st.t0) / ENTER_MS);
+        const k = 1 - Math.pow(1 - p, 3);
+        o.position.y = st.y - (1 - k) * 26;
+        o.position.z = st.z - (1 - k) * 22;
+        if (p >= 1) {
+          o.position.y = st.y;
+          o.position.z = st.z;
+          o.userData.enter = false;
+        } else busy = true;
+      });
+      return busy;
+    };
     const draw = () => {
       raf = 0;
       const laying = layStep();
+      const entering = enterStep();
       yaw += (tYaw - yaw) * 0.18;
       pitch += (tPitch - pitch) * 0.18;
       z += (tz - z) * 0.22;
@@ -213,7 +240,7 @@ export function PlateGL({
       renderer.render(scene, camera);
       onZoom.current(z);
       const moving = [tYaw - yaw, tPitch - pitch, tz - z, (tPanX - panX) / 100, (tPanY - panY) / 100].some((d) => Math.abs(d) > 0.0005);
-      if (moving || laying) raf = requestAnimationFrame(draw);
+      if (moving || laying || entering) raf = requestAnimationFrame(draw);
     };
     const ask = () => {
       if (!raf) raf = requestAnimationFrame(draw);

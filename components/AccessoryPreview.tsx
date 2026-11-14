@@ -245,10 +245,15 @@ export function SurroundPreview({
   label,
   shape = "standard",
   size = "standard",
-  focus,
+  built,
+  enter,
 }: {
-  /** The part being chosen, lit up in yellow. */
+  /** No longer drawn (it hid the colour being chosen); kept so older callers still compile. */
   focus?: "frame" | "strip" | "art" | null;
+  /** Which parts are on show so far: the surround builds up step by step (all shown if left out). */
+  built?: Record<"frame" | "strip" | "art", boolean>;
+  /** The part that has just appeared, which rises into place. */
+  enter?: "frame" | "strip" | "art" | null;
   style: SurroundStyle;
   design: SurroundDesign;
   side: "front" | "rear";
@@ -305,28 +310,40 @@ export function SurroundPreview({
   const lipFlag = artCategoryOf(design) === "country" ? artItem(design.item)?.flag : undefined;
   const lipLayers = lipFlag ? flagLipLayers(lipFlag, (G.tab ?? G.panel).map(([x, y]) => [X(x), Y(y)] as [number, number])) : null;
 
+  const on = (p: "frame" | "strip" | "art") => !built || built[p];
+  // framed: the body is the frame; frameless: the body is the strip's backing
+  const bodyPart = framed ? "frame" : "strip";
+  const partProps = (p: "frame" | "strip" | "art") => ({ className: "rk-sp-part", "data-enter": enter === p ? "" : undefined, style: on(p) ? undefined : { display: "none" } });
   return (
     <svg className="rk-acc-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label ?? `${framed ? "Framed" : "Frameless"} plate holder preview`}>
       <defs>
         <Defs id={id} />
       </defs>
 
-      {/* the holder (frame and tab, or backing and wing), with a soft shadow on the surface behind it */}
-      <g filter={`url(#${id}-shadow)`}>
-        <path d={body} fill={holder.fill} />
-        {under && <path d={under} fill={underPaint.fill} />}
+      {/* the holder (frame and tab, or backing and wing), with a soft shadow on the surface behind it;
+          each part shows once the customer reaches it */}
+      <g {...partProps(bodyPart)}>
+        <g filter={`url(#${id}-shadow)`}>
+          <path d={body} fill={holder.fill} />
+        </g>
+        {!framed && !bodyMatt && <path d={body} fill={`url(#${id}-gloss)`} />}
+        <path d={body} fill="none" stroke={shade(holder.base, lum(holder.base) > 0.5 ? -0.3 : 0.4)} strokeOpacity="0.55" strokeWidth="1.3" />
       </g>
-      {!framed && !bodyMatt && <path d={body} fill={`url(#${id}-gloss)`} />}
-      {under && !stripMatt && <path d={under} fill={`url(#${id}-gloss)`} />}
-      <path d={body} fill="none" stroke={shade(holder.base, lum(holder.base) > 0.5 ? -0.3 : 0.4)} strokeOpacity="0.55" strokeWidth="1.3" />
-      {under && <path d={under} fill="none" stroke={shade(underPaint.base, lum(underPaint.base) > 0.5 ? -0.3 : 0.4)} strokeOpacity="0.5" strokeWidth="1" />}
+      {under && (
+        <g {...partProps("strip")}>
+          <g filter={`url(#${id}-shadow)`}>
+            <path d={under} fill={underPaint.fill} />
+          </g>
+          {!stripMatt && <path d={under} fill={`url(#${id}-gloss)`} />}
+          <path d={under} fill="none" stroke={shade(underPaint.base, lum(underPaint.base) > 0.5 ? -0.3 : 0.4)} strokeOpacity="0.5" strokeWidth="1" />
+        </g>
+      )}
 
-      {/* framed: the 4D outline round the plate */}
+      {/* framed: the 4D outline round the plate, plain cut acrylic: a flat, solid outline */}
       {framed && (
-        <>
-          {/* the frame round the plate is plain cut 4D acrylic: a flat, solid outline */}
+        <g {...partProps("frame")}>
           <path d={rim} fill="none" stroke={frame.fill} strokeWidth="9" />
-        </>
+        </g>
       )}
 
       {/* the number plate, lifted slightly off the backing */}
@@ -340,7 +357,7 @@ export function SurroundPreview({
       </text>
 
       {/* a flag printed across the flat strip */}
-      {lipLayers && (
+      {lipLayers && on("art") && (
         <>
           <clipPath id={`${id}-lip`}>
             <path d={stripPath} />
@@ -355,14 +372,14 @@ export function SurroundPreview({
       )}
 
       {/* reflections across the gloss acrylic */}
-      {!framed && !bodyMatt && <path d={body} fill={`url(#${id}-streak)`} />}
+      {!framed && !bodyMatt && on("strip") && <path d={body} fill={`url(#${id}-streak)`} />}
 
       {/* lettering, a library design or the customer's own design, on the flat strip */}
-      {/* the part being chosen: a yellow wash and edge */}
-      {focus === "frame" && framed && <path d={`${body} ${plate}`} fill="rgba(255,194,0,0.6)" fillRule="evenodd" stroke="#ffd34d" strokeWidth="3" />}
-      {focus === "strip" && under && <path d={under} fill="rgba(255,194,0,0.6)" stroke="#ffd34d" strokeWidth="3" />}
-      {focus === "art" && <rect x={art.x} y={art.y} width={art.w} height={art.h} fill="rgba(255,194,0,0.45)" stroke="#ffd34d" strokeWidth="2.5" strokeDasharray="5 3" />}
-      {hasArt && !lipLayers && <ArtworkInBox a={design} x={art.x} y={art.y} w={art.w} h={art.h} colour={textFill} base={textSw.carbon ? "#2a2a2a" : textSw.hex} raised />}
+      {hasArt && !lipLayers && on("art") && (
+        <g {...partProps("art")}>
+          <ArtworkInBox a={design} x={art.x} y={art.y} w={art.w} h={art.h} colour={textFill} base={textSw.carbon ? "#2a2a2a" : textSw.hex} raised />
+        </g>
+      )}
     </svg>
   );
 }

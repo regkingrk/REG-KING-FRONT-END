@@ -39,6 +39,10 @@ import {
   type SurroundSize,
   type SurroundStyle,
   swatch,
+  CENTRE_CATS,
+  centreText,
+  type CentreCat,
+  type CentrePiece,
 } from "@/lib/accessories";
 import { ColourPicker } from "./ColourPicker";
 import { hexPoints } from "@/lib/builder";
@@ -53,7 +57,7 @@ const DESIGN_MAX_MB = 20;
 import { RealPhotos } from "./RealPhotos";
 import { ART_ITEMS, REGIONS, artItem, type ArtItem, type Region } from "@/lib/artLibrary";
 import { carLogo, carLogoSrc, carLogosFor, type CarLogo } from "@/lib/carLogos";
-import { VEHICLE_MAKES, OTHER_MODEL, modelsFor } from "@/lib/vehicles";
+import { VEHICLE_MAKES } from "@/lib/vehicles";
 import { surroundGeometry } from "@/lib/surroundShape";
 import { PlateGL } from "./PlateGL";
 import { canRender3D } from "@/lib/plate3d";
@@ -165,79 +169,123 @@ function artProblem(kind: ArtCategory | null, d: Artwork, rights = true): string
 /** Artwork check results in the three words customers see. */
 const CHECK_STATUS = { good: "Suitable", review: "Review required", poor: "Unsuitable" } as const;
 
-/** The customer's car: a searchable make, then its models (or Other, typed). For the order only. */
-function VehiclePick({ make, model, onPick, onDone }: { make: string; model: string; onPick: (make: string, model: string) => void; onDone: () => void }) {
-  const [q, setQ] = useState("");
-  const [other, setOther] = useState(() => (make && model && !modelsFor(make).includes(model) ? model : ""));
-  const typedOther = !!make && !!model && !modelsFor(make).includes(model);
-  const makes = VEHICLE_MAKES.filter((m) => m.toLowerCase().includes(q.trim().toLowerCase()));
+/**
+ * Centre piece item: what kind (Car Related, Country / Caste, Faith, Social Media, Custom Text, Other). Car
+ * Related takes the make from a list, the model typed, and an example picture. Every kind has a note, so the
+ * customer can say exactly what they want; our team prepares it and shows it on the proof.
+ */
+function CentrePick({ value, onChange, onDone, onSkip }: { value: CentrePiece | undefined; onChange: (p: CentrePiece | undefined) => void; onDone: () => void; onSkip: () => void }) {
+  const [fileErr, setFileErr] = useState("");
+  const p = value;
+  const put = (x: Partial<CentrePiece>) => p && onChange({ ...p, ...x });
+  const pick = (cat: CentreCat) => onChange({ cat, note: p?.note ?? "" });
+  const onFile = (f: File | undefined) => {
+    setFileErr("");
+    if (!f) return;
+    if (f.size > DESIGN_MAX_MB * 1024 * 1024) return setFileErr(`That file is over ${DESIGN_MAX_MB}MB. Try a smaller file.`);
+    if (!/\.(png|jpe?g|webp|heic|gif)$/i.test(f.name)) return setFileErr("Please choose a photo or picture: PNG, JPG, WEBP, HEIC or GIF.");
+    if (/\.heic$/i.test(f.name)) return put({ imageName: f.name, image: null }); // can't be shown here; the name goes on the order
+    const r = new FileReader();
+    r.onload = () => put({ imageName: f.name, image: String(r.result) });
+    r.readAsDataURL(f);
+  };
+  // Car and Custom Text have their own boxes; for the rest, the note is where they say what they want
+  const needsNote = !!p && p.cat !== "car" && p.cat !== "text";
+  const ready = !!p && (p.cat !== "car" || !!p.make) && (p.cat !== "text" || !!p.text?.trim()) && (!needsNote || !!p.note?.trim());
   return (
-    <div className="rk-art">
-      <p className="rk-bfine">For your order only. Choosing a make never adds its badge to your surround.</p>
-      <label className="rk-art__field rk-art__search">
-        <span>Manufacturer</span>
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search, for example BMW" data-b="sveh:q" />
-      </label>
-      <div className="rk-pills rk-pills--wrap" role="radiogroup" aria-label="Manufacturer">
-        {makes.map((m) => (
-          <button key={m} type="button" role="radio" aria-checked={make === m} aria-pressed={make === m} data-b={`sveh-make:${m}`} onClick={() => onPick(m, "")}>
-            {m}
+    <div className="rk-art rk-centre">
+      <div className="rk-choice rk-art__cats" role="radiogroup" aria-label="Centre piece item">
+        {CENTRE_CATS.map((x) => (
+          <button key={x.key} type="button" role="radio" aria-checked={p?.cat === x.key} data-b={`scentre:${x.key}`} onClick={() => pick(x.key)}>
+            <b>{x.name}</b>
           </button>
         ))}
-        <button type="button" role="radio" aria-checked={make === "Other"} aria-pressed={make === "Other"} data-b="sveh-make:Other" onClick={() => onPick("Other", "")}>
-          Other / not listed
-        </button>
       </div>
-      {make && make !== "Other" && (
+      {p?.cat === "car" && (
         <>
-          <span className="rk-art__l">Model</span>
-          <div className="rk-pills rk-pills--wrap" role="radiogroup" aria-label={`${make} model`}>
-            {modelsFor(make).map((m) => {
-              const on = m === OTHER_MODEL ? typedOther || (model === "" && other !== "") : model === m;
-              return (
-                <button key={m} type="button" role="radio" aria-checked={on} aria-pressed={on} data-b={`sveh-model:${m}`} onClick={() => onPick(make, m === OTHER_MODEL ? other || OTHER_MODEL : m)}>
+          <label className="rk-art__field">
+            <span>Make</span>
+            <select value={p.make ?? ""} onChange={(e) => put({ make: e.target.value })} data-b="scentre:make">
+              <option value="">Choose the make</option>
+              {VEHICLE_MAKES.map((m) => (
+                <option key={m} value={m}>
                   {m}
-                </button>
-              );
-            })}
-          </div>
+                </option>
+              ))}
+              <option value="Other">Other / not listed</option>
+            </select>
+          </label>
+          <label className="rk-art__field">
+            <span>Model</span>
+            <input value={p.model ?? ""} maxLength={60} onChange={(e) => put({ model: e.target.value })} placeholder="For example M3 Competition" data-b="scentre:model" />
+          </label>
+          <span className="rk-art__l">Example image (optional)</span>
+          <label className="rk-drop">
+            <input type="file" accept="image/*" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} data-b="scentre:image" />
+            {p.image ? <img className="rk-drop__thumb" src={p.image} alt="Your example image" /> : null}
+            <span className="rk-drop__t">{p.imageName ? p.imageName : "Drop a picture here, or choose one"}</span>
+            <span className="rk-drop__s">{p.imageName ? "Choose a different picture" : `A photo or screenshot of what you'd like, up to ${DESIGN_MAX_MB}MB`}</span>
+          </label>
+          {p.imageName && (
+            <button type="button" className="rk-blink rk-blink--sm" data-b="scentre:remove" onClick={() => put({ imageName: "", image: null })}>
+              Remove this picture
+            </button>
+          )}
+          {fileErr && (
+            <p className="rk-sellflow__err" role="alert">
+              {fileErr}
+            </p>
+          )}
         </>
       )}
-      {(make === "Other" || typedOther || model === OTHER_MODEL) && (
+      {p?.cat === "text" && (
         <label className="rk-art__field">
-          <span>{make === "Other" ? "Your make and model" : "Your model"}</span>
-          <input
-            value={other}
-            maxLength={60}
-            onChange={(e) => {
-              setOther(e.target.value);
-              onPick(make, e.target.value || OTHER_MODEL);
-            }}
-            placeholder={make === "Other" ? "For example Genesis GV70" : "Type your model"}
-            data-b="sveh:other"
+          <span>Your text</span>
+          <input value={p.text ?? ""} maxLength={30} onChange={(e) => put({ text: e.target.value })} placeholder="For example REG KING" data-b="scentre:text" />
+        </label>
+      )}
+      {p && (
+        <label className="rk-art__field rk-art__note">
+          <span>Note for our team{p.cat === "car" || p.cat === "text" ? " (optional)" : ""}</span>
+          <textarea
+            rows={3}
+            maxLength={400}
+            value={p.note ?? ""}
+            onChange={(e) => put({ note: e.target.value })}
+            placeholder={
+              p.cat === "social"
+                ? "Which platform and your username, for example TikTok @regking_"
+                : p.cat === "country"
+                  ? "Which country, flag or caste symbol you'd like"
+                  : p.cat === "faith"
+                    ? "Which symbol or words you'd like"
+                    : p.cat === "other"
+                      ? "Tell us what you'd like as your centre piece"
+                      : "Anything else, for example colours or spelling"
+            }
+            data-b="scentre:note"
           />
         </label>
       )}
       <div className="rk-bnextrow">
-        <button type="button" className="rk-bnext" data-b="sveh:done" disabled={!make || !model || model === OTHER_MODEL} onClick={onDone}>
-          {make && model && model !== OTHER_MODEL ? `Use ${make === "Other" ? model : `${make} ${model}`}` : "Choose your vehicle"}
+        <button type="button" className="rk-bnext" data-b="scentre:done" disabled={!ready} onClick={onDone}>
+          {!p ? "Choose a centre piece" : p.cat === "car" && !p.make ? "Choose the make" : p.cat === "text" && !p.text?.trim() ? "Type your text" : needsNote && !p.note?.trim() ? "Tell us what you'd like" : "Continue"}
         </button>
         <button
           type="button"
           className="rk-blink rk-blink--sm"
-          data-b="sveh:skip"
+          data-b="scentre:skip"
           onClick={() => {
-            onPick("", "");
-            onDone();
+            onChange(undefined);
+            onSkip();
           }}
         >
-          Skip
+          No centre piece
         </button>
       </div>
     </div>
   );
 }
-
 
 /** A brand logo as a small picture for its button: one-colour logos in dark ink, badges in their own colours. */
 function LogoThumb({ logo }: { logo: CarLogo }) {
@@ -669,7 +717,7 @@ export function SurroundCreator({
     rearSize: "Rear surround size",
     frame: "Frame: finish and colour",
     backing: framed ? "Strip: finish and colour" : "Surround: finish and colour",
-    vehicle: "Select your vehicle",
+    vehicle: "Centre piece item",
     art: "Your design",
   };
   const answerOf: Record<SurroundStep, string> = {
@@ -679,7 +727,7 @@ export function SurroundCreator({
     rearSize: sizeName(rearSize),
     frame: surroundColourName(d.surface, d.frame),
     backing: surroundColourName(stripSurfaceOf(d), d.backing),
-    vehicle: c.vehicleMake ? [c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ") : "Not given",
+    vehicle: c.centre ? centreText(c.centre) : c.vehicleMake ? [c.vehicleMake, c.vehicleModel].filter(Boolean).join(" ") : "None",
     art: artKind === "plain" ? "None" : `${ART_CATEGORIES.find((x) => x.key === artKind)?.name ?? ""}: ${artworkText(d)}`,
   };
   // everything answered, and (for an uploaded design) still confirmed and not marked unsuitable
@@ -828,7 +876,7 @@ export function SurroundCreator({
         );
       }
       case "vehicle":
-        return <VehiclePick make={c.vehicleMake ?? ""} model={c.vehicleModel ?? ""} onPick={(vehicleMake, vehicleModel) => set({ vehicleMake, vehicleModel })} onDone={() => answer("vehicle")} />;
+        return <CentrePick value={c.centre} onChange={(centre) => set({ centre, vehicleMake: undefined, vehicleModel: undefined })} onDone={() => answer("vehicle")} onSkip={() => answer("vehicle")} />;
       case "art":
         return artBody;
     }
@@ -888,15 +936,30 @@ export function SurroundCreator({
       cancelAnimationFrame(raf);
     };
   }, [compact]);
-  // light up the part of the surround the current step is about
-  const focus: SurroundFocus | null = shown === "frame" ? "frame" : shown === "backing" ? "strip" : shown === "art" ? "art" : null;
+  // the surround builds up as each step is reached: the frame, then the strip, then the design (the colours show
+  // as they're picked); the part just reached rises into place
+  const reached = (k: SurroundStep) => done.has(k) || shown === k || !steps.includes(k);
+  const built = { frame: framed && reached("frame"), strip: reached("backing"), art: reached("art") };
+  const builtKey = `${built.frame}${built.strip}${built.art}`;
+  const prevBuilt = useRef(built);
+  const [enter, setEnter] = useState<"frame" | "strip" | "art" | null>(null);
+  useEffect(() => {
+    const was = prevBuilt.current;
+    prevBuilt.current = built;
+    const fresh = (["frame", "strip", "art"] as const).find((k) => built[k] && !was[k]);
+    if (!fresh) return;
+    setEnter(fresh);
+    const t = window.setTimeout(() => setEnter(null), 800);
+    return () => window.clearTimeout(t);
+  }, [builtKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const focus: SurroundFocus | null = null;
   const views: SurroundView[] = style
     ? isSet
       ? [
-          { style, shape: c.shape, size: c.size, design: d, side: "front", reg, focus },
-          { style, shape: rearShape, size: rearSize, design: d, side: "rear", reg, focus },
+          { style, shape: c.shape, size: c.size, design: d, side: "front", reg, focus, built, enter },
+          { style, shape: rearShape, size: rearSize, design: d, side: "rear", reg, focus, built, enter },
         ]
-      : [{ style, shape: c.shape, size: c.size, design: d, side: "rear", reg, focus }]
+      : [{ style, shape: c.shape, size: c.size, design: d, side: "rear", reg, focus, built, enter }]
     : [];
   return (
     <div ref={accRef} className={`rk-acc${compact ? " rk-acc--compact" : " rk-acc--live"}`} id={compact ? undefined : "rk-surrounds"}>
@@ -925,20 +988,20 @@ export function SurroundCreator({
               {/* both drawn to the same scale, so a smaller rear surround looks smaller */}
               <div className="rk-acc__pv">
                 <div style={{ width: scaleW(c.size) }}>
-                  <SurroundPreview style={style} shape={c.shape} size={c.size} design={d} side="front" reg={reg} label="Front surround preview" focus={focus} />
+                  <SurroundPreview style={style} shape={c.shape} size={c.size} design={d} side="front" reg={reg} label="Front surround preview" built={built} enter={enter} />
                 </div>
                 <span>Front</span>
               </div>
               <div className="rk-acc__pv">
                 <div style={{ width: scaleW(rearSize) }}>
-                  <SurroundPreview style={style} shape={rearShape} size={rearSize} design={d} side="rear" reg={reg} label="Rear surround preview" focus={focus} />
+                  <SurroundPreview style={style} shape={rearShape} size={rearSize} design={d} side="rear" reg={reg} label="Rear surround preview" built={built} enter={enter} />
                 </div>
                 <span>Rear</span>
               </div>
             </div>
           ) : (
             <div className="rk-acc__one">
-              <SurroundPreview style={style} shape={c.shape} size={c.size} design={d} side="rear" reg={reg} focus={focus} />
+              <SurroundPreview style={style} shape={c.shape} size={c.size} design={d} side="rear" reg={reg} built={built} enter={enter} />
             </div>
           )}
         </div>

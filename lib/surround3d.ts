@@ -16,7 +16,23 @@ import { askRedraw, carLogo, carLogoCanvas } from "./carLogos";
 
 /** The part of the surround the customer is choosing for, lit up in the preview. */
 export type SurroundFocus = "frame" | "strip" | "art";
-export type SurroundView = { style: SurroundStyle; shape: SurroundShape; size: SurroundSize; design: SurroundDesign; side: "front" | "rear"; reg: string; focus?: SurroundFocus | null };
+/**
+ * `built`: which parts are on show so far (the surround builds up as the customer reaches each step; parts not
+ * reached yet are there but hidden, so the view doesn't shift as they appear). `enter`: the part that has just
+ * appeared, which rises into place. `focus` is no longer drawn (it hid the colour being chosen).
+ */
+export type SurroundPart = "frame" | "strip" | "art";
+export type SurroundView = {
+  style: SurroundStyle;
+  shape: SurroundShape;
+  size: SurroundSize;
+  design: SurroundDesign;
+  side: "front" | "rear";
+  reg: string;
+  focus?: SurroundFocus | null;
+  built?: Record<SurroundPart, boolean>;
+  enter?: SurroundPart | null;
+};
 
 const BACK_T = 4; // backing thickness, mm
 /** 4D acrylic thickness in the preview, mm. CONFIRM with REG KING's workshop. */
@@ -149,27 +165,45 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
   const flagMat = lipFlag ? lipFlagMaterial(lipFlag, strip, env) : null;
   const STRIP_BEVEL = framed ? 0.06 : 0.5;
 
+  // parts not reached yet stay hidden; the one just reached rises into place (PlateGL animates userData.enter)
+  const tagFrom = (n: number, part: SurroundPart) => {
+    for (const o of group.children.slice(n)) {
+      if (o.userData.part) continue;
+      o.userData.part = part;
+      if (v.built && !v.built[part]) o.visible = false;
+      else if (v.enter === part) o.userData.enter = true;
+    }
+  };
   if (G.frame) {
     // framed: the frame (border round the plate, and the tab under it) in the frame colour
     const frameMat = finish(d.frame, env, surface);
     // the frame is plain laser-cut acrylic, like a 4D letter: flat faces and crisp, straight-cut edges
+    let n = group.children.length;
     group.add(slab(outline(hex, G.frame.w, G.frame.h, G.frame.r, 0, G.frame.cy) as THREE.Shape, BACK_T, -back - BACK_T, frameMat, 0.06));
-    // the tab under the frame, flat, in its own colour
-    if (G.tab) group.add(slab(poly(G.tab), BACK_T, -back - BACK_T, flagMat ? [flagMat, stripMat] : stripMat, STRIP_BEVEL));
     // the outline round the plate: a 4D acrylic ring standing 3mm proud of the plate's face
     const rimShape = outline(hex, G.frame.w, PLATE_H + 14, G.frame.r, 0, 0) as THREE.Shape;
     rimShape.holes.push(outline(hex, plateW + 0.6, PLATE_H + 0.6, PLATE_CORNER_MM, 0, 0, new THREE.Path()) as THREE.Path);
     group.add(slab(rimShape, PLATE_THICKNESS + 3, -back, frameMat, 0.06));
+    tagFrom(n, "frame");
+    // the tab under the frame, flat, in its own colour
+    n = group.children.length;
+    if (G.tab) group.add(slab(poly(G.tab), BACK_T, -back - BACK_T, flagMat ? [flagMat, stripMat] : stripMat, STRIP_BEVEL));
+    tagFrom(n, "strip");
   } else {
     // frameless: the backing behind the plate, and the flat strip under it (wing and centre as one surface)
+    const n = group.children.length;
     group.add(slab(outline(hex, plateW, PLATE_H, PLATE_CORNER_MM) as THREE.Shape, BACK_T, -back - BACK_T, stripMat, 0.4));
     if (G.wing) group.add(slab(poly(G.wing), BACK_T, -back - BACK_T, stripMat, STRIP_BEVEL));
     group.add(slab(poly(G.panel), BACK_T, -back - BACK_T, flagMat ? [flagMat, stripMat] : stripMat, STRIP_BEVEL));
+    tagFrom(n, "strip");
   }
 
   // the number plate itself (printed, as on the plate builder)
   const spec: PlateSpec = { reg: (v.reg || "YOUR REG").toUpperCase(), side: isBikeSize(sz) ? "rear" : v.side, look: "printed", styleName: "Printed", extras: [], w: plateW, h: PLATE_H, hex, bike: isBikeSize(sz) };
-  group.add(buildPlate(spec, softEnv, acrylicEnv));
+  const plateObj = buildPlate(spec, softEnv, acrylicEnv);
+  plateObj.userData.part = "plate";
+  group.add(plateObj);
+  const artFrom = group.children.length;
 
   // the artwork sits straight on the strip's flat face
   const faceZ = -back + STRIP_BEVEL;
@@ -222,46 +256,6 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
   };
   // car brands: the brand's own logo (one-colour logos in the chosen colour, badges in their own), else its name
   const brand = d.make ? `${d.make}${d.badge && d.badge !== "Logo only" ? ` ${d.badge}` : ""}` : "";
-  // the part being chosen: a yellow wash over it and a yellow edge round it
-  if (v.focus) {
-    const glow = new THREE.MeshBasicMaterial({ color: 0xffc200, transparent: true, opacity: 0.62, depthWrite: false, toneMapped: false });
-    const edge = new THREE.LineBasicMaterial({ color: 0xffd34d, toneMapped: false });
-    const mark = (shape: THREE.Shape, z: number) => {
-      const fill = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), glow);
-      fill.position.z = z;
-      fill.renderOrder = 5;
-      group.add(fill);
-      const pts = shape.getPoints(24);
-      // a few loops side by side, so the edge reads as a line rather than a hairline
-      for (const [dx, dy] of [[0, 0], [0.6, 0], [-0.6, 0], [0, 0.6], [0, -0.6]]) {
-        const loop = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts.map((q) => new THREE.Vector3(q.x + dx, q.y + dy, 0))), edge);
-        loop.position.z = z + 0.05;
-        loop.renderOrder = 6;
-        group.add(loop);
-      }
-      shape.holes.forEach((h) => {
-        const hl = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(h.getPoints(24).map((q) => new THREE.Vector3(q.x, q.y, 0))), edge);
-        hl.position.z = z + 0.05;
-        group.add(hl);
-      });
-    };
-    if (v.focus === "frame" && G.frame) {
-      const ring = outline(hex, G.frame.w, G.frame.h, G.frame.r, 0, G.frame.cy) as THREE.Shape;
-      ring.holes.push(outline(hex, plateW + 0.6, PLATE_H + 0.6, PLATE_CORNER_MM, 0, 0, new THREE.Path()) as THREE.Path);
-      mark(ring, -back + PLATE_THICKNESS + 3.3);
-    } else if (v.focus === "strip") {
-      mark(poly(strip), faceZ + 0.2);
-      if (G.wing) mark(poly(G.wing), faceZ + 0.2);
-    } else if (v.focus === "art") {
-      const r = new THREE.Shape();
-      r.moveTo(a.cx - a.w / 2, a.cy - a.h / 2);
-      r.lineTo(a.cx + a.w / 2, a.cy - a.h / 2);
-      r.lineTo(a.cx + a.w / 2, a.cy + a.h / 2);
-      r.lineTo(a.cx - a.w / 2, a.cy + a.h / 2);
-      r.closePath();
-      mark(r, faceZ + 3.6);
-    }
-  }
   if (cat === "text" && d.text.trim()) words(d.text.trim(), d.font ?? "plate");
   else if (cat === "car" && carLogo(d.carLogo)) {
     const logo = carLogo(d.carLogo)!;
@@ -291,5 +285,7 @@ export function buildSurround(v: SurroundView, softEnv?: THREE.Texture, acrylicE
     if (d.artFinish === "acrylic") raisedPicture(tex, aspect);
     else picture(tex, aspect);
   }
+  // everything added after the plate is the design on the strip
+  tagFrom(artFrom, "art");
   return group;
 }
