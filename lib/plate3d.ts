@@ -636,9 +636,9 @@ export function studioEnvironment(renderer: THREE.WebGLRenderer, strips = true):
  * flat tops, facing the viewer, stay black) with big bright softboxes above and to each side (so the
  * facets facing up and sideways light up silver), and a dark floor (so those facing down stay black).
  */
-export function acrylicEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
+export function acrylicEnvironment(renderer: THREE.WebGLRenderer, bright = false): THREE.Texture {
   const scene = new THREE.Scene();
-  scene.add(new THREE.Mesh(new THREE.SphereGeometry(8, 32, 16), new THREE.MeshBasicMaterial({ color: 0x0a0a0a, side: THREE.BackSide })));
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(8, 32, 16), new THREE.MeshBasicMaterial({ color: bright ? 0x4a4a4e : 0x0a0a0a, side: THREE.BackSide })));
   const panel = (w: number, h: number, x: number, y: number, z: number, intensity: number) => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(intensity), side: THREE.DoubleSide }));
     m.position.set(x, y, z);
@@ -648,6 +648,13 @@ export function acrylicEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture
   // One light only: a big softbox up and to the left, the same direction as the key light. Facets
   // facing it light up, the rest fall into shade, as under a single light.
   panel(7, 4, -3.2, 4.2, 4.2, 3.4);
+  if (bright) {
+    // the in-store studio: more softboxes (right, high front, low left) so every facet shows
+    // some light and the letters can be seen from across the shop
+    panel(6, 4, 3.6, 3.2, 4.2, 2.6);
+    panel(8, 3, 0, 5.2, 5, 2.2);
+    panel(5, 3, -4.5, -1.2, 4, 1.6);
+  }
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = pmrem.fromScene(scene, 0.015).texture;
   pmrem.dispose();

@@ -120,7 +120,7 @@ export function PlateGL({
     const prepared: THREE.Material[] = [];
     scene.environment = studioEnvironment(renderer);
     softEnv.current = studioEnvironment(renderer, false);
-    acrylicEnv.current = acrylicEnvironment(renderer);
+    acrylicEnv.current = acrylicEnvironment(renderer, boost > 1);
     // One light: a spotlight in front of the plates, slightly above, throwing a soft circle of light
     // that's brightest in the middle and fades towards the plates' ends
     const key = new THREE.SpotLight(0xffffff, 2.6, 0, 0.36, 0.6, 0);
