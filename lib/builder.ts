@@ -155,6 +155,8 @@ const IMPORT_LEGAL: SizeOption[] = [
 const IMPORT_SHOW: SizeOption[] = [
   { key: "13x6.5", label: "Jap import 13 × 6.5", group: "Imports", w: 13 * IN, h: 6.5 * IN },
   { key: "13x6", label: "Jap import 13 × 6", group: "Imports", w: 13 * IN, h: 6 * IN },
+  // two lines on a short plate, split at the space in the reg (AK11F on top, YK underneath)
+  { key: "8x6", label: "8 × 6, two lines", group: "Two lines", w: 8 * IN, h: 6 * IN },
 ];
 const BIKE_LEGAL: SizeOption[] = [{ key: "9x7", label: "9 × 7", group: "Bike", w: 9 * IN, h: 7 * IN }];
 const BIKE_SHOW: SizeOption[] = [...BIKE_LEGAL, { key: "8x6", label: "8 × 6", group: "Bike", w: 8 * IN, h: 6 * IN }, { key: "5x7", label: "5 × 7", group: "Bike", w: 5 * IN, h: 7 * IN }];
